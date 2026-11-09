@@ -12,14 +12,18 @@ package it.palestra;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
+import it.palestra.model.Abbonamento;
 import it.palestra.model.Corso;
 import it.palestra.model.Livello;
 import it.palestra.model.Ruolo;
+import it.palestra.model.TipoAbbonamento;
 import it.palestra.model.Utente;
+import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +54,7 @@ abstract class BaseWebTest {
     @Autowired protected UtenteRepository utenti;
     @Autowired protected CorsoRepository corsi;
     @Autowired protected RuoloRepository ruoli;
+    @Autowired protected AbbonamentoRepository abbonamenti;
     @Autowired protected PasswordEncoder encoder;
     @Autowired protected EntityManager em;   // serve a "svuotare" la cache di Hibernate (vedi ricarica())
 
@@ -78,6 +83,13 @@ abstract class BaseWebTest {
     // Crea e salva un corso di prova.
     protected Corso creaCorso(String nome) {
         return corsi.save(new Corso(nome, "Descrizione di prova", 60, Livello.PRINCIPIANTE));
+    }
+
+    // Crea e salva un abbonamento che parte il giorno indicato (fine e prezzo li calcola il costruttore).
+    // NOTA: salvando DIRETTAMENTE dal repository non passiamo dalle regole del service (niente passato, niente
+    // sovrapposizioni): per questo qui si possono creare anche abbonamenti già scaduti, utili per i test.
+    protected Abbonamento creaAbbonamento(Utente utente, TipoAbbonamento tipo, LocalDate inizio) {
+        return abbonamenti.save(new Abbonamento(utente, tipo, inizio));
     }
 
     // L'admin creato all'avvio (l'unico ADMIN presente a inizio di ogni test).

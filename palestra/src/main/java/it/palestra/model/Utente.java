@@ -78,6 +78,11 @@ public class Utente {
         return ruoli.stream().anyMatch(r -> Ruolo.ADMIN.equals(r.getNome()));
     }
 
+    // True se l'utente ha il ruolo ISCRITTO (quindi può avere degli abbonamenti).
+    public boolean isIscritto() {
+        return ruoli.stream().anyMatch(r -> Ruolo.ISCRITTO.equals(r.getNome()));
+    }
+
     // True se l'utente ha il ruolo ISTRUTTORE (quindi può essere assegnato come istruttore di un corso).
     public boolean isIstruttore() {
         return ruoli.stream().anyMatch(r -> Ruolo.ISTRUTTORE.equals(r.getNome()));

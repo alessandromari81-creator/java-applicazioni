@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: abbonamenti/lista.html
+  A COSA SERVE: elenco di tutti gli abbonamenti (iscritto, tipo, periodo, prezzo, stato) con il pulsante per
+  eliminare quelli non ancora iniziati. Mostrata da AbbonamentoController.lista().
+  Riceve: "abbonamenti" (lista, con l'utente già caricato), "oggi" (la data di oggi, per calcolare lo stato),
+  "admin" e i messaggi flash (li mostra il layout). Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Abbonamenti</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <div class="top">
+      <h1>Abbonamenti</h1>
+      <a class="btn" th:href="@{/abbonamenti/nuovo}">+ Nuovo abbonamento</a>
+    </div>
+
+    <!--/* Spiegazione visibile delle regole: le stesse scritte nei commenti di AbbonamentoService. */-->
+    <p class="aiuto-blocco">
+      Solo gli utenti con ruolo <strong>ISCRITTO</strong> possono avere un abbonamento. La data di fine e il prezzo si
+      calcolano dal tipo (mensile, trimestrale, annuale). Un iscritto non può avere due abbonamenti che si
+      sovrappongono: il rinnovo parte dal giorno dopo la scadenza. Si possono eliminare solo gli abbonamenti
+      <strong>non ancora iniziati</strong>; quelli attivi e scaduti restano nello storico.
+    </p>
+
+    <table>
+      <thead><tr><th>Iscritto</th><th>Tipo</th><th>Dal</th><th>Al</th><th>Prezzo</th><th>Stato</th><th></th></tr></thead>
+      <tbody>
+        <!--/* th:each = @foreach. th:with definisce una variabile locale: "stato" è lo stato di QUESTO abbonamento
+               rispetto a oggi (a.stato(oggi) chiama il metodo di Abbonamento; non è salvato nel database). */-->
+        <tr th:each="a : ${abbonamenti}" th:with="stato=${a.stato(oggi)}">
+          <!--/* Il nome è un link alla pagina degli abbonamenti di quell'utente (storico, rinnovo, eliminazione). */-->
+          <td><a class="link-abbonamenti" th:href="@{/abbonamenti/utente/{id}(id=${a.utente.id})}" th:text="${a.utente.cognome + ' ' + a.utente.nome}"></a></td>
+          <td th:text="${a.tipo.etichetta}"></td>
+          <!--/* #temporals.format formatta una data: qui giorno/mese/anno. */-->
+          <td th:text="${#temporals.format(a.dataInizio, 'dd/MM/yyyy')}"></td>
+          <td th:text="${#temporals.format(a.dataFine, 'dd/MM/yyyy')}"></td>
+          <!--/* #numbers.formatDecimal(numero, cifre intere minime, separatore migliaia, decimali, separatore decimali):
+                 105 -> "105,00". Il prezzo è un BigDecimal, quindi esatto. */-->
+          <td th:text="${#numbers.formatDecimal(a.prezzo, 1, 'POINT', 2, 'COMMA') + ' €'}"></td>
+          <!--/* La classe CSS dipende dallo stato (stato-attivo, stato-futuro, stato-scaduto): colori diversi. */-->
+          <td><span class="tag" th:classappend="${'stato-' + stato.name().toLowerCase()}" th:text="${stato.etichetta}"></span></td>
+          <td class="col-azioni">
+            <!--/* I pulsanti stanno in un <div class="azioni"> DENTRO la cella: la classe .azioni usa display:flex,
+                   e applicata direttamente a un <td> la romperebbe come cella di tabella (le colonne sbordavano). */-->
+            <div class="azioni">
+              <!--/* Il pulsante Elimina c'è SOLO per gli abbonamenti non ancora iniziati. Il server controlla comunque
+                     la regola (AbbonamentoService.elimina): nascondere il pulsante è solo un aiuto visivo. */-->
+              <form th:if="${stato.name() == 'FUTURO'}" th:action="@{/abbonamenti/{id}/elimina(id=${a.id})}" method="post"
+                    onsubmit="return confirm('Eliminare questo abbonamento?')">
+                <button type="submit" class="btn-danger">Elimina</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr th:if="${abbonamenti.isEmpty()}"><td colspan="7">Nessun abbonamento.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+</body>
+</html>

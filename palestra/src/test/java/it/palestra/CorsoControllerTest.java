@@ -88,6 +88,19 @@ class CorsoControllerTest extends BaseWebTest {
     }
 
     @Test
+    @DisplayName("Una durata che non è un numero dà un messaggio comprensibile, non un errore tecnico")
+    void durataNonNumerica() throws Exception {
+        mockMvc.perform(post("/corsi").with(comeAdmin()).with(csrf())
+                        .param("nome", "Zumba")
+                        .param("durataMinuti", "abc")            // non si può convertire in numero
+                        .param("livello", "AVANZATO"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrorCode("corsoForm", "durataMinuti", "typeMismatch"))
+                // Il testo viene da src/main/resources/messages.properties (prima era un messaggio tecnico in inglese).
+                .andExpect(content().string(containsString("Valore non valido")));
+    }
+
+    @Test
     @DisplayName("Modificare un corso aggiorna i dati")
     void modificareUnCorso() throws Exception {
         Corso yoga = creaCorso("Yoga");

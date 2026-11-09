@@ -11,6 +11,7 @@ import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Corso;
 import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
+import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
@@ -35,14 +36,16 @@ public class UtenteService {
     private final UtenteRepository utenti;
     private final CorsoRepository corsi;
     private final RuoloRepository ruoli;
+    private final AbbonamentoRepository abbonamenti;
     private final PasswordEncoder encoder;
 
     // Dependency injection: Spring vede i parametri del costruttore e passa gli oggetti giusti.
-    public UtenteService(UtenteRepository utenti, CorsoRepository corsi,
-                         RuoloRepository ruoli, PasswordEncoder encoder) {
+    public UtenteService(UtenteRepository utenti, CorsoRepository corsi, RuoloRepository ruoli,
+                         AbbonamentoRepository abbonamenti, PasswordEncoder encoder) {
         this.utenti = utenti;
         this.corsi = corsi;
         this.ruoli = ruoli;
+        this.abbonamenti = abbonamenti;
         this.encoder = encoder;
     }
 
@@ -133,7 +136,8 @@ public class UtenteService {
     // Aggiorna un utente esistente. Non serve save(): l'entità caricata è "gestita" da Hibernate, che a fine
     // transazione vede le modifiche e fa l'UPDATE da solo. Prima controlla due cose:
     //  1) non si toglie ADMIN all'ultimo amministratore (nessuno potrebbe più entrare nel pannello);
-    //  2) non si toglie ISTRUTTORE a chi tiene ancora dei corsi: resterebbero con un "istruttore" che non lo è più.
+    //  2) non si toglie ISTRUTTORE a chi tiene ancora dei corsi: resterebbero con un "istruttore" che non lo è più;
+    //  3) non si toglie ISCRITTO a chi ha abbonamenti registrati: solo gli iscritti possono averne.
     public Utente modifica(Long id, UtenteForm form) {
         Utente u = trova(id);
         if (u.isAdmin() && !contieneRuolo(form.getRuoliIds(), Ruolo.ADMIN)
@@ -144,17 +148,28 @@ public class UtenteService {
             throw new IllegalStateException("Non puoi togliere il ruolo ISTRUTTORE: tiene ancora "
                     + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
         }
+        if (u.isIscritto() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISCRITTO)
+                && abbonamenti.countByUtenteId(id) > 0) {
+            throw new IllegalStateException("Non puoi togliere il ruolo ISCRITTO: ha "
+                    + abbonamenti.countByUtenteId(id) + " abbonamenti registrati");
+        }
         return applica(u, form);
     }
 
     // Elimina l'utente (DELETE) e le sue righe nelle pivot (corsi e ruoli); i corsi e i ruoli restano.
-    // Rifiuta se è l'ultimo admin (nessuno potrebbe più entrare nel pannello) o se tiene dei corsi (la colonna
-    // corso.istruttore_id punterebbe a un utente che non esiste più, e il database lo vieterebbe).
+    // Rifiuta se è l'ultimo admin (nessuno potrebbe più entrare nel pannello), se tiene dei corsi (la colonna
+    // corso.istruttore_id punterebbe a un utente che non esiste più, e il database lo vieterebbe) o se ha
+    // abbonamenti registrati (lo storico dei pagamenti non si perde).
     public void elimina(Long id) {
         Utente u = trova(id);
         if (!u.getCorsiInsegnati().isEmpty()) {
             throw new IllegalStateException("Impossibile eliminare: è istruttore di "
                     + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
+        }
+        long numeroAbbonamenti = abbonamenti.countByUtenteId(id);
+        if (numeroAbbonamenti > 0) {
+            throw new IllegalStateException("Impossibile eliminare: ha " + numeroAbbonamenti
+                    + " abbonamenti registrati (restano nello storico)");
         }
         if (u.isAdmin() && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
             throw new IllegalStateException("Impossibile eliminare l'ultimo amministratore");

@@ -38,12 +38,16 @@
           <!--/* Istruttore del corso, oppure un trattino se non è ancora assegnato. L'istruttore è già caricato
                  insieme al corso (@EntityGraph in CorsoRepository), quindi non parte una query per ogni riga. */-->
           <td th:text="${c.istruttore != null} ? ${c.istruttore.cognome + ' ' + c.istruttore.nome} : '–'"></td>
-          <td class="azioni">
-            <a class="btn btn-sec" th:href="@{/corsi/{id}/modifica(id=${c.id})}">Modifica</a>
-            <form th:action="@{/corsi/{id}/elimina(id=${c.id})}" method="post"
-                  onsubmit="return confirm('Eliminare questo corso?')">
-              <button type="submit" class="btn-danger">Elimina</button>
-            </form>
+          <td class="col-azioni">
+            <!--/* I pulsanti stanno in un <div class="azioni"> DENTRO la cella: la classe .azioni usa display:flex,
+                   e applicata direttamente a un <td> la romperebbe come cella di tabella (le colonne sbordavano). */-->
+            <div class="azioni">
+              <a class="btn btn-sec" th:href="@{/corsi/{id}/modifica(id=${c.id})}">Modifica</a>
+              <form th:action="@{/corsi/{id}/elimina(id=${c.id})}" method="post"
+                    onsubmit="return confirm('Eliminare questo corso?')">
+                <button type="submit" class="btn-danger">Elimina</button>
+              </form>
+            </div>
           </td>
         </tr>
         <tr th:if="${corsi.isEmpty()}"><td colspan="6">Nessun corso.</td></tr>

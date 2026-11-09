@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: abbonamenti/form.html
+  A COSA SERVE: form per creare un abbonamento (o un RINNOVO). Mostrata da AbbonamentoController (GET /abbonamenti/nuovo).
+  Riceve: "abbonamentoForm" (dati ed errori), "iscritti" (gli utenti con ruolo ISCRITTO) e "tipi" (i tipi con
+  durata e prezzo di listino). Usa il layout layout/base.html.
+  Arrivando dal pulsante "Abbonamento" di un utente, l'iscritto è già scelto e la data di inizio è già il primo
+  giorno libero (oggi, oppure il giorno dopo la scadenza dell'abbonamento in corso).
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Nuovo abbonamento</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card card-stretta">
+    <h1>Nuovo abbonamento</h1>
+    <p class="aiuto-blocco">
+      Scegli l'iscritto, il tipo e il giorno di inizio. La <strong>data di fine</strong> e il <strong>prezzo</strong> si
+      calcolano da soli dal tipo (il prezzo viene salvato sull'abbonamento, quindi un futuro cambio di listino non lo
+      modifica). La data di inizio non può essere nel passato e il periodo non può sovrapporsi a un altro abbonamento
+      dello stesso iscritto: per un <strong>rinnovo</strong> parti dal giorno dopo la scadenza.
+    </p>
+
+    <form th:object="${abbonamentoForm}" th:action="@{/abbonamenti}" method="post">
+
+      <!--/* Tendina dell'iscritto: solo utenti con ruolo ISCRITTO (preparata da AbbonamentoController). Il server
+             ricontrolla il ruolo (AbbonamentoService.erroreSulUtente): la tendina da sola non basta come protezione. */-->
+      <label for="utenteId">Iscritto</label>
+      <select id="utenteId" th:field="*{utenteId}">
+        <option value="">-- scegli --</option>
+        <option th:each="u : ${iscritti}" th:value="${u.id}" th:text="${u.cognome + ' ' + u.nome}"></option>
+      </select>
+      <div class="campo-err" th:errors="*{utenteId}"></div>
+
+      <!--/* Tendina del tipo: una voce per ogni valore dell'enum TipoAbbonamento, con durata e prezzo di listino. */-->
+      <label for="tipo">Tipo</label>
+      <select id="tipo" th:field="*{tipo}">
+        <option value="">-- scegli --</option>
+        <option th:each="t : ${tipi}" th:value="${t}"
+                th:text="${t.etichetta + ' (' + t.mesi + (t.mesi == 1 ? ' mese, ' : ' mesi, ') + #numbers.formatDecimal(t.prezzoListino, 1, 'POINT', 2, 'COMMA') + ' €)'}"></option>
+      </select>
+      <div class="campo-err" th:errors="*{tipo}"></div>
+
+      <!--/* <input type="date">: il browser mostra un calendario e invia la data come aaaa-mm-gg (che è il formato
+             atteso da AbbonamentoForm.dataInizio). th:field la precompila. */-->
+      <label for="dataInizio">Data di inizio</label>
+      <input type="date" id="dataInizio" th:field="*{dataInizio}">
+      <small class="aiuto">Non nel passato. Se l'iscritto ha già un abbonamento, è precompilata con il primo giorno libero.</small>
+      <div class="campo-err" th:errors="*{dataInizio}"></div>
+
+      <p>
+        <button type="submit">Crea abbonamento</button>
+        <a class="btn btn-sec" th:href="@{/abbonamenti}">Annulla</a>
+      </p>
+    </form>
+  </div>
+</main>
+
+</body>
+</html>

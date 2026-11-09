@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: abbonamenti/utente.html
+  A COSA SERVE: la pagina degli abbonamenti di UN singolo utente: il suo storico (dal più recente), il pulsante per
+  eliminare quelli non ancora iniziati e il form per aggiungerne uno nuovo o un rinnovo.
+  Ci si arriva dal link nella colonna "Abbonamento" della lista utenti. Mostrata da AbbonamentoController.perUtente().
+  Riceve: "utente" (l'utente della pagina), "abbonamenti" (il suo storico), "oggi" (per gli stati), "tipi" (i tipi
+  disponibili), "abbonamentoForm" (dati ed errori del form), "admin". Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Abbonamenti utente</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <div class="top">
+      <h1>Abbonamenti di <span th:text="${utente.cognome + ' ' + utente.nome}"></span></h1>
+      <a class="btn btn-sec" th:href="@{/utenti}">← Utenti</a>
+    </div>
+    <p class="aiuto-blocco" th:text="${utente.email}"></p>
+
+    <!--/* Se l'utente NON ha il ruolo ISCRITTO non può avere abbonamenti: lo si spiega e non si mostra il form.
+           (Se ne avesse già, non potrebbe aver perso il ruolo: UtenteService lo impedisce.) */-->
+    <div class="err" th:unless="${utente.isIscritto()}">
+      Questo utente non ha il ruolo ISCRITTO, quindi non può avere abbonamenti. Puoi assegnargli il ruolo dalla pagina di modifica dell'utente.
+    </div>
+
+    <p class="aiuto-blocco">
+      La data di fine e il prezzo si calcolano dal tipo. Non si possono avere due abbonamenti che si sovrappongono: un
+      <strong>rinnovo</strong> parte dal giorno dopo la scadenza. Si possono eliminare solo gli abbonamenti
+      <strong>non ancora iniziati</strong>; quelli attivi e scaduti restano nello storico.
+    </p>
+
+    <h2>Storico</h2>
+    <table>
+      <thead><tr><th>Tipo</th><th>Dal</th><th>Al</th><th>Prezzo</th><th>Stato</th><th></th></tr></thead>
+      <tbody>
+        <tr th:each="a : ${abbonamenti}" th:with="stato=${a.stato(oggi)}">
+          <td th:text="${a.tipo.etichetta}"></td>
+          <td th:text="${#temporals.format(a.dataInizio, 'dd/MM/yyyy')}"></td>
+          <td th:text="${#temporals.format(a.dataFine, 'dd/MM/yyyy')}"></td>
+          <td th:text="${#numbers.formatDecimal(a.prezzo, 1, 'POINT', 2, 'COMMA') + ' €'}"></td>
+          <td><span class="tag" th:classappend="${'stato-' + stato.name().toLowerCase()}" th:text="${stato.etichetta}"></span></td>
+          <td class="col-azioni">
+            <div class="azioni">
+              <!--/* Elimina solo se non ancora iniziato (il server ricontrolla). "daUtente" fa tornare QUI dopo
+                     l'eliminazione, invece che all'elenco generale degli abbonamenti. */-->
+              <form th:if="${stato.name() == 'FUTURO'}" th:action="@{/abbonamenti/{id}/elimina(id=${a.id})}" method="post"
+                    onsubmit="return confirm('Eliminare questo abbonamento?')">
+                <input type="hidden" name="daUtente" value="true">
+                <button type="submit" class="btn-danger">Elimina</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr th:if="${abbonamenti.isEmpty()}"><td colspan="6">Nessun abbonamento registrato.</td></tr>
+      </tbody>
+    </table>
+
+    <!--/* Il form di creazione/rinnovo solo per gli iscritti. th:object lega il form a AbbonamentoForm. L'utente NON
+           è un campo scelto dall'utente: il server lo ricava dall'indirizzo della pagina (/abbonamenti/utente/{id}) e
+           ignora qualunque altro valore inviato. Il campo nascosto serve solo a far passare la validazione @NotNull. */-->
+    <th:block th:if="${utente.isIscritto()}">
+      <h2>Nuovo abbonamento / rinnovo</h2>
+      <form class="form-stretto" th:object="${abbonamentoForm}" th:action="@{/abbonamenti/utente/{id}(id=${utente.id})}" method="post">
+        <input type="hidden" name="utenteId" th:value="${utente.id}">
+        <div class="campo-err" th:errors="*{utenteId}"></div>
+
+        <label for="tipo">Tipo</label>
+        <select id="tipo" th:field="*{tipo}">
+          <option value="">-- scegli --</option>
+          <option th:each="t : ${tipi}" th:value="${t}"
+                  th:text="${t.etichetta + ' (' + t.mesi + (t.mesi == 1 ? ' mese, ' : ' mesi, ') + #numbers.formatDecimal(t.prezzoListino, 1, 'POINT', 2, 'COMMA') + ' €)'}"></option>
+        </select>
+        <div class="campo-err" th:errors="*{tipo}"></div>
+
+        <label for="dataInizio">Data di inizio</label>
+        <input type="date" id="dataInizio" th:field="*{dataInizio}">
+        <small class="aiuto">Precompilata con il primo giorno libero: oggi, oppure il giorno dopo la scadenza dell'abbonamento in corso.</small>
+        <div class="campo-err" th:errors="*{dataInizio}"></div>
+
+        <p><button type="submit">Aggiungi abbonamento</button></p>
+      </form>
+    </th:block>
+  </div>
+</main>
+
+</body>
+</html>

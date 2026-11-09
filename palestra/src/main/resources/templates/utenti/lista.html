@@ -7,6 +7,8 @@
   Riceve dal controller: "utenti" (lista), "admin" (nome loggato), "messaggio" (flash, opzionale: lo mostra il layout).
   Per ogni utente mostra: ruoli, corsi che FREQUENTA come iscritto (u.corsi) e corsi che TIENE come istruttore
   (u.corsiInsegnati). Sono due relazioni diverse con la stessa tabella corso.
+  Per gli iscritti mostra anche lo stato del loro abbonamento: la mappa "abbonamenti" (id utente -> l'abbonamento più
+  significativo) e "oggi" arrivano dal controller.
   Usa il layout layout/base.html (come @extends): barra e <head> arrivano da lì.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
@@ -33,10 +35,12 @@
       <strong>Corsi (iscritto)</strong>: i corsi che l'utente frequenta come allievo.
       <strong>Insegna</strong>: i corsi che tiene come istruttore (solo per chi ha il ruolo ISTRUTTORE; si assegnano dalla pagina Corsi).
       Un istruttore non può essere iscritto come allievo a un corso che tiene lui stesso.
+      <strong>Abbonamento</strong>: solo per gli iscritti; mostra quello attivo, il prossimo o l'ultimo scaduto.
+      Cliccandoci si apre la pagina degli abbonamenti di quell'utente, dove si vede lo storico e se ne aggiunge uno nuovo o un rinnovo.
     </p>
 
     <table>
-      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Ruoli</th><th>Corsi (iscritto)</th><th>Insegna</th><th></th></tr></thead>
+      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Ruoli</th><th>Corsi (iscritto)</th><th>Insegna</th><th>Abbonamento</th><th></th></tr></thead>
       <tbody>
         <!--/* th:each = @foreach: ripete la riga per ogni utente della lista. */-->
         <tr th:each="u : ${utenti}">
@@ -59,18 +63,38 @@
             <em th:if="${u.isIstruttore() and u.corsiInsegnati.isEmpty()}">nessun corso ancora</em>
             <span th:unless="${u.isIstruttore()}">–</span>
           </td>
-          <td class="azioni">
-            <!--/* Link di modifica: l'id viene inserito nel percorso /utenti/{id}/modifica. */-->
-            <a class="btn btn-sec" th:href="@{/utenti/{id}/modifica(id=${u.id})}">Modifica</a>
-            <!--/* Eliminazione con POST; confirm() del browser chiede conferma prima dell'invio. */-->
-            <form th:action="@{/utenti/{id}/elimina(id=${u.id})}" method="post"
-                  onsubmit="return confirm('Eliminare questo utente?')">
-              <button type="submit" class="btn-danger">Elimina</button>
-            </form>
+          <!--/* ABBONAMENTO: solo per chi ha il ruolo ISCRITTO. abbonamenti.get(u.id) è il più significativo di quel
+                 utente, oppure null se non ne ha. th:if si valuta PRIMA di th:with (ordine degli attributi di
+                 Thymeleaf), per questo il secondo blocco può usare la variabile "a" definita dal primo. */-->
+          <td>
+            <!--/* Per gli iscritti la cella è un LINK alla pagina dei suoi abbonamenti (/abbonamenti/utente/{id}):
+                   mostra lo stato e il periodo di quello più significativo, oppure "nessuno – aggiungi" se non ne ha. */-->
+            <a class="link-abbonamenti" th:if="${u.isIscritto()}" th:with="a=${abbonamenti.get(u.id)}"
+               th:href="@{/abbonamenti/utente/{id}(id=${u.id})}">
+              <em th:if="${a == null}">nessuno – aggiungi</em>
+              <th:block th:if="${a != null}" th:with="stato=${a.stato(oggi)}">
+                <span class="tag" th:classappend="${'stato-' + stato.name().toLowerCase()}" th:text="${stato.etichetta}"></span>
+                <small th:text="${'dal ' + #temporals.format(a.dataInizio, 'dd/MM/yyyy') + ' al ' + #temporals.format(a.dataFine, 'dd/MM/yyyy')}"></small>
+              </th:block>
+            </a>
+            <span th:unless="${u.isIscritto()}">–</span>
+          </td>
+          <td class="col-azioni">
+            <!--/* I pulsanti stanno in un <div class="azioni"> DENTRO la cella: la classe .azioni usa display:flex,
+                   e applicata direttamente a un <td> la romperebbe come cella di tabella (le colonne sbordavano). */-->
+            <div class="azioni">
+              <!--/* Link di modifica: l'id viene inserito nel percorso /utenti/{id}/modifica. */-->
+              <a class="btn btn-sec" th:href="@{/utenti/{id}/modifica(id=${u.id})}">Modifica</a>
+              <!--/* Eliminazione con POST; confirm() del browser chiede conferma prima dell'invio. */-->
+              <form th:action="@{/utenti/{id}/elimina(id=${u.id})}" method="post"
+                    onsubmit="return confirm('Eliminare questo utente?')">
+                <button type="submit" class="btn-danger">Elimina</button>
+              </form>
+            </div>
           </td>
         </tr>
         <!--/* Riga mostrata solo se la lista è vuota (@forelse...@empty). */-->
-        <tr th:if="${utenti.isEmpty()}"><td colspan="6">Nessun utente.</td></tr>
+        <tr th:if="${utenti.isEmpty()}"><td colspan="7">Nessun utente.</td></tr>
       </tbody>
     </table>
   </div>

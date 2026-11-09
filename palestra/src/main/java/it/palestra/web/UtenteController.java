@@ -7,6 +7,7 @@
  */
 package it.palestra.web;
 
+import it.palestra.service.AbbonamentoService;
 import it.palestra.service.UtenteService;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -23,10 +24,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class UtenteController {
 
     private final UtenteService service;
+    private final AbbonamentoService abbonamenti;
 
-    // Il service arriva tramite dependency injection (Spring lo passa al costruttore).
-    public UtenteController(UtenteService service) {
+    // I service arrivano tramite dependency injection (Spring li passa al costruttore).
+    public UtenteController(UtenteService service, AbbonamentoService abbonamenti) {
         this.service = service;
+        this.abbonamenti = abbonamenti;
     }
 
     // GET /utenti -> lista. "Model" è il contenitore dei dati per il template (come compact()/with()).
@@ -35,6 +38,10 @@ public class UtenteController {
     @GetMapping
     public String lista(Model model, Principal admin) {
         model.addAttribute("utenti", service.elenco());
+        // Per la colonna "Abbonamento": per ogni utente quello più significativo (attivo, prossimo o ultimo
+        // scaduto) e la data di oggi, con cui il template calcola lo stato.
+        model.addAttribute("abbonamenti", abbonamenti.riepilogoPerUtente());
+        model.addAttribute("oggi", abbonamenti.oggi());
         model.addAttribute("admin", admin.getName());
         return "utenti/lista";
     }

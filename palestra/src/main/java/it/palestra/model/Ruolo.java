@@ -15,6 +15,9 @@ public class Ruolo {
     // Nome del ruolo che dà accesso al pannello (costante per non scrivere "ADMIN" a mano in più punti).
     public static final String ADMIN = "ADMIN";
 
+    // Nome del ruolo degli iscritti alla palestra: solo loro possono avere degli abbonamenti.
+    public static final String ISCRITTO = "ISCRITTO";
+
     // Nome del ruolo di chi può essere assegnato come istruttore di un corso.
     public static final String ISTRUTTORE = "ISTRUTTORE";
 
