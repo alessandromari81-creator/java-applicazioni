@@ -63,3 +63,7 @@ header nav a:hover { color: #fff; }
 
 /* Tendina e campo numerico con lo stesso aspetto dei campi di testo. */
 select, input[type=number] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+/* Contenitore dei messaggi globali: stessa larghezza e centratura del <main>. */
+.messaggi { max-width: 960px; margin: 16px auto 0; padding: 0 16px; }
+.messaggi .ok, .messaggi .err { margin-bottom: 0; }

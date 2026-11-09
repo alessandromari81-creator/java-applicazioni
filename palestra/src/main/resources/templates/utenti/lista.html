@@ -4,7 +4,7 @@
   A COSA SERVE: il pannello di controllo: tabella di tutti gli utenti con i loro corsi e i
   pulsanti Modifica / Elimina / Nuovo utente. Mostrata da UtenteController.lista(), che
   restituisce il nome "utenti/lista" (= questo file).
-  Riceve dal controller: "utenti" (lista), "admin" (nome loggato), "messaggio" (flash, opzionale).
+  Riceve dal controller: "utenti" (lista), "admin" (nome loggato), "messaggio" (flash, opzionale: lo mostra il layout).
   Usa il layout layout/base.html (come @extends): barra e <head> arrivano da lì.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
@@ -25,10 +25,6 @@
       <!--/* @{/utenti/nuovo} = url('/utenti/nuovo') di Laravel: genera l'indirizzo corretto */-->
       <a class="btn" th:href="@{/utenti/nuovo}">+ Nuovo utente</a>
     </div>
-
-    <!--/* Messaggio "flash" dopo creazione/modifica/eliminazione; th:if mostra solo se esiste.
-           th:text sostituisce il contenuto del tag (come {{ $messaggio }}, ed è escapato). */-->
-    <div class="ok" th:if="${messaggio}" th:text="${messaggio}"></div>
 
     <table>
       <thead><tr><th>Cognome e nome</th><th>Email</th><th>Corsi</th><th></th></tr></thead>

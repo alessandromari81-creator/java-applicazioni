@@ -3,7 +3,7 @@
   FILE: corsi/lista.html
   A COSA SERVE: elenco dei corsi con i pulsanti Modifica / Elimina / Nuovo corso.
   Mostrata da CorsoController.lista(). Riceve: "corsi" (lista), "admin" (nome loggato),
-  "messaggio" e "errore" (messaggi flash, opzionali). Usa il layout layout/base.html.
+  "messaggio" e "errore" (flash, opzionali: li mostra il layout). Usa il layout layout/base.html.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
@@ -19,11 +19,6 @@
       <h1>Corsi</h1>
       <a class="btn" th:href="@{/corsi/nuovo}">+ Nuovo corso</a>
     </div>
-
-    <!--/* Messaggi flash: verde se tutto ok, rosso se l'operazione è stata rifiutata
-           (es. corso con iscritti). */-->
-    <div class="ok" th:if="${messaggio}" th:text="${messaggio}"></div>
-    <div class="err" th:if="${errore}" th:text="${errore}"></div>
 
     <table>
       <thead><tr><th>Nome</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th></th></tr></thead>

@@ -41,6 +41,17 @@
   </form>
 </header>
 
+<!--/* MESSAGGI GLOBALI: mostrati in OGNI pagina che usa il layout, sotto la barra e sopra il
+       contenuto. Arrivano dai controller con flash.addFlashAttribute("messaggio", ...) o
+       ("errore", ...) prima di un redirect (valgono solo per la pagina successiva, poi spariscono:
+       come ->with('messaggio', ...) in Laravel). th:if mostra il blocco solo se il valore esiste,
+       th:text ne scrive il testo (con escape dei caratteri speciali).
+       Per aggiungere un nuovo tipo di messaggio basta una riga qui e una classe nel CSS. */-->
+<div class="messaggi">
+  <div class="ok" th:if="${messaggio}" th:text="${messaggio}"></div>
+  <div class="err" th:if="${errore}" th:text="${errore}"></div>
+</div>
+
 <!--/* BUCO "contenuto": qui finisce il corpo di ciascuna pagina. */-->
 <div layout:fragment="contenuto">Contenuto della pagina</div>
 
