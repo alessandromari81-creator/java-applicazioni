@@ -36,6 +36,8 @@
     <a th:href="@{/corsi}">Corsi</a>
   </nav>
   <form th:if="${admin != null}" th:action="@{/logout}" method="post">
+    <!--/* Link alla pagina "Cambia password" (AccountController), visibile a chi è loggato. */-->
+    <a class="link-barra" th:href="@{/account/password}">Cambia password</a>
     <span th:text="${admin}"></span>
     <button type="submit" class="btn-sec">Esci</button>
   </form>

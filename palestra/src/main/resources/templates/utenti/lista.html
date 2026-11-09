@@ -5,6 +5,8 @@
   pulsanti Modifica / Elimina / Nuovo utente. Mostrata da UtenteController.lista(), che
   restituisce il nome "utenti/lista" (= questo file).
   Riceve dal controller: "utenti" (lista), "admin" (nome loggato), "messaggio" (flash, opzionale: lo mostra il layout).
+  Per ogni utente mostra: ruoli, corsi che FREQUENTA come iscritto (u.corsi) e corsi che TIENE come istruttore
+  (u.corsiInsegnati). Sono due relazioni diverse con la stessa tabella corso.
   Usa il layout layout/base.html (come @extends): barra e <head> arrivano da lì.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
@@ -26,8 +28,15 @@
       <a class="btn" th:href="@{/utenti/nuovo}">+ Nuovo utente</a>
     </div>
 
+    <!--/* Spiegazione visibile delle due colonne sui corsi e della regola che le lega. */-->
+    <p class="aiuto-blocco">
+      <strong>Corsi (iscritto)</strong>: i corsi che l'utente frequenta come allievo.
+      <strong>Insegna</strong>: i corsi che tiene come istruttore (solo per chi ha il ruolo ISTRUTTORE; si assegnano dalla pagina Corsi).
+      Un istruttore non può essere iscritto come allievo a un corso che tiene lui stesso.
+    </p>
+
     <table>
-      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Ruoli</th><th>Corsi</th><th></th></tr></thead>
+      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Ruoli</th><th>Corsi (iscritto)</th><th>Insegna</th><th></th></tr></thead>
       <tbody>
         <!--/* th:each = @foreach: ripete la riga per ogni utente della lista. */-->
         <tr th:each="u : ${utenti}">
@@ -42,6 +51,14 @@
             <span class="tag" th:each="c : ${u.corsi}" th:text="${c.nome}"></span>
             <em th:if="${u.corsi.isEmpty()}">nessuno</em>
           </td>
+          <!--/* INSEGNA: i corsi tenuti come istruttore (${u.corsiInsegnati} usa getCorsiInsegnati()). Se l'utente ha
+                 il ruolo ISTRUTTORE ma non tiene ancora corsi si scrive "nessun corso ancora"; se NON è istruttore
+                 si mette un trattino, perché la colonna non lo riguarda. u.isIstruttore() chiama il metodo di Utente. */-->
+          <td>
+            <span class="tag tag-insegna" th:each="c : ${u.corsiInsegnati}" th:text="${c.nome}"></span>
+            <em th:if="${u.isIstruttore() and u.corsiInsegnati.isEmpty()}">nessun corso ancora</em>
+            <span th:unless="${u.isIstruttore()}">–</span>
+          </td>
           <td class="azioni">
             <!--/* Link di modifica: l'id viene inserito nel percorso /utenti/{id}/modifica. */-->
             <a class="btn btn-sec" th:href="@{/utenti/{id}/modifica(id=${u.id})}">Modifica</a>
@@ -53,7 +70,7 @@
           </td>
         </tr>
         <!--/* Riga mostrata solo se la lista è vuota (@forelse...@empty). */-->
-        <tr th:if="${utenti.isEmpty()}"><td colspan="5">Nessun utente.</td></tr>
+        <tr th:if="${utenti.isEmpty()}"><td colspan="6">Nessun utente.</td></tr>
       </tbody>
     </table>
   </div>

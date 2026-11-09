@@ -4,6 +4,11 @@
  * sulla tabella "corso" del database.
  * PARAGONE LARAVEL: è il Model Eloquent `Corso`, ma con le colonne dichiarate come campi
  * (Eloquent le deduce dal DB; JPA/Hibernate invece parte dalla classe e CREA la tabella).
+ *
+ * RELAZIONI DEL CORSO CON GLI UTENTI (sono due, diverse, e non vanno confuse):
+ *  - ISTRUTTORE (questa classe, campo "istruttore"): chi TIENE il corso. Uno solo, facoltativo.
+ *  - ISCRITTI (nella classe Utente, campo "corsi"): chi FREQUENTA il corso. Molti.
+ * REGOLA: lo stesso utente non può essere insieme istruttore e iscritto dello stesso corso.
  */
 package it.palestra.model;
 
@@ -33,6 +38,16 @@ public class Corso {
     @Enumerated(EnumType.STRING)
     private Livello livello;
 
+    // ISTRUTTORE del corso: un utente con ruolo ISTRUTTORE. Relazione MOLTI-A-UNO: molti corsi possono avere lo
+    // stesso istruttore (e lato Utente diventa "uno-a-molti": un istruttore tiene più corsi).
+    // PARAGONE LARAVEL: $this->belongsTo(Utente::class, 'istruttore_id') nel model Corso.
+    // @JoinColumn = la colonna istruttore_id della tabella corso (chiave esterna verso utente).
+    // LAZY = l'istruttore si legge dal database solo quando serve (per questo alcuni repository lo caricano
+    // subito con @EntityGraph). Può essere null: corso senza istruttore.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "istruttore_id")
+    private Utente istruttore;
+
     // Costruttore vuoto richiesto da JPA: lo usa Hibernate per creare gli oggetti
     // quando legge dal DB. "protected" = non lo usiamo noi dal resto del codice.
     protected Corso() {}
@@ -58,6 +73,9 @@ public class Corso {
     public void setDescrizione(String descrizione) { this.descrizione = descrizione; }
     public void setDurataMinuti(int durataMinuti) { this.durataMinuti = durataMinuti; }
     public void setLivello(Livello livello) { this.livello = livello; }
+
+    public Utente getIstruttore() { return istruttore; }
+    public void setIstruttore(Utente istruttore) { this.istruttore = istruttore; }
 
     // equals/hashCode: definiscono quando due oggetti Corso sono "lo stesso corso".
     // Servono perché i corsi stanno in un Set (insieme senza duplicati): due Corso con

@@ -279,7 +279,7 @@ class UtenteControllerTest extends BaseWebTest {
                 .andExpect(status().is3xxRedirection());
 
         ricarica();
-        Utente gino = utenti.findWithCorsiERuoliById(
+        Utente gino = utenti.findWithRelazioniById(
                 utenti.findByEmailIgnoreCase("gino@example.com").orElseThrow().getId()).orElseThrow();
         assertThat(gino.getCorsi()).extracting(Corso::getNome).containsExactlyInAnyOrder("Yoga", "Spinning");
     }

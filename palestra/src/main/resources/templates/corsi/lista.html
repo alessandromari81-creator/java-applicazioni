@@ -4,6 +4,7 @@
   A COSA SERVE: elenco dei corsi con i pulsanti Modifica / Elimina / Nuovo corso.
   Mostrata da CorsoController.lista(). Riceve: "corsi" (lista), "admin" (nome loggato),
   "messaggio" e "errore" (flash, opzionali: li mostra il layout). Usa il layout layout/base.html.
+  Ogni corso mostra il suo istruttore (c.istruttore, che può mancare: corso non ancora assegnato).
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
@@ -20,14 +21,23 @@
       <a class="btn" th:href="@{/corsi/nuovo}">+ Nuovo corso</a>
     </div>
 
+    <!--/* Spiegazione visibile della relazione corso-istruttore e delle sue regole. */-->
+    <p class="aiuto-blocco">
+      Ogni corso ha al massimo un <strong>istruttore</strong>, scelto tra gli utenti con ruolo ISTRUTTORE;
+      un istruttore può tenere più corsi. Un istruttore non può essere iscritto come allievo al corso che tiene.
+    </p>
+
     <table>
-      <thead><tr><th>Nome</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th></th></tr></thead>
+      <thead><tr><th>Nome</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th>Istruttore</th><th></th></tr></thead>
       <tbody>
         <tr th:each="c : ${corsi}">
           <td th:text="${c.nome}"></td>
           <td th:text="${c.livello}"></td>
           <td th:text="${c.durataMinuti + ' min'}"></td>
           <td th:text="${c.descrizione}"></td>
+          <!--/* Istruttore del corso, oppure un trattino se non è ancora assegnato. L'istruttore è già caricato
+                 insieme al corso (@EntityGraph in CorsoRepository), quindi non parte una query per ogni riga. */-->
+          <td th:text="${c.istruttore != null} ? ${c.istruttore.cognome + ' ' + c.istruttore.nome} : '–'"></td>
           <td class="azioni">
             <a class="btn btn-sec" th:href="@{/corsi/{id}/modifica(id=${c.id})}">Modifica</a>
             <form th:action="@{/corsi/{id}/elimina(id=${c.id})}" method="post"
@@ -36,7 +46,7 @@
             </form>
           </td>
         </tr>
-        <tr th:if="${corsi.isEmpty()}"><td colspan="5">Nessun corso.</td></tr>
+        <tr th:if="${corsi.isEmpty()}"><td colspan="6">Nessun corso.</td></tr>
       </tbody>
     </table>
   </div>

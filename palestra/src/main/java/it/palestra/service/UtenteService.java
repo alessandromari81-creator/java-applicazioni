@@ -1,8 +1,8 @@
 /*
  * FILE: UtenteService.java
  * A COSA SERVE: contiene la logica dell'applicazione sugli utenti (creare, modificare, eliminare, ruoli,
- * password, email duplicate, protezione dell'ultimo admin). Il controller riceve la richiesta HTTP e
- * delega qui; il service parla con i repository.
+ * password, email duplicate, protezione dell'ultimo admin, regole sugli istruttori, cambio password).
+ * Il controller riceve la richiesta HTTP e delega qui; il service parla con i repository.
  * PARAGONE LARAVEL: una classe in app/Services (in Spring è la regola: Controller -> Service -> Repository).
  */
 package it.palestra.service;
@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,16 +46,16 @@ public class UtenteService {
         this.encoder = encoder;
     }
 
-    // Tutti gli utenti per la lista. readOnly = solo lettura (più efficiente).
+    // Tutti gli utenti per la lista (con corsi frequentati, ruoli e corsi tenuti). readOnly = solo lettura.
     @Transactional(readOnly = true)
     public List<Utente> elenco() {
         return utenti.findAllByOrderByCognomeAscNomeAsc();
     }
 
-    // Un utente per id (con corsi e ruoli), oppure 404 se non esiste (come findOrFail()).
+    // Un utente per id (con corsi, ruoli e corsi tenuti), oppure 404 se non esiste (come findOrFail()).
     @Transactional(readOnly = true)
     public Utente trova(Long id) {
-        return utenti.findWithCorsiERuoliById(id)
+        return utenti.findWithRelazioniById(id)
                 .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + id + " non trovato"));
     }
 
@@ -68,6 +70,14 @@ public class UtenteService {
         return ruoli.findAllByOrderByIdAsc();
     }
 
+    // Gli id dei corsi che l'utente TIENE come istruttore (vuoto se è nuovo o non insegna).
+    // Il form li usa per DISATTIVARE quelle checkbox: un istruttore non può iscriversi al corso che tiene.
+    @Transactional(readOnly = true)
+    public Set<Long> idCorsiInsegnati(Long utenteId) {
+        if (utenteId == null) return Set.of();
+        return trova(utenteId).getCorsiInsegnati().stream().map(Corso::getId).collect(Collectors.toSet());
+    }
+
     // true se l'email è già usata da UN ALTRO utente. idDaIgnorare = id dell'utente che stiamo modificando
     // (null in creazione): tenere la propria email non è un duplicato (come Rule::unique()->ignore($id)).
     @Transactional(readOnly = true)
@@ -77,18 +87,18 @@ public class UtenteService {
                 .orElse(false);
     }
 
-    // Controlla le regole sulla password e restituisce il messaggio d'errore, oppure Optional.vuoto se va bene.
-    //  - se è scritta: da 8 caratteri e al massimo 72 BYTE (limite di bcrypt, che oltre ignorerebbe il resto);
+    // Controlla le regole sulla password nel form utente e restituisce il messaggio d'errore, oppure Optional.vuoto.
+    //  - se è scritta: da 8 caratteri e al massimo 72 BYTE (vedi erroreLunghezzaPassword);
     //  - se tra i ruoli c'è ADMIN e l'utente non ha ancora una password: è obbligatoria (senza, l'admin non
     //    potrebbe fare login). In modifica, lasciarla vuota significa "non cambiarla".
     @Transactional(readOnly = true)
     public Optional<String> erroreSullaPassword(UtenteForm f, Long id) {
         String password = f.getPassword();
         boolean scritta = password != null && !password.isEmpty();
-        if (scritta && (password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72)) {
-            return Optional.of("La password deve avere da 8 a 72 caratteri");
+        if (scritta) {
+            return erroreLunghezzaPassword(password);
         }
-        if (!scritta && contieneAdmin(f.getRuoliIds())) {
+        if (contieneRuolo(f.getRuoliIds(), Ruolo.ADMIN)) {
             boolean giaImpostata = id != null && trova(id).getPasswordHash() != null;
             if (!giaImpostata) {
                 return Optional.of("La password è obbligatoria per gli amministratori");
@@ -97,34 +107,97 @@ public class UtenteService {
         return Optional.empty();
     }
 
+    // REGOLA SUGLI ISCRITTI: un istruttore non può essere iscritto (come allievo) a un corso che tiene lui stesso.
+    // Controlla i corsi scelti nel form contro quelli che l'utente insegna e restituisce il messaggio d'errore
+    // (con i nomi dei corsi in conflitto), oppure Optional vuoto. In creazione non serve: un utente nuovo non
+    // può ancora tenere corsi (i corsi gli si assegnano dopo, dalla pagina Corsi).
+    // La checkbox è già disattivata nel form, ma il controllo qui è quello che conta: una richiesta può essere
+    // costruita a mano senza passare dalla pagina.
+    @Transactional(readOnly = true)
+    public Optional<String> erroreSuiCorsiScelti(UtenteForm f, Long id) {
+        if (id == null) return Optional.empty();
+        String conflitti = trova(id).getCorsiInsegnati().stream()
+                .filter(c -> f.getCorsiIds().contains(c.getId()))
+                .map(Corso::getNome)
+                .sorted()
+                .collect(Collectors.joining(", "));
+        if (conflitti.isEmpty()) return Optional.empty();
+        return Optional.of("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: " + conflitti);
+    }
+
     // Crea un nuovo utente con i dati del form e lo salva (INSERT).
     public Utente crea(UtenteForm form) {
         return utenti.save(applica(new Utente(), form));
     }
 
     // Aggiorna un utente esistente. Non serve save(): l'entità caricata è "gestita" da Hibernate, che a fine
-    // transazione vede le modifiche e fa l'UPDATE da solo. Prima controlla di non togliere ADMIN all'ultimo admin.
+    // transazione vede le modifiche e fa l'UPDATE da solo. Prima controlla due cose:
+    //  1) non si toglie ADMIN all'ultimo amministratore (nessuno potrebbe più entrare nel pannello);
+    //  2) non si toglie ISTRUTTORE a chi tiene ancora dei corsi: resterebbero con un "istruttore" che non lo è più.
     public Utente modifica(Long id, UtenteForm form) {
         Utente u = trova(id);
-        if (u.isAdmin() && !contieneAdmin(form.getRuoliIds()) && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
+        if (u.isAdmin() && !contieneRuolo(form.getRuoliIds(), Ruolo.ADMIN)
+                && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
             throw new IllegalStateException("Non puoi togliere il ruolo ADMIN all'ultimo amministratore");
+        }
+        if (!u.getCorsiInsegnati().isEmpty() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISTRUTTORE)) {
+            throw new IllegalStateException("Non puoi togliere il ruolo ISTRUTTORE: tiene ancora "
+                    + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
         }
         return applica(u, form);
     }
 
     // Elimina l'utente (DELETE) e le sue righe nelle pivot (corsi e ruoli); i corsi e i ruoli restano.
-    // Rifiuta di eliminare l'ultimo admin: nessuno potrebbe più entrare nel pannello.
+    // Rifiuta se è l'ultimo admin (nessuno potrebbe più entrare nel pannello) o se tiene dei corsi (la colonna
+    // corso.istruttore_id punterebbe a un utente che non esiste più, e il database lo vieterebbe).
     public void elimina(Long id) {
         Utente u = trova(id);
+        if (!u.getCorsiInsegnati().isEmpty()) {
+            throw new IllegalStateException("Impossibile eliminare: è istruttore di "
+                    + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
+        }
         if (u.isAdmin() && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
             throw new IllegalStateException("Impossibile eliminare l'ultimo amministratore");
         }
         utenti.delete(u);
     }
 
-    // true se tra gli id dei ruoli indicati c'è ADMIN.
-    private boolean contieneAdmin(List<Long> ruoliIds) {
-        return ruoli.findAllById(ruoliIds).stream().anyMatch(r -> Ruolo.ADMIN.equals(r.getNome()));
+    // ----------------------------------------------------------------- CAMBIO PASSWORD
+
+    // true se la password scritta corrisponde a quella dell'utente con questa email (si confrontano gli hash:
+    // la password in chiaro non è salvata da nessuna parte). Una password oltre i 72 byte non può essere quella
+    // giusta (bcrypt non ne accetta di più): rispondiamo false invece di far lanciare un errore a bcrypt.
+    @Transactional(readOnly = true)
+    public boolean passwordCorrisponde(String email, String password) {
+        if (password == null || password.getBytes(StandardCharsets.UTF_8).length > 72) return false;
+        return utenti.findByEmailIgnoreCase(email)
+                .map(u -> u.getPasswordHash() != null && encoder.matches(password, u.getPasswordHash()))
+                .orElse(false);
+    }
+
+    // Imposta la nuova password: nel database finisce solo l'hash bcrypt. Basta cambiare il campo: a fine
+    // transazione Hibernate fa l'UPDATE da solo. Il controllo di quella attuale lo fa il controller PRIMA di
+    // arrivare qui (con passwordCorrisponde).
+    public void cambiaPassword(String email, String nuovaPassword) {
+        Utente u = utenti.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + email + " non trovato"));
+        u.setPasswordHash(encoder.encode(nuovaPassword));
+    }
+
+    // Regola sulla lunghezza, comune al form utente e al cambio password: almeno 8 caratteri e al massimo 72
+    // BYTE (limite di bcrypt, che oltre ignorerebbe il resto; i caratteri accentati occupano più di un byte).
+    public Optional<String> erroreLunghezzaPassword(String password) {
+        if (password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            return Optional.of("La password deve avere da 8 a 72 caratteri");
+        }
+        return Optional.empty();
+    }
+
+    // ----------------------------------------------------------------- METODI DI SUPPORTO
+
+    // true se tra gli id dei ruoli indicati c'è quello col nome dato (es. "ADMIN", "ISTRUTTORE").
+    private boolean contieneRuolo(List<Long> ruoliIds, String nomeRuolo) {
+        return ruoli.findAllById(ruoliIds).stream().anyMatch(r -> nomeRuolo.equals(r.getNome()));
     }
 
     // Metodo privato usato sia da crea() sia da modifica(): copia i dati del form dentro l'entità.

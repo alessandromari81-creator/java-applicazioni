@@ -45,6 +45,7 @@ public class CorsoController {
     @PostMapping
     public String crea(@Valid @ModelAttribute CorsoForm corsoForm, BindingResult errori,
                        Model model, RedirectAttributes flash) {
+        controllaIstruttore(corsoForm, null, errori);
         if (errori.hasErrors()) return formView(model, null);
         service.crea(corsoForm);
         flash.addFlashAttribute("messaggio", "Corso creato");
@@ -62,6 +63,7 @@ public class CorsoController {
     @PostMapping("/{id}")
     public String aggiorna(@PathVariable Long id, @Valid @ModelAttribute CorsoForm corsoForm,
                            BindingResult errori, Model model, RedirectAttributes flash) {
+        controllaIstruttore(corsoForm, id, errori);
         if (errori.hasErrors()) return formView(model, id);
         service.modifica(id, corsoForm);
         flash.addFlashAttribute("messaggio", "Corso aggiornato");
@@ -83,10 +85,20 @@ public class CorsoController {
     }
 
     // Dati comuni a creazione e modifica: i livelli per la tendina (Livello.values() = tutti i
-    // valori dell'enum) e l'id del corso (null se nuovo).
+    // valori dell'enum), gli istruttori scelgibili (solo utenti con ruolo ISTRUTTORE) e l'id del corso
+    // (null se nuovo).
     private String formView(Model model, Long id) {
         model.addAttribute("livelli", Livello.values());
+        model.addAttribute("istruttori", service.istruttoriDisponibili());
         model.addAttribute("corsoId", id);
         return "corsi/form";
+    }
+
+    // Validazione "a mano" dell'istruttore: deve avere il ruolo ISTRUTTORE e non essere iscritto al corso.
+    // Le regole stanno nel service; qui il messaggio diventa un errore sul campo "istruttoreId", che
+    // Thymeleaf mostra sotto la tendina.
+    private void controllaIstruttore(CorsoForm form, Long corsoId, BindingResult errori) {
+        service.erroreSullIstruttore(form, corsoId)
+                .ifPresent(messaggio -> errori.rejectValue("istruttoreId", "non-valido", messaggio));
     }
 }

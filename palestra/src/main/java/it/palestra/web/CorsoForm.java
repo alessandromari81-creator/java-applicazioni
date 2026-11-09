@@ -14,7 +14,7 @@ import jakarta.validation.constraints.Size;
 
 public class CorsoForm {
 
-    // Limite 255 = lunghezza delle colonne VARCHAR del database (vedi UtenteForm).
+    // Limite 255 = lunghezza delle colonne VARCHAR del database (un testo più lungo darebbe errore 500).
     @NotBlank(message = "Il nome è obbligatorio")
     @Size(max = 255, message = "Massimo 255 caratteri")
     private String nome;
@@ -33,6 +33,11 @@ public class CorsoForm {
     @NotNull(message = "Il livello è obbligatorio")
     private Livello livello;
 
+    // Id dell'istruttore scelto nella tendina (null = nessun istruttore). Facoltativo. Nessuna regola qui: le
+    // regole (deve avere il ruolo ISTRUTTORE, non deve essere iscritto al corso) dipendono dal database e le
+    // controlla CorsoService.erroreSullIstruttore().
+    private Long istruttoreId;
+
     // Trasforma un Corso del database in un form precompilato (pagina di modifica).
     public static CorsoForm da(Corso c) {
         CorsoForm f = new CorsoForm();
@@ -40,6 +45,8 @@ public class CorsoForm {
         f.descrizione = c.getDescrizione();
         f.durataMinuti = c.getDurataMinuti();
         f.livello = c.getLivello();
+        // getId() sull'istruttore non richiede di rileggere il database (l'id è già nel corso).
+        f.istruttoreId = c.getIstruttore() == null ? null : c.getIstruttore().getId();
         return f;
     }
 
@@ -51,4 +58,6 @@ public class CorsoForm {
     public void setDurataMinuti(Integer durataMinuti) { this.durataMinuti = durataMinuti; }
     public Livello getLivello() { return livello; }
     public void setLivello(Livello livello) { this.livello = livello; }
+    public Long getIstruttoreId() { return istruttoreId; }
+    public void setIstruttoreId(Long istruttoreId) { this.istruttoreId = istruttoreId; }
 }

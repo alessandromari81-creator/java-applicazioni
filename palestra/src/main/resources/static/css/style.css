@@ -71,3 +71,18 @@ select, input[type=number] { width: 100%; padding: 8px; border: 1px solid #ccc; 
 /* Etichetta dei ruoli (verde) e testo di aiuto sotto un campo. */
 .tag-ruolo { background: #dcfce7; color: #166534; }
 .aiuto { display: block; color: #6b7280; font-size: 12px; margin-top: 2px; }
+
+/* Etichetta dei corsi che un utente TIENE come istruttore (ambra, per distinguerla da quelli frequentati). */
+.tag-insegna { background: #fef3c7; color: #92400e; }
+
+/* Testi di spiegazione: sotto un campo (.aiuto), in un blocco sopra una tabella o un form (.aiuto-blocco),
+   accanto a una checkbox (.aiuto-inline). */
+.aiuto-blocco { background: #f9fafb; border-left: 3px solid #cbd5e1; padding: 8px 12px; margin: 12px 0; color: #4b5563; font-size: 13px; }
+.aiuto-inline { color: #92400e; font-size: 12px; }
+
+/* Link "Cambia password" nella barra in alto, accanto all'email e al pulsante Esci. */
+.link-barra { color: #cbd5e1; margin-right: 12px; font-size: 14px; }
+.link-barra:hover { color: #fff; }
+
+/* Scheda più stretta, per i form brevi come il cambio password. */
+.card-stretta { max-width: 520px; }

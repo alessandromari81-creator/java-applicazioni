@@ -3,7 +3,9 @@
   FILE: utenti/form.html
   A COSA SERVE: un unico form usato sia per CREARE sia per MODIFICARE un utente.
   Riceve dal controller: "utenteForm" (dati e errori del form), "corsi" e "ruoli" (tutti, per le
-  checkbox) e "utenteId" (null se nuovo, l'id se in modifica).
+  checkbox), "utenteId" (null se nuovo, l'id se in modifica) e "corsiInsegnatiIds" (gli id dei corsi che
+  questo utente TIENE come istruttore: le loro checkbox sono disattivate perché un istruttore non può iscriversi
+  ai corsi che tiene).
   Usa il layout layout/base.html (come @extends). Qui "admin" non è passato, quindi la barra
   di default non mostra il pulsante "Esci".
 */-->
@@ -64,14 +66,30 @@
         <span th:text="${r.nome}"></span>
       </label>
 
-      <label>Corsi</label>
+      <small class="aiuto">
+        ISTRUTTORE: potrà essere scelto come istruttore dei corsi (dalla pagina Corsi). Finché tiene dei corsi non
+        si può togliere questo ruolo né eliminare l'utente.
+      </small>
+
+      <label>Corsi frequentati (come iscritto)</label>
+      <small class="aiuto">
+        I corsi che l'utente segue come allievo. Un istruttore non può iscriversi ai corsi che tiene lui stesso:
+        quelle caselle sono disattivate.
+      </small>
       <!--/* Una checkbox per ogni corso. th:field="*{corsiIds}" + th:value fa sì che la casella
              sia già spuntata se l'id del corso è nella lista corsiIds, e che i valori spuntati
              tornino al controller come lista di id. */-->
       <label class="check" th:each="c : ${corsi}">
-        <input type="checkbox" th:field="*{corsiIds}" th:value="${c.id}">
+        <!--/* th:disabled disattiva la casella se questo corso è tra quelli che l'utente tiene come istruttore.
+               Un campo disattivato non viene inviato dal browser, ma è solo un aiuto visivo: la regola vera è
+               controllata di nuovo dal server (UtenteService.erroreSuiCorsiScelti), perché una richiesta può
+               essere costruita a mano. ${corsiInsegnatiIds.contains(c.id)} = "questo corso è tra quelli tenuti?" */-->
+        <input type="checkbox" th:field="*{corsiIds}" th:value="${c.id}"
+               th:disabled="${corsiInsegnatiIds.contains(c.id)}">
         <span th:text="${c.nome + ' (' + c.livello + ', ' + c.durataMinuti + ' min)'}"></span>
+        <em class="aiuto-inline" th:if="${corsiInsegnatiIds.contains(c.id)}">(lo tiene lui come istruttore)</em>
       </label>
+      <div class="campo-err" th:errors="*{corsiIds}"></div>
 
       <p>
         <button type="submit">Salva</button>

@@ -2,8 +2,8 @@
 <!--/*
   FILE: corsi/form.html
   A COSA SERVE: form unico per CREARE e MODIFICARE un corso.
-  Riceve: "corsoForm" (dati ed errori), "livelli" (valori per la tendina), "corsoId"
-  (null se nuovo, l'id se in modifica). Usa il layout layout/base.html.
+  Riceve: "corsoForm" (dati ed errori), "livelli" (valori per la tendina), "istruttori" (gli utenti con ruolo
+  ISTRUTTORE tra cui scegliere), "corsoId" (null se nuovo, l'id se in modifica). Usa il layout layout/base.html.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
@@ -43,6 +43,22 @@
         <option th:each="l : ${livelli}" th:value="${l}" th:text="${l}"></option>
       </select>
       <div class="campo-err" th:errors="*{livello}"></div>
+
+      <!--/* Tendina dell'istruttore: elenca SOLO gli utenti con ruolo ISTRUTTORE (${istruttori}, preparata da
+             CorsoController). La prima voce vuota significa "nessun istruttore" (facoltativo). th:field seleziona da
+             solo quello attuale in modifica. Le regole (ruolo ISTRUTTORE, non iscritto al corso) sono controllate
+             dal server in CorsoService.erroreSullIstruttore, perché la tendina da sola non basta come protezione. */-->
+      <label for="istruttoreId">Istruttore</label>
+      <select id="istruttoreId" th:field="*{istruttoreId}">
+        <option value="">-- nessuno --</option>
+        <option th:each="i : ${istruttori}" th:value="${i.id}" th:text="${i.cognome + ' ' + i.nome}"></option>
+      </select>
+      <small class="aiuto">
+        Compaiono solo gli utenti con ruolo ISTRUTTORE (assegnalo dalla pagina Utenti). Un istruttore può tenere più
+        corsi, ma non può essere iscritto come allievo al corso che tiene: se lo è già, togli prima la sua iscrizione.
+        <span th:if="${istruttori.isEmpty()}"><strong>Non c'è ancora nessun istruttore.</strong></span>
+      </small>
+      <div class="campo-err" th:errors="*{istruttoreId}"></div>
 
       <p>
         <button type="submit">Salva</button>

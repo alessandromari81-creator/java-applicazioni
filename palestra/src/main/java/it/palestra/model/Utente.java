@@ -49,6 +49,14 @@ public class Utente {
             inverseJoinColumns = @JoinColumn(name = "ruolo_id"))
     private Set<Ruolo> ruoli = new HashSet<>();
 
+    // CORSI CHE L'UTENTE TIENE COME ISTRUTTORE (relazione UNO-A-MOLTI: un istruttore tiene più corsi).
+    // mappedBy = "istruttore": la colonna vera (istruttore_id) sta nella tabella corso ed è gestita dal campo
+    // "istruttore" della classe Corso; qui è solo il lato "di lettura" della stessa relazione.
+    // PARAGONE LARAVEL: $this->hasMany(Corso::class, 'istruttore_id'). Per assegnare un istruttore si imposta
+    // corso.setIstruttore(utente), NON si aggiunge a questo Set. Resta vuoto per chi non è istruttore.
+    @OneToMany(mappedBy = "istruttore")
+    private Set<Corso> corsiInsegnati = new HashSet<>();
+
     // Getter e setter: leggono/scrivono i campi privati (l'id lo assegna il database, quindi niente setter).
     public Long getId() { return id; }
     public String getNome() { return nome; }
@@ -63,9 +71,15 @@ public class Utente {
     public void setCorsi(Set<Corso> corsi) { this.corsi = corsi; }
     public Set<Ruolo> getRuoli() { return ruoli; }
     public void setRuoli(Set<Ruolo> ruoli) { this.ruoli = ruoli; }
+    public Set<Corso> getCorsiInsegnati() { return corsiInsegnati; }
 
     // Comodo nei template e nel service: true se l'utente ha il ruolo ADMIN.
     public boolean isAdmin() {
         return ruoli.stream().anyMatch(r -> Ruolo.ADMIN.equals(r.getNome()));
+    }
+
+    // True se l'utente ha il ruolo ISTRUTTORE (quindi può essere assegnato come istruttore di un corso).
+    public boolean isIstruttore() {
+        return ruoli.stream().anyMatch(r -> Ruolo.ISTRUTTORE.equals(r.getNome()));
     }
 }

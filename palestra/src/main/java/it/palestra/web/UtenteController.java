@@ -56,6 +56,7 @@ public class UtenteController {
                        Model model, RedirectAttributes flash) {
         controllaEmail(utenteForm, null, errori);
         controllaPassword(utenteForm, null, errori);
+        controllaCorsi(utenteForm, null, errori);
         if (errori.hasErrors()) return formView(model, null);   // errori: rimostra il form
         service.crea(utenteForm);
         flash.addFlashAttribute("messaggio", "Utente creato");
@@ -77,12 +78,13 @@ public class UtenteController {
                            BindingResult errori, Model model, RedirectAttributes flash) {
         controllaEmail(utenteForm, id, errori);
         controllaPassword(utenteForm, id, errori);
+        controllaCorsi(utenteForm, id, errori);
         if (errori.hasErrors()) return formView(model, id);
         try {
             service.modifica(id, utenteForm);
         } catch (IllegalStateException e) {
-            // Il service ha rifiutato (es. si toglie ADMIN all'ultimo admin): errore "globale" del form,
-            // cioè non legato a un campo, mostrato in cima al form.
+            // Il service ha rifiutato (es. si toglie ADMIN all'ultimo admin, o ISTRUTTORE a chi tiene corsi):
+            // errore "globale" del form, cioè non legato a un campo, mostrato in cima al form.
             errori.reject("regola", e.getMessage());
             return formView(model, id);
         }
@@ -91,7 +93,7 @@ public class UtenteController {
     }
 
     // POST /utenti/5/elimina -> cancella (destroy()). Mai con GET: un link potrebbe cancellare dati solo
-    // visitandolo. Se il service rifiuta (ultimo admin) mostriamo il suo messaggio in rosso.
+    // visitandolo. Se il service rifiuta (ultimo admin, o istruttore di corsi) mostriamo il suo messaggio in rosso.
     @PostMapping("/{id}/elimina")
     public String elimina(@PathVariable Long id, RedirectAttributes flash) {
         try {
@@ -104,8 +106,10 @@ public class UtenteController {
     }
 
     // Prepara i dati comuni a creazione e modifica (corsi e ruoli per le checkbox, id dell'utente: null
-    // se nuovo) e restituisce il template del form.
+    // se nuovo, e gli id dei corsi che l'utente TIENE come istruttore, le cui checkbox vanno disattivate)
+    // e restituisce il template del form.
     private String formView(Model model, Long id) {
+        model.addAttribute("corsiInsegnatiIds", service.idCorsiInsegnati(id));
         model.addAttribute("corsi", service.tuttiICorsi());
         model.addAttribute("ruoli", service.tuttiIRuoli());
         model.addAttribute("utenteId", id);
@@ -124,5 +128,12 @@ public class UtenteController {
     private void controllaPassword(UtenteForm form, Long id, BindingResult errori) {
         service.erroreSullaPassword(form, id)
                 .ifPresent(messaggio -> errori.rejectValue("password", "non-valida", messaggio));
+    }
+
+    // Validazione "a mano" dei corsi scelti: un istruttore non può iscriversi ai corsi che tiene. Il messaggio
+    // (con i nomi dei corsi) diventa un errore sul campo "corsiIds", mostrato sotto l'elenco dei corsi.
+    private void controllaCorsi(UtenteForm form, Long id, BindingResult errori) {
+        service.erroreSuiCorsiScelti(form, id)
+                .ifPresent(messaggio -> errori.rejectValue("corsiIds", "istruttore-del-corso", messaggio));
     }
 }
