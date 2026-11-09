@@ -5,12 +5,12 @@
  */
 package it.palestra.service;
 
+import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Corso;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.UtenteRepository;
 import it.palestra.web.CorsoForm;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +39,7 @@ public class CorsoService {
     @Transactional(readOnly = true)
     public Corso trova(Long id) {
         return corsi.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Corso " + id + " non trovato"));
+                .orElseThrow(() -> new RisorsaNonTrovataException("Corso " + id + " non trovato"));
     }
 
     // Crea un corso con i dati del form (INSERT).

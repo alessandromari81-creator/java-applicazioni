@@ -10,21 +10,28 @@ package it.palestra.web;
 import it.palestra.model.Utente;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UtenteForm {
 
     // @NotBlank = obbligatorio e non solo spazi ('required' di Laravel). "message" è il testo dell'errore.
+    // @Size(max = 255): le colonne del database sono VARCHAR(255). Senza questo limite un testo più
+    // lungo supererebbe la validazione e farebbe fallire l'INSERT con un errore 500. Così invece
+    // l'utente vede un messaggio vicino al campo (come la regola 'max:255' di Laravel).
     @NotBlank(message = "Il nome è obbligatorio")
+    @Size(max = 255, message = "Massimo 255 caratteri")
     private String nome;
 
     @NotBlank(message = "Il cognome è obbligatorio")
+    @Size(max = 255, message = "Massimo 255 caratteri")
     private String cognome;
 
     // Due regole insieme: obbligatoria e con formato email ('required|email').
     @NotBlank(message = "L'email è obbligatoria")
     @Email(message = "Email non valida")
+    @Size(max = 255, message = "Massimo 255 caratteri")
     private String email;
 
     // Gli id dei corsi spuntati nelle checkbox (può essere vuoto).

@@ -8,6 +8,7 @@
  */
 package it.palestra.service;
 
+import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Corso;
 import it.palestra.model.Utente;
 import it.palestra.repository.CorsoRepository;
@@ -15,7 +16,6 @@ import it.palestra.repository.UtenteRepository;
 import it.palestra.web.UtenteForm;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +48,7 @@ public class UtenteService {
     @Transactional(readOnly = true)
     public Utente trova(Long id) {
         return utenti.findWithCorsiById(id)
-                .orElseThrow(() -> new NoSuchElementException("Utente " + id + " non trovato"));
+                .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + id + " non trovato"));
     }
 
     // Tutti i corsi disponibili: servono per mostrare le checkbox nel form.

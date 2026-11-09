@@ -10,13 +10,17 @@ import it.palestra.model.Livello;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class CorsoForm {
 
+    // Limite 255 = lunghezza delle colonne VARCHAR del database (vedi UtenteForm).
     @NotBlank(message = "Il nome è obbligatorio")
+    @Size(max = 255, message = "Massimo 255 caratteri")
     private String nome;
 
-    // Facoltativa: nessuna annotazione = nessuna regola ('nullable' di Laravel).
+    // Facoltativa (niente @NotBlank = 'nullable' di Laravel), ma con il limite di lunghezza.
+    @Size(max = 255, message = "Massimo 255 caratteri")
     private String descrizione;
 
     // Integer (con la maiuscola) e non int: può essere null se il campo è vuoto, così

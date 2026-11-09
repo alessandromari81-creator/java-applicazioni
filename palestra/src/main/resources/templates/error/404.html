@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: error/404.html
+  A COSA SERVE: pagina "Non trovato". La usano due casi:
+   1. GestoreErrori, quando manca un utente/corso: passa "dettaglio" (es. "Utente 99 non trovato");
+   2. Spring Boot, per URL che non esistono (/pippo): in questo caso "dettaglio" non c'è.
+  Spring Boot cerca da solo i file templates/error/<codice>.html: per questo il nome è fisso.
+  PARAGONE LARAVEL: resources/views/errors/404.blade.php.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Non trovato</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1>404 · Non trovato</h1>
+    <!--/* Messaggio preciso, solo se presente (caso 1). */-->
+    <p th:if="${dettaglio}" th:text="${dettaglio}"></p>
+    <p>La pagina o la risorsa richiesta non esiste.</p>
+    <a class="btn" th:href="@{/utenti}">Torna al pannello</a>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: error.html
+  A COSA SERVE: pagina di errore "generica", usata da Spring Boot per tutti gli errori che non
+  hanno una pagina dedicata (es. 400 richiesta non valida, 500 errore interno).
+  Spring Boot riempie da solo "status" (codice HTTP) ed "error" (descrizione breve).
+  Di proposito NON mostriamo il messaggio tecnico né lo stack trace: sono informazioni utili
+  a chi attacca il sito. I dettagli completi restano nel log del server.
+  PARAGONE LARAVEL: errors/500.blade.php con APP_DEBUG=false (nessun dettaglio all'utente).
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Errore</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1>Errore <span th:text="${status}">500</span></h1>
+    <!--/* th:if/th:unless: testo diverso per errori del client (4xx) e del server (5xx). */-->
+    <p th:if="${status != null and status >= 500}">Si è verificato un problema interno. Riprova tra poco.</p>
+    <p th:unless="${status != null and status >= 500}">La richiesta non è valida.</p>
+    <a class="btn" th:href="@{/utenti}">Torna al pannello</a>
+  </div>
+</main>
+
+</body>
+</html>

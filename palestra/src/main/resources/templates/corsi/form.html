@@ -29,6 +29,7 @@
 
       <label for="descrizione">Descrizione</label>
       <input type="text" id="descrizione" th:field="*{descrizione}">
+      <div class="campo-err" th:errors="*{descrizione}"></div>
 
       <label for="durataMinuti">Durata (minuti)</label>
       <input type="number" id="durataMinuti" th:field="*{durataMinuti}" min="1">
