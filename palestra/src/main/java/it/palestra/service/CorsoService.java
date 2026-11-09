@@ -11,7 +11,6 @@ import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.UtenteRepository;
 import it.palestra.web.CorsoForm;
 import java.util.List;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +28,10 @@ public class CorsoService {
         this.utenti = utenti;
     }
 
-    // Tutti i corsi ordinati per nome (Sort = ORDER BY, come ->orderBy('nome')).
+    // Tutti i corsi ordinati per nome (come ->orderBy('nome')): l'ordinamento è nel repository.
     @Transactional(readOnly = true)
     public List<Corso> elenco() {
-        return corsi.findAll(Sort.by("nome"));
+        return corsi.findAllByOrderByNomeAsc();
     }
 
     // Un corso per id, o eccezione se non esiste (come findOrFail()).

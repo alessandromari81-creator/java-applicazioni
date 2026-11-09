@@ -1,0 +1,18 @@
+# FILE: compose.yaml
+# A COSA SERVE: descrive i servizi esterni di cui l'app ha bisogno, qui solo il database PostgreSQL.
+# Si avvia con `docker compose up -d` (nella cartella palestra/) e si ferma con `docker compose stop`.
+# PARAGONE LARAVEL: è il docker-compose.yml di Laravel Sail (che avvia MySQL/Redis...).
+services:
+  db:
+    image: postgres:17            # immagine ufficiale di PostgreSQL, versione 17
+    container_name: palestra-db   # nome del container (per i comandi docker exec / logs)
+    environment:                  # crea al primo avvio un database e un utente
+      POSTGRES_DB: palestra
+      POSTGRES_USER: palestra
+      POSTGRES_PASSWORD: palestra # solo sviluppo locale!
+    ports:
+      - "5432:5432"               # porta del Mac : porta nel container (così l'app e DBeaver si collegano a localhost:5432)
+    volumes:
+      - palestra-dati:/var/lib/postgresql/data   # i dati restano anche se spegni il container
+volumes:
+  palestra-dati:

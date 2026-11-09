@@ -37,7 +37,7 @@ public class Corso {
     // quando legge dal DB. "protected" = non lo usiamo noi dal resto del codice.
     protected Corso() {}
 
-    // Costruttore "normale" che usiamo noi per creare un corso (es. nel seeder).
+    // Costruttore "normale" che usiamo noi per creare un corso (es. in CorsoService.crea).
     public Corso(String nome, String descrizione, int durataMinuti, Livello livello) {
         this.nome = nome;               // this = $this in PHP
         this.descrizione = descrizione;

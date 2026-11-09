@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "app.admin.username",
+      "type": "java.lang.String",
+      "description": "Username dell'amministratore che accede al pannello (letto da SecurityConfig). Solo sviluppo."
+    },
+    {
+      "name": "app.admin.password",
+      "type": "java.lang.String",
+      "description": "Password dell'amministratore (viene cifrata all'avvio da SecurityConfig). Solo sviluppo."
+    }
+  ]
+}

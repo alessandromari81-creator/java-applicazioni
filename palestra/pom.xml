@@ -41,11 +41,6 @@
 	</properties>
 	<!-- Librerie usate dal progetto. I "starter" sono pacchetti che ne raggruppano diverse. -->
 	<dependencies>
-		<!-- Console web per ispezionare il database H2 (solo sviluppo). -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-h2console</artifactId>
-		</dependency>
 		<!-- JPA/Hibernate + Spring Data: entità e repository (il tuo "Eloquent"). -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -71,6 +66,23 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+		<!-- Driver JDBC di PostgreSQL: permette a Java di parlare col database (come l'estensione pdo_pgsql di PHP). -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- Flyway: esegue le migration SQL di src/main/resources/db/migration all'avvio (come php artisan migrate). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+		</dependency>
+		<!-- Modulo di Flyway specifico per PostgreSQL (dalla v10 il supporto ai singoli database è separato). -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
 		<!-- Layout Dialect: permette i layout con "buchi" da riempire (layout:decorate, layout:fragment), come @extends/@yield di Blade. -->
 		<dependency>
 			<groupId>nz.net.ultraq.thymeleaf</groupId>
@@ -89,11 +101,11 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
-		<!-- Database H2 in memoria: ci sta in un file jar, non serve installare nulla. -->
+		<!-- Database H2 in memoria: usato SOLO dai test (profilo "test"), così non serve Docker per provarli. -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 		<!-- Strumenti di test per la parte JPA. -->
 		<dependency>

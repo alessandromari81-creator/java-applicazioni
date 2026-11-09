@@ -9,9 +9,12 @@ package it.palestra;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 // Avvia l'intero contesto Spring per il test (lento ma realistico).
+// @ActiveProfiles("test") carica anche application-test.properties: H2 in memoria al posto di PostgreSQL.
 @SpringBootTest
+@ActiveProfiles("test")
 class PalestraApplicationTests {
 
 	// @Test = questo metodo è un test (come i metodi test* di PHPUnit).
