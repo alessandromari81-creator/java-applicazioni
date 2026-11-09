@@ -7,6 +7,7 @@
  */
 package it.palestra.service;
 
+import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Corso;
 import it.palestra.model.Ruolo;
@@ -142,15 +143,15 @@ public class UtenteService {
         Utente u = trova(id);
         if (u.isAdmin() && !contieneRuolo(form.getRuoliIds(), Ruolo.ADMIN)
                 && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
-            throw new IllegalStateException("Non puoi togliere il ruolo ADMIN all'ultimo amministratore");
+            throw new RegolaViolataException("Non puoi togliere il ruolo ADMIN all'ultimo amministratore");
         }
         if (!u.getCorsiInsegnati().isEmpty() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISTRUTTORE)) {
-            throw new IllegalStateException("Non puoi togliere il ruolo ISTRUTTORE: tiene ancora "
+            throw new RegolaViolataException("Non puoi togliere il ruolo ISTRUTTORE: tiene ancora "
                     + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
         }
         if (u.isIscritto() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISCRITTO)
                 && abbonamenti.countByUtenteId(id) > 0) {
-            throw new IllegalStateException("Non puoi togliere il ruolo ISCRITTO: ha "
+            throw new RegolaViolataException("Non puoi togliere il ruolo ISCRITTO: ha "
                     + abbonamenti.countByUtenteId(id) + " abbonamenti registrati");
         }
         return applica(u, form);
@@ -163,16 +164,16 @@ public class UtenteService {
     public void elimina(Long id) {
         Utente u = trova(id);
         if (!u.getCorsiInsegnati().isEmpty()) {
-            throw new IllegalStateException("Impossibile eliminare: è istruttore di "
+            throw new RegolaViolataException("Impossibile eliminare: è istruttore di "
                     + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
         }
         long numeroAbbonamenti = abbonamenti.countByUtenteId(id);
         if (numeroAbbonamenti > 0) {
-            throw new IllegalStateException("Impossibile eliminare: ha " + numeroAbbonamenti
+            throw new RegolaViolataException("Impossibile eliminare: ha " + numeroAbbonamenti
                     + " abbonamenti registrati (restano nello storico)");
         }
         if (u.isAdmin() && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
-            throw new IllegalStateException("Impossibile eliminare l'ultimo amministratore");
+            throw new RegolaViolataException("Impossibile eliminare l'ultimo amministratore");
         }
         utenti.delete(u);
     }

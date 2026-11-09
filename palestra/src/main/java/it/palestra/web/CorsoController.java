@@ -6,6 +6,7 @@
  */
 package it.palestra.web;
 
+import it.palestra.exception.RegolaViolataException;
 import it.palestra.model.Livello;
 import it.palestra.service.CorsoService;
 import jakarta.validation.Valid;
@@ -71,14 +72,14 @@ public class CorsoController {
     }
 
     // POST /corsi/5/elimina -> elimina, oppure mostra l'errore se ci sono iscritti.
-    // try/catch = come try/catch di PHP: se il service lancia IllegalStateException
+    // try/catch = come try/catch di PHP: se il service lancia RegolaViolataException
     // mostriamo il suo messaggio (flash "errore") invece di una pagina di errore.
     @PostMapping("/{id}/elimina")
     public String elimina(@PathVariable Long id, RedirectAttributes flash) {
         try {
             service.elimina(id);
             flash.addFlashAttribute("messaggio", "Corso eliminato");
-        } catch (IllegalStateException e) {
+        } catch (RegolaViolataException e) {
             flash.addFlashAttribute("errore", e.getMessage());
         }
         return "redirect:/corsi";

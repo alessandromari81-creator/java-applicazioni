@@ -7,6 +7,7 @@
  */
 package it.palestra.web;
 
+import it.palestra.exception.RegolaViolataException;
 import it.palestra.service.AbbonamentoService;
 import it.palestra.service.UtenteService;
 import jakarta.validation.Valid;
@@ -89,7 +90,7 @@ public class UtenteController {
         if (errori.hasErrors()) return formView(model, id);
         try {
             service.modifica(id, utenteForm);
-        } catch (IllegalStateException e) {
+        } catch (RegolaViolataException e) {
             // Il service ha rifiutato (es. si toglie ADMIN all'ultimo admin, o ISTRUTTORE a chi tiene corsi):
             // errore "globale" del form, cioè non legato a un campo, mostrato in cima al form.
             errori.reject("regola", e.getMessage());
@@ -106,7 +107,7 @@ public class UtenteController {
         try {
             service.elimina(id);
             flash.addFlashAttribute("messaggio", "Utente eliminato");
-        } catch (IllegalStateException e) {
+        } catch (RegolaViolataException e) {
             flash.addFlashAttribute("errore", e.getMessage());
         }
         return "redirect:/utenti";

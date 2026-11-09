@@ -11,6 +11,7 @@
  */
 package it.palestra.service;
 
+import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Abbonamento;
 import it.palestra.model.StatoAbbonamento;
@@ -62,7 +63,7 @@ public class AbbonamentoService {
     // Un abbonamento per id, oppure 404 se non esiste.
     @Transactional(readOnly = true)
     public Abbonamento trova(Long id) {
-        return abbonamenti.findById(id)
+        return abbonamenti.findConUtenteById(id)
                 .orElseThrow(() -> new RisorsaNonTrovataException("Abbonamento " + id + " non trovato"));
     }
 
@@ -155,9 +156,11 @@ public class AbbonamentoService {
     }
 
     // Crea l'abbonamento (INSERT). Data di fine e prezzo li calcola il costruttore di Abbonamento dal tipo.
-    // getReferenceById non fa una SELECT: restituisce un "segnaposto" con quell'id, sufficiente per la chiave esterna.
+    // L'utente si legge davvero dal database (e non con un "segnaposto" come getReferenceById): così l'abbonamento
+    // restituito ha già nome e cognome, che la API mostra senza dover rileggere il database.
     public Abbonamento crea(AbbonamentoForm f) {
-        Utente utente = utenti.getReferenceById(f.getUtenteId());
+        Utente utente = utenti.findById(f.getUtenteId())
+                .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + f.getUtenteId() + " non trovato"));
         return abbonamenti.save(new Abbonamento(utente, f.getTipo(), f.getDataInizio()));
     }
 
@@ -166,7 +169,7 @@ public class AbbonamentoService {
     public void elimina(Long id) {
         Abbonamento a = trova(id);
         if (a.stato(oggi()) != StatoAbbonamento.FUTURO) {
-            throw new IllegalStateException("Si possono eliminare solo gli abbonamenti non ancora iniziati: "
+            throw new RegolaViolataException("Si possono eliminare solo gli abbonamenti non ancora iniziati: "
                     + "quelli attivi o scaduti restano nello storico");
         }
         abbonamenti.delete(a);

@@ -7,6 +7,7 @@
  */
 package it.palestra.web;
 
+import it.palestra.exception.RegolaViolataException;
 import it.palestra.model.TipoAbbonamento;
 import it.palestra.service.AbbonamentoService;
 import jakarta.validation.Valid;
@@ -93,7 +94,7 @@ public class AbbonamentoController {
     }
 
     // POST /abbonamenti/5/elimina -> elimina SOLO se non è ancora iniziato. Altrimenti il service lancia
-    // IllegalStateException e mostriamo il suo messaggio in rosso.
+    // RegolaViolataException e mostriamo il suo messaggio in rosso.
     // "daUtente": il pulsante nella pagina di un utente aggiunge daUtente=true, così dopo l'eliminazione si torna a
     // QUELLA pagina invece che all'elenco generale. L'indirizzo di ritorno lo costruisce il server con l'id
     // dell'utente dell'abbonamento: non si accetta mai un indirizzo scritto da chi invia la richiesta (evita i
@@ -105,7 +106,7 @@ public class AbbonamentoController {
         try {
             service.elimina(id);
             flash.addFlashAttribute("messaggio", "Abbonamento eliminato");
-        } catch (IllegalStateException e) {
+        } catch (RegolaViolataException e) {
             flash.addFlashAttribute("errore", e.getMessage());
         }
         return daUtente ? "redirect:/abbonamenti/utente/" + utenteId : "redirect:/abbonamenti";

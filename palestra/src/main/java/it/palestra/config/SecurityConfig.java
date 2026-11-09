@@ -8,6 +8,13 @@
  * CHI PUÒ FARE LOGIN: gli utenti della tabella "utente" che hanno una password (con l'email come username).
  * Il pannello è riservato a chi ha il ruolo ADMIN. Il primo admin lo crea AdminIniziale all'avvio.
  *
+ * DUE CATENE DI SICUREZZA (DUE "MIDDLEWARE STACK"): l'applicazione ha due modi di far entrare le persone, con regole
+ * diverse, e Spring sceglie la catena in base all'indirizzo della richiesta:
+ *   1) /api/**  -> la API REST: senza sessione e senza CSRF, si entra con un TOKEN JWT (intestazione
+ *                  "Authorization: Bearer ..."). Chi non è autorizzato riceve 401/403 in JSON, mai un redirect al login.
+ *   2) tutto il resto -> le PAGINE: form di login con sessione (cookie) e CSRF, redirect al login.
+ * @Order stabilisce l'ordine in cui le catene vengono provate: la prima il cui securityMatcher corrisponde vince.
+ *
  * PERCHÉ LA PRIMA PAGINA È IL LOGIN: è deciso QUI. La regola anyRequest().hasRole("ADMIN")
  * dice "ogni pagina richiede il login e il ruolo ADMIN". Quando un visitatore non loggato chiede una pagina
  * (anche solo "/"), il filtro lo rimanda alla pagina indicata da loginPage("/login").
@@ -16,11 +23,25 @@
  */
 package it.palestra.config;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import it.palestra.service.JwtService;
 import org.springframework.security.web.SecurityFilterChain;
 
 // @Configuration = classe di configurazione: i metodi @Bean creano oggetti che Spring
@@ -28,9 +49,77 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
+    // CATENA 1: la API REST (/api/**). Provata per prima (@Order(1)).
+    @Bean
+    @Order(1)
+    SecurityFilterChain filtriApi(HttpSecurity http) throws Exception {
+        http
+            // Questa catena si occupa SOLO degli indirizzi che iniziano con /api/.
+            .securityMatcher("/api/**")
+            // Niente CSRF: quella protezione serve quando il browser invia da solo i cookie di sessione. Qui non ci
+            // sono cookie: il token va aggiunto a mano a ogni richiesta, quindi un altro sito non può "usare" il tuo.
+            .csrf(AbstractHttpConfigurer::disable)
+            // STATELESS: il server non crea né usa sessioni. Ogni richiesta porta con sé tutto ciò che serve (il token).
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(a -> a
+                // Il login è pubblico: è l'unico modo per ottenere un token.
+                .requestMatchers("/api/auth/login").permitAll()
+                // Tutto il resto della API richiede un token valido con il ruolo ADMIN.
+                .anyRequest().hasRole("ADMIN"))
+            // "Resource server": la API verifica i token JWT in arrivo. Il decodificatore (JwtConfig) controlla firma e
+            // scadenza; il convertitore trasforma il claim "ruoli" del token nelle autorità ROLE_... di Spring.
+            // Gli errori si rispondono in JSON (vedi sotto), non con la pagina di login.
+            .oauth2ResourceServer(o -> o
+                .jwt(j -> j.jwtAuthenticationConverter(convertitoreJwt()))
+                .authenticationEntryPoint(rispostaNonAutenticato())
+                .accessDeniedHandler(rispostaAccessoNegato()));
+        return http.build();
+    }
+
+    // Trasforma il contenuto del token in un utente di Spring Security: i nomi nel claim "ruoli" (es. ["ADMIN"])
+    // diventano le autorità "ROLE_ADMIN", che hasRole("ADMIN") sa controllare.
+    private JwtAuthenticationConverter convertitoreJwt() {
+        JwtGrantedAuthoritiesConverter ruoli = new JwtGrantedAuthoritiesConverter();
+        ruoli.setAuthoritiesClaimName(JwtService.CLAIM_RUOLI);
+        ruoli.setAuthorityPrefix("ROLE_");
+        JwtAuthenticationConverter convertitore = new JwtAuthenticationConverter();
+        convertitore.setJwtGrantedAuthoritiesConverter(ruoli);
+        return convertitore;
+    }
+
+    // 401 Unauthorized: token mancante, scaduto, modificato o firmato male. Il testo è fisso e generico di proposito:
+    // dire PERCHÉ il token è stato rifiutato aiuterebbe solo chi attacca. L'intestazione WWW-Authenticate è quella
+    // che lo standard richiede in un 401 (dice quale schema di autenticazione usare).
+    private AuthenticationEntryPoint rispostaNonAutenticato() {
+        return (richiesta, risposta, eccezione) -> {
+            risposta.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+            scriviJson(risposta, HttpStatus.UNAUTHORIZED, "Non autenticato",
+                    "Token mancante, scaduto o non valido: esegui il login su /api/auth/login");
+        };
+    }
+
+    // 403 Forbidden: il token è valido ma l'utente non ha il ruolo richiesto (ADMIN).
+    private AccessDeniedHandler rispostaAccessoNegato() {
+        return (richiesta, risposta, eccezione) ->
+                scriviJson(risposta, HttpStatus.FORBIDDEN, "Accesso negato", "Non hai i permessi per questa risorsa");
+    }
+
+    // Scrive una risposta JSON {status, errore, messaggio}. Il testo è composto solo da costanti nostre (mai da dati
+    // della richiesta), quindi si può scrivere come stringa senza rischi di "iniezione".
+    private void scriviJson(HttpServletResponse risposta, HttpStatus stato, String errore, String messaggio)
+            throws IOException {
+        risposta.setStatus(stato.value());
+        risposta.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        risposta.setCharacterEncoding("UTF-8");
+        risposta.getWriter().write("{\"status\":" + stato.value() + ",\"errore\":\"" + errore
+                + "\",\"messaggio\":\"" + messaggio + "\"}");
+    }
+
+    // CATENA 2: le pagine (tutto il resto). Provata dopo la API (@Order(2)).
     // Definisce le regole di sicurezza HTTP. Spring Security funziona con una catena
     // di filtri, equivalente ai middleware di Laravel.
     @Bean
+    @Order(2)
     SecurityFilterChain filtri(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(a -> a

@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-// @ControllerAdvice = "consiglio" che vale per TUTTI i controller dell'applicazione.
-@ControllerAdvice
+// @ControllerAdvice = "consiglio" che vale per i controller indicati. Con basePackages si limita ai controller delle
+// PAGINE (package it.palestra.web): la API REST (package it.palestra.api) ha il suo gestore che risponde in JSON,
+// mentre questo risponde con una pagina HTML.
+@ControllerAdvice(basePackages = "it.palestra.web")
 public class GestoreErrori {
 
     // @ExceptionHandler: questo metodo viene chiamato quando un controller lancia

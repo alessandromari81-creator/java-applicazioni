@@ -6,6 +6,7 @@
  */
 package it.palestra.service;
 
+import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Corso;
 import it.palestra.model.Ruolo;
@@ -105,7 +106,7 @@ public class CorsoService {
     public void elimina(Long id) {
         long iscritti = utenti.countByCorsiId(id);
         if (iscritti > 0) {
-            throw new IllegalStateException(
+            throw new RegolaViolataException(
                     "Impossibile eliminare: ci sono " + iscritti + " utenti iscritti a questo corso");
         }
         corsi.deleteById(id);

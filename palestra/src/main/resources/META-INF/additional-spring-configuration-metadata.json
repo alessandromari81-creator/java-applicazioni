@@ -6,6 +6,16 @@
       "description": "Email (cioè username di login) del primo amministratore, creato all'avvio da AdminIniziale se non esiste nessun ADMIN. Solo sviluppo."
     },
     {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Chiave segreta (almeno 32 caratteri) con cui si firmano i token JWT della API. In produzione va impostata con la variabile d'ambiente JWT_SECRET."
+    },
+    {
+      "name": "app.jwt.durata-minuti",
+      "type": "java.lang.Long",
+      "description": "Durata di un token JWT in minuti."
+    },
+    {
       "name": "app.admin.password",
       "type": "java.lang.String",
       "description": "Password del primo amministratore (viene cifrata con bcrypt prima di salvarla). Solo sviluppo."

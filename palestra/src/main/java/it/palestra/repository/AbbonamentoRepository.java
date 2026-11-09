@@ -9,6 +9,7 @@ package it.palestra.repository;
 import it.palestra.model.Abbonamento;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,8 +22,15 @@ public interface AbbonamentoRepository extends JpaRepository<Abbonamento, Long> 
     @EntityGraph(attributePaths = "utente")
     List<Abbonamento> findAllByOrderByDataFineDescIdDesc();
 
-    // Lo storico di UN utente, dal più recente (per data di inizio) al più vecchio: serve alla sua pagina.
+    // Lo storico di UN utente, dal più recente (per data di inizio) al più vecchio: serve alla sua pagina e alla API.
+    // @EntityGraph carica anche l'utente: la API lo mostra in ogni abbonamento e, fuori da una transazione, non si
+    // potrebbe più leggere.
+    @EntityGraph(attributePaths = "utente")
     List<Abbonamento> findByUtenteIdOrderByDataInizioDesc(Long utenteId);
+
+    // Un abbonamento per id con l'utente già caricato (per mostrarlo nella API senza leggere il database dopo).
+    @EntityGraph(attributePaths = "utente")
+    Optional<Abbonamento> findConUtenteById(Long id);
 
     // Gli abbonamenti dello stesso utente che SI SOVRAPPONGONO al periodo [inizio, fine] (estremi inclusi).
     // DUE PERIODI SI SOVRAPPONGONO quando ciascuno inizia prima (o nel giorno) in cui finisce l'altro:
