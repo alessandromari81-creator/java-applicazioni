@@ -1,0 +1,65 @@
+/*
+ * FILE: style.css
+ * A COSA SERVE: stile grafico delle pagine. I file in "static/" sono serviti così come sono
+ * dal server, all'indirizzo /css/style.css (come la cartella public/ di Laravel).
+ */
+
+/* Il padding non allarga più gli elementi oltre la loro larghezza (calcolo più intuitivo). */
+* { box-sizing: border-box; }
+
+/* Aspetto generale della pagina: font di sistema, sfondo grigio chiaro. */
+body { font-family: system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #222; }
+
+/* Barra scura in alto con titolo a sinistra e logout a destra. */
+header { background: #1f2937; color: #fff; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+header form { margin: 0; }
+
+/* Contenitore centrale della pagina, largo al massimo 960px. */
+main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+
+/* "Scheda" bianca con angoli arrotondati e ombra leggera. */
+.card { background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+/* Scheda del login: stretta e centrata. */
+.login { max-width: 360px; margin: 80px auto; }
+h1, h2 { margin-top: 0; }
+
+/* Etichette e campi dei form. */
+label { display: block; margin: 12px 0 4px; font-weight: 600; }
+input[type=text], input[type=email], input[type=password] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+/* Etichette delle checkbox dei corsi: normali, non in grassetto. */
+.check { font-weight: normal; margin: 4px 0; }
+.check input { margin-right: 6px; }
+
+/* Bottoni: sia <button> sia link <a class="btn"> hanno lo stesso aspetto. */
+button, .btn { display: inline-block; background: #2563eb; color: #fff; border: 0; border-radius: 4px; padding: 8px 14px; cursor: pointer; text-decoration: none; font-size: 14px; }
+.btn-sec { background: #6b7280; }     /* variante grigia (Modifica, Annulla, Esci) */
+.btn-danger { background: #dc2626; }  /* variante rossa (Elimina) */
+
+/* Tabella della lista utenti. */
+table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e5e7eb; }
+
+/* Cella con i bottoni Modifica / Elimina affiancati. */
+.azioni { display: flex; gap: 6px; }
+.azioni form { margin: 0; }
+
+/* "Etichetta" colorata per ogni corso dell'utente. */
+.tag { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 10px; padding: 2px 8px; font-size: 12px; margin: 1px; }
+
+/* Messaggi: verde per successo, rosso per errore; .campo-err = errore sotto un campo. */
+.ok { background: #dcfce7; color: #166534; padding: 10px; border-radius: 4px; margin-bottom: 12px; }
+.err { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 4px; margin-bottom: 12px; }
+.campo-err { color: #dc2626; font-size: 13px; }
+
+/* Riga con titolo a sinistra e bottone "Nuovo" a destra. */
+.top { display: flex; justify-content: space-between; align-items: center; }
+
+/* Menu di navigazione nella barra in alto. */
+header nav { display: flex; gap: 16px; margin-right: auto; margin-left: 32px; }
+header nav a { color: #cbd5e1; text-decoration: none; }
+header nav a:hover { color: #fff; }
+
+/* Tendina e campo numerico con lo stesso aspetto dei campi di testo. */
+select, input[type=number] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }

@@ -1,0 +1,9 @@
+# File di sistema di macOS
+.DS_Store
+
+# Impostazioni locali di VS Code e file generati da estensioni dell'editor
+.vscode/
+.github/modernize/
+
+# File compilati Java (anche fuori da palestra/)
+*.class

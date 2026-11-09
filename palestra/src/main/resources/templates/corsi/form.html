@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: corsi/form.html
+  A COSA SERVE: form unico per CREARE e MODIFICARE un corso.
+  Riceve: "corsoForm" (dati ed errori), "livelli" (valori per la tendina), "corsoId"
+  (null se nuovo, l'id se in modifica). Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Corso</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1 th:text="${corsoId == null} ? 'Nuovo corso' : 'Modifica corso'"></h1>
+
+    <!--/* th:object lega il form a CorsoForm; th:action sceglie POST /corsi (nuovo) oppure
+           POST /corsi/{id} (modifica). th:field e th:errors funzionano come nel form utenti. */-->
+    <form th:object="${corsoForm}"
+          th:action="${corsoId == null} ? @{/corsi} : @{/corsi/{id}(id=${corsoId})}"
+          method="post">
+
+      <label for="nome">Nome</label>
+      <input type="text" id="nome" th:field="*{nome}">
+      <div class="campo-err" th:errors="*{nome}"></div>
+
+      <label for="descrizione">Descrizione</label>
+      <input type="text" id="descrizione" th:field="*{descrizione}">
+
+      <label for="durataMinuti">Durata (minuti)</label>
+      <input type="number" id="durataMinuti" th:field="*{durataMinuti}" min="1">
+      <div class="campo-err" th:errors="*{durataMinuti}"></div>
+
+      <!--/* Tendina (<select>): una <option> per ogni valore dell'enum Livello. th:field
+             seleziona da solo l'opzione corrispondente al valore attuale. */-->
+      <label for="livello">Livello</label>
+      <select id="livello" th:field="*{livello}">
+        <option value="">-- scegli --</option>
+        <option th:each="l : ${livelli}" th:value="${l}" th:text="${l}"></option>
+      </select>
+      <div class="campo-err" th:errors="*{livello}"></div>
+
+      <p>
+        <button type="submit">Salva</button>
+        <a class="btn btn-sec" th:href="@{/corsi}">Annulla</a>
+      </p>
+    </form>
+  </div>
+</main>
+
+</body>
+</html>

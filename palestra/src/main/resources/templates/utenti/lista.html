@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: utenti/lista.html
+  A COSA SERVE: il pannello di controllo: tabella di tutti gli utenti con i loro corsi e i
+  pulsanti Modifica / Elimina / Nuovo utente. Mostrata da UtenteController.lista(), che
+  restituisce il nome "utenti/lista" (= questo file).
+  Riceve dal controller: "utenti" (lista), "admin" (nome loggato), "messaggio" (flash, opzionale).
+  Usa il layout layout/base.html (come @extends): barra e <head> arrivano da lì.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Utenti</title>
+</head>
+<body>
+
+<!--/* Non ridefiniamo "barra": usa quella di default del layout, che mostra "Esci"
+       perché il controller ci passa "admin". */-->
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <div class="top">
+      <h1>Utenti</h1>
+      <!--/* @{/utenti/nuovo} = url('/utenti/nuovo') di Laravel: genera l'indirizzo corretto */-->
+      <a class="btn" th:href="@{/utenti/nuovo}">+ Nuovo utente</a>
+    </div>
+
+    <!--/* Messaggio "flash" dopo creazione/modifica/eliminazione; th:if mostra solo se esiste.
+           th:text sostituisce il contenuto del tag (come {{ $messaggio }}, ed è escapato). */-->
+    <div class="ok" th:if="${messaggio}" th:text="${messaggio}"></div>
+
+    <table>
+      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Corsi</th><th></th></tr></thead>
+      <tbody>
+        <!--/* th:each = @foreach: ripete la riga per ogni utente della lista. */-->
+        <tr th:each="u : ${utenti}">
+          <td th:text="${u.cognome + ' ' + u.nome}"></td>
+          <td th:text="${u.email}"></td>
+          <td>
+            <!--/* Un'etichetta per ogni corso dell'utente (${u.corsi} usa getCorsi()). */-->
+            <span class="tag" th:each="c : ${u.corsi}" th:text="${c.nome}"></span>
+            <em th:if="${u.corsi.isEmpty()}">nessuno</em>
+          </td>
+          <td class="azioni">
+            <!--/* Link di modifica: l'id viene inserito nel percorso /utenti/{id}/modifica. */-->
+            <a class="btn btn-sec" th:href="@{/utenti/{id}/modifica(id=${u.id})}">Modifica</a>
+            <!--/* Eliminazione con POST; confirm() del browser chiede conferma prima dell'invio. */-->
+            <form th:action="@{/utenti/{id}/elimina(id=${u.id})}" method="post"
+                  onsubmit="return confirm('Eliminare questo utente?')">
+              <button type="submit" class="btn-danger">Elimina</button>
+            </form>
+          </td>
+        </tr>
+        <!--/* Riga mostrata solo se la lista è vuota (@forelse...@empty). */-->
+        <tr th:if="${utenti.isEmpty()}"><td colspan="4">Nessun utente.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+</body>
+</html>

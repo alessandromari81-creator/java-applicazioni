@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: corsi/lista.html
+  A COSA SERVE: elenco dei corsi con i pulsanti Modifica / Elimina / Nuovo corso.
+  Mostrata da CorsoController.lista(). Riceve: "corsi" (lista), "admin" (nome loggato),
+  "messaggio" e "errore" (messaggi flash, opzionali). Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Corsi</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <div class="top">
+      <h1>Corsi</h1>
+      <a class="btn" th:href="@{/corsi/nuovo}">+ Nuovo corso</a>
+    </div>
+
+    <!--/* Messaggi flash: verde se tutto ok, rosso se l'operazione è stata rifiutata
+           (es. corso con iscritti). */-->
+    <div class="ok" th:if="${messaggio}" th:text="${messaggio}"></div>
+    <div class="err" th:if="${errore}" th:text="${errore}"></div>
+
+    <table>
+      <thead><tr><th>Nome</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th></th></tr></thead>
+      <tbody>
+        <tr th:each="c : ${corsi}">
+          <td th:text="${c.nome}"></td>
+          <td th:text="${c.livello}"></td>
+          <td th:text="${c.durataMinuti + ' min'}"></td>
+          <td th:text="${c.descrizione}"></td>
+          <td class="azioni">
+            <a class="btn btn-sec" th:href="@{/corsi/{id}/modifica(id=${c.id})}">Modifica</a>
+            <form th:action="@{/corsi/{id}/elimina(id=${c.id})}" method="post"
+                  onsubmit="return confirm('Eliminare questo corso?')">
+              <button type="submit" class="btn-danger">Elimina</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${corsi.isEmpty()}"><td colspan="5">Nessun corso.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: utenti/form.html
+  A COSA SERVE: un unico form usato sia per CREARE sia per MODIFICARE un utente.
+  Riceve dal controller: "utenteForm" (dati e errori del form), "corsi" (tutti i corsi per le
+  checkbox) e "utenteId" (null se nuovo, l'id se in modifica).
+  Usa il layout layout/base.html (come @extends). Qui "admin" non è passato, quindi la barra
+  di default non mostra il pulsante "Esci".
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Utente</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <!--/* Condizione ternaria: titolo diverso se utenteId è null (creazione) o no (modifica). */-->
+    <h1 th:text="${utenteId == null} ? 'Nuovo utente' : 'Modifica utente'"></h1>
+
+    <!--/* th:object lega il form a UtenteForm: dentro il form *{nome} significa utenteForm.nome.
+           th:action sceglie dove inviare: POST /utenti (creazione) o POST /utenti/{id} (modifica).
+           Il token CSRF viene aggiunto da solo. */-->
+    <form th:object="${utenteForm}"
+          th:action="${utenteId == null} ? @{/utenti} : @{/utenti/{id}(id=${utenteId})}"
+          method="post">
+
+      <!--/* th:field genera name="nome", id e value (rimette il valore già scritto se c'è un
+             errore, come old('nome') in Blade). th:errors mostra gli errori di validazione del
+             campo (come @error('nome')), ed è vuoto se non ce ne sono. */-->
+      <label for="nome">Nome</label>
+      <input type="text" id="nome" th:field="*{nome}">
+      <div class="campo-err" th:errors="*{nome}"></div>
+
+      <label for="cognome">Cognome</label>
+      <input type="text" id="cognome" th:field="*{cognome}">
+      <div class="campo-err" th:errors="*{cognome}"></div>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" th:field="*{email}">
+      <div class="campo-err" th:errors="*{email}"></div>
+
+      <label>Corsi</label>
+      <!--/* Una checkbox per ogni corso. th:field="*{corsiIds}" + th:value fa sì che la casella
+             sia già spuntata se l'id del corso è nella lista corsiIds, e che i valori spuntati
+             tornino al controller come lista di id. */-->
+      <label class="check" th:each="c : ${corsi}">
+        <input type="checkbox" th:field="*{corsiIds}" th:value="${c.id}">
+        <span th:text="${c.nome + ' (' + c.livello + ', ' + c.durataMinuti + ' min)'}"></span>
+      </label>
+
+      <p>
+        <button type="submit">Salva</button>
+        <a class="btn btn-sec" th:href="@{/utenti}">Annulla</a>
+      </p>
+    </form>
+  </div>
+</main>
+
+</body>
+</html>
