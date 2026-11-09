@@ -32,7 +32,9 @@
          Il form invia POST /login: lo elabora Spring Security, non un nostro controller.
          I nomi "username" e "password" sono quelli che Spring Security si aspetta. */-->
   <form th:action="@{/login}" method="post">
-    <label for="username">Username</label>
+    <!--/* Il campo si chiama "username" perché è il nome che Spring Security si aspetta, ma ora ci va
+           l'EMAIL dell'utente. */-->
+    <label for="username">Email</label>
     <input type="text" id="username" name="username" autofocus required>
     <label for="password">Password</label>
     <input type="password" id="password" name="password" required>

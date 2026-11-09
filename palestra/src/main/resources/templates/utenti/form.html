@@ -2,7 +2,7 @@
 <!--/*
   FILE: utenti/form.html
   A COSA SERVE: un unico form usato sia per CREARE sia per MODIFICARE un utente.
-  Riceve dal controller: "utenteForm" (dati e errori del form), "corsi" (tutti i corsi per le
+  Riceve dal controller: "utenteForm" (dati e errori del form), "corsi" e "ruoli" (tutti, per le
   checkbox) e "utenteId" (null se nuovo, l'id se in modifica).
   Usa il layout layout/base.html (come @extends). Qui "admin" non è passato, quindi la barra
   di default non mostra il pulsante "Esci".
@@ -27,6 +27,11 @@
           th:action="${utenteId == null} ? @{/utenti} : @{/utenti/{id}(id=${utenteId})}"
           method="post">
 
+      <!--/* Errori "globali" del form, cioè non legati a un campo (es. "Non puoi togliere il ruolo ADMIN
+             all'ultimo amministratore"). #fields.globalErrors() li elenca; th:each ne fa un blocco per ciascuno.
+             DEVE stare DENTRO il <form th:object>: #fields funziona solo rispetto all'oggetto del form. */-->
+      <div class="err" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+
       <!--/* th:field genera name="nome", id e value (rimette il valore già scritto se c'è un
              errore, come old('nome') in Blade). th:errors mostra gli errori di validazione del
              campo (come @error('nome')), ed è vuoto se non ce ne sono. */-->
@@ -41,6 +46,23 @@
       <label for="email">Email</label>
       <input type="email" id="email" th:field="*{email}">
       <div class="campo-err" th:errors="*{email}"></div>
+
+      <!--/* Password: campo scritto a mano e NON con th:field, così il valore non viene mai rimesso nell'HTML
+             dopo un errore. th:errors invece mostra gli errori di validazione del campo "password".
+             Serve solo agli ADMIN (che fanno login); in modifica, lasciarla vuota significa "non cambiarla".
+             autocomplete="new-password" impedisce al browser di riempirla con la password salvata. */-->
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="new-password">
+      <small class="aiuto" th:text="${utenteId == null} ? 'Obbligatoria solo per gli amministratori (min. 8 caratteri).' : 'Lascia vuoto per non cambiarla.'"></small>
+      <div class="campo-err" th:errors="*{password}"></div>
+
+      <!--/* Ruoli: una checkbox per ruolo (ADMIN, ISTRUTTORE, ISCRITTO). Stesso meccanismo dei corsi:
+             th:field="*{ruoliIds}" + th:value spunta le caselle già assegnate e rimanda gli id scelti. */-->
+      <label>Ruoli</label>
+      <label class="check" th:each="r : ${ruoli}">
+        <input type="checkbox" th:field="*{ruoliIds}" th:value="${r.id}">
+        <span th:text="${r.nome}"></span>
+      </label>
 
       <label>Corsi</label>
       <!--/* Una checkbox per ogni corso. th:field="*{corsiIds}" + th:value fa sì che la casella

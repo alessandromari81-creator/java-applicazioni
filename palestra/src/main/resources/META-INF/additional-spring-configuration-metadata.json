@@ -1,14 +1,14 @@
 {
   "properties": [
     {
-      "name": "app.admin.username",
+      "name": "app.admin.email",
       "type": "java.lang.String",
-      "description": "Username dell'amministratore che accede al pannello (letto da SecurityConfig). Solo sviluppo."
+      "description": "Email (cioè username di login) del primo amministratore, creato all'avvio da AdminIniziale se non esiste nessun ADMIN. Solo sviluppo."
     },
     {
       "name": "app.admin.password",
       "type": "java.lang.String",
-      "description": "Password dell'amministratore (viene cifrata all'avvio da SecurityConfig). Solo sviluppo."
+      "description": "Password del primo amministratore (viene cifrata con bcrypt prima di salvarla). Solo sviluppo."
     }
   ]
 }

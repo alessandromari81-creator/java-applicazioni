@@ -27,12 +27,16 @@
     </div>
 
     <table>
-      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Corsi</th><th></th></tr></thead>
+      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Ruoli</th><th>Corsi</th><th></th></tr></thead>
       <tbody>
         <!--/* th:each = @foreach: ripete la riga per ogni utente della lista. */-->
         <tr th:each="u : ${utenti}">
           <td th:text="${u.cognome + ' ' + u.nome}"></td>
           <td th:text="${u.email}"></td>
+          <!--/* Un'etichetta verde per ogni ruolo dell'utente (${u.ruoli} usa getRuoli()). */-->
+          <td>
+            <span class="tag tag-ruolo" th:each="r : ${u.ruoli}" th:text="${r.nome}"></span>
+          </td>
           <td>
             <!--/* Un'etichetta per ogni corso dell'utente (${u.corsi} usa getCorsi()). */-->
             <span class="tag" th:each="c : ${u.corsi}" th:text="${c.nome}"></span>
@@ -49,7 +53,7 @@
           </td>
         </tr>
         <!--/* Riga mostrata solo se la lista è vuota (@forelse...@empty). */-->
-        <tr th:if="${utenti.isEmpty()}"><td colspan="4">Nessun utente.</td></tr>
+        <tr th:if="${utenti.isEmpty()}"><td colspan="5">Nessun utente.</td></tr>
       </tbody>
     </table>
   </div>
