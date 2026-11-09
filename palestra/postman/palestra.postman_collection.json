@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Palestra API",
-    "description": "API REST della Palestra (JWT). 1) Compila la variabile 'password' (scheda Variables della collection) con la password dell'admin; 2) esegui 'Auth > Login' (salva il token da solo); 3) usa le altre richieste. Guida completa: palestra/API.md Ogni richiesta (tranne il Login) ha l'autenticazione Bearer {{token}} impostata direttamente.",
+    "description": "API REST della Palestra (JWT). 1) Importa anche l'Environment 'Palestra locale' e SELEZIONALO in alto a destra; 2) scrivi la password dell'admin nella variabile 'password' dell'Environment (colonna Current value) e salva; 3) esegui 'Auth > Login': il token viene salvato da solo in jwt_token; 4) usa le altre richieste. Guida: palestra/API.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -9,7 +9,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "{{token}}",
+        "value": "{{jwt_token}}",
         "type": "string"
       }
     ]
@@ -39,7 +39,7 @@
       "value": ""
     },
     {
-      "key": "token",
+      "key": "jwt_token",
       "value": ""
     },
     {
@@ -84,7 +84,7 @@
                 "login"
               ]
             },
-            "description": "Restituisce il token JWT e lo salva nella variabile {{token}}: da qui in poi le altre richieste sono autenticate.",
+            "description": "Restituisce il token JWT e lo salva nella variabile jwt_token dell'Environment attivo (e, come ripiego, della collection): da qui in poi le altre richieste sono autenticate da sole. Non devi copiare nulla.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
@@ -104,8 +104,25 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// Se il login riesce, salva il token nella variabile di collection 'token'.",
-                  "if (pm.response.code === 200) { pm.collectionVariables.set('token', pm.response.json().token); }"
+                  "// Verifica visibile nella scheda 'Test Results': il login deve rispondere 200.",
+                  "pm.test(\"Login riuscito (200)\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const risposta = pm.response.json();",
+                  "    const token = risposta.token;                       // il JWT vero e proprio",
+                  "",
+                  "    // Ripiego: salvato tra le variabili della collection, cosi' funziona anche senza Environment selezionato.",
+                  "    pm.collectionVariables.set(\"jwt_token\", token);",
+                  "",
+                  "    // Come negli altri progetti: salvato nell'Environment ATTIVO nella variabile jwt_token.",
+                  "    // (pm.environment.name e' vuoto se non e' selezionato nessun Environment: in quel caso si salta.)",
+                  "    if (pm.environment.name) {",
+                  "        pm.environment.set(\"jwt_token\", token);",
+                  "    }",
+                  "    console.log(\"JWT salvato con successo (scade tra \" + risposta.scadeTraSecondi + \" secondi)\");",
+                  "} else {",
+                  "    console.log(\"Login NON riuscito: controlla email e password (Environment o variabili della collection)\");",
+                  "}"
                 ]
               }
             }
@@ -137,7 +154,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -166,7 +183,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -208,7 +225,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -263,7 +280,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -292,7 +309,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -325,7 +342,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -354,7 +371,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -396,7 +413,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -451,7 +468,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -480,7 +497,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -513,7 +530,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -543,7 +560,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -574,7 +591,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -618,7 +635,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -659,7 +676,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]
@@ -688,7 +705,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{jwt_token}}",
                   "type": "string"
                 }
               ]

@@ -21,14 +21,25 @@ dati e le stesse regole delle pagine (stessi *service*). Avvio: vedi `CLAUDE.md`
 3. Il token dura **60 minuti**; poi si rifà il login. Serve il ruolo **ADMIN** (un iscritto con password ottiene
    un token ma riceve 403).
 
-### In Postman: collection già pronta
-1. Postman → **Import** → scegli il file `palestra/postman/palestra.postman_collection.json` (o trascinalo nella finestra).
-2. Apri la collection **Palestra API** → scheda **Variables** → nella riga `password` scrivi la password dell'admin nella colonna
-   *Current value* e premi **Save** (`base` è già `http://localhost:8080`, `email` è `admin@palestra.local`).
-3. Esegui **Auth → Login**: se riesce (200) il token viene salvato da solo nella variabile `token`.
-4. Da qui in poi tutte le altre richieste usano quel token (è impostato come *Bearer Token* sull'intera collection).
-   Le richieste di creazione (`Crea corso`, `Crea utente`, `Crea abbonamento`) salvano l'id creato, che le richieste
-   successive (dettaglio, modifica, elimina) usano da sole. Se ricevi 401, il token è scaduto: rifai il Login.
+### In Postman: collection ed Environment già pronti
+1. Postman → **Import** → importa **due file** (puoi trascinarli insieme nella finestra):
+   `palestra/postman/palestra.postman_collection.json` e `palestra/postman/palestra.postman_environment.json`.
+2. In alto a destra **seleziona l'Environment "Palestra locale"** (il menu a tendina che dice "No Environment").
+3. Apri *Environments* → **Palestra locale** e nella riga `password` scrivi la password dell'admin nella colonna
+   **Current value** (è quella che hai impostato tu, non `admin`), poi **Save**. `base` ed `email` sono già a posto.
+4. Esegui **Auth → Login**. Nella scheda **Test Results** della risposta deve comparire **"Login riuscito (200)"** in verde.
+   Il token viene salvato **da solo** nella variabile **`jwt_token`** dell'Environment (come `pm.environment.set` nei tuoi
+   altri progetti): lo vedi in *Environments → Palestra locale → jwt_token*. Non devi copiare niente.
+5. Da qui in poi tutte le altre richieste usano `{{jwt_token}}` (Bearer Token impostato su ogni richiesta). Le richieste
+   "Crea ..." salvano l'id creato, che dettaglio/modifica/elimina riusano. Quando il token scade (60 minuti) rifai il Login.
+
+Se non selezioni nessun Environment funziona lo stesso: il Login salva il token anche tra le variabili della collection
+(in quel caso `password` va scritta nelle *Variables* della collection). Con un Environment selezionato, i suoi valori
+hanno la precedenza su quelli della collection.
+
+**Se il Login non dà 200** (Test Results rosso) il token resta vuoto e TUTTE le altre richieste partono senza intestazione
+`Authorization`: nel log dell'app vedrai `intestazione Authorization ASSENTE`. Quasi sempre è la `password` (vuota o sbagliata,
+o scritta solo in *Initial value*), oppure l'Environment non è selezionato.
 
 ### In Bruno / Postman (a mano)
 - Crea una richiesta `POST {{base}}/api/auth/login` con corpo JSON; copia il `token` della risposta.
@@ -106,16 +117,15 @@ suo **log**, cioè nel terminale di VS Code in cui gira. Cerca la riga `WARN ...
 
 | Cosa dice il log | Significato | Cosa fare |
 |---|---|---|
-| `intestazione Authorization ASSENTE` | il client non ha inviato il token. In Postman succede **quasi sempre perché la variabile `token` è vuota**: se il token è vuoto, Postman non aggiunge nemmeno l'intestazione | rifai **Auth → Login** e controlla che risponda **200** (se dà 401 controlla `email` e `password` nelle Variables della collection); poi riprova |
-| `Bearer token is malformed` | l'intestazione c'è ma il token è vuoto o rotto | la variabile `token` è vuota o non risolta: rifai **Auth → Login** e controlla che dia 200 |
+| `intestazione Authorization ASSENTE` | il client non ha inviato il token. In Postman succede **quasi sempre perché la variabile `jwt_token` è vuota**: se il token è vuoto, Postman non aggiunge nemmeno l'intestazione | rifai **Auth → Login** e controlla che risponda **200** (se dà 401 controlla `email` e `password` nelle Variables della collection); poi riprova |
+| `Bearer token is malformed` | l'intestazione c'è ma il token è vuoto o rotto | la variabile `jwt_token` è vuota o non risolta: rifai **Auth → Login** e controlla che dia 200 |
 | `Jwt expired at ...` | token scaduto (dura 60 minuti) | rifai il Login |
 | `Invalid signature` | token firmato con un'altra chiave (es. emesso da un'altra installazione o con un `JWT_SECRET` diverso) | rifai il Login sull'app che stai interrogando |
 | `negata con 403` | token valido ma senza ruolo ADMIN | usa un admin |
 
 In Postman, per vedere cosa parte davvero: **View → Show Postman Console** e rilancia la richiesta: si vede l'intestazione
 `Authorization` inviata. Se vedi `Bearer {{token}}` (con le graffe) o `Bearer ` vuoto, la variabile non è stata sostituita:
-controlla che nella collection la variabile `token` abbia un *Current value* e che **non sia selezionato un Environment**
-(in alto a destra) con una variabile `token` o `base` che la sovrascrive.
+controlla che `jwt_token` abbia un *Current value* nell'Environment selezionato (o nella collection se non ne usi uno).
 
 Il log compare solo dopo aver **riavviato l'app** con il codice aggiornato.
 
