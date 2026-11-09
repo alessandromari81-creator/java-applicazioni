@@ -1,24 +1,30 @@
 /*
  * FILE: AuthApiController.java
- * A COSA SERVE: il login della API: POST /api/auth/login con email e password restituisce un token JWT. Poi il client
- * invia il token in ogni richiesta: "Authorization: Bearer <token>". È l'unico indirizzo della API raggiungibile senza
- * token (vedi SecurityConfig).
- * PARAGONE LARAVEL: l'endpoint di login di Sanctum/Passport che restituisce un token.
+ * A COSA SERVE: le tre operazioni di accesso alla API, tutte raggiungibili SENZA access token (sono il modo di ottenerlo):
+ *   POST /api/auth/login    email + password            -> coppia di token (access + refresh)
+ *   POST /api/auth/refresh  refresh_token               -> NUOVA coppia di token (il refresh usato viene invalidato)
+ *   POST /api/auth/logout   refresh_token               -> 204; il refresh token non vale più
+ * Poi il client invia l'access token in ogni richiesta: "Authorization: Bearer <access_token>".
+ * PARAGONE LARAVEL: gli endpoint login/refresh/logout di Sanctum o Passport.
  *
- * FLUSSO:  client --(email+password)--> /api/auth/login --(token)--> client --(Bearer token)--> /api/corsi ...
+ * FLUSSO TIPICO:
+ *   login -> access_token (60 min) + refresh_token (7 giorni)
+ *   ... richieste con l'access token ...
+ *   access token scaduto (401) -> POST /api/auth/refresh con il refresh_token -> nuova coppia, si riparte
+ *   refresh token scaduto o revocato (401 anche sul refresh) -> si rifà il login
  */
 package it.palestra.api;
 
 import it.palestra.api.dto.LoginRequest;
+import it.palestra.api.dto.RefreshRequest;
 import it.palestra.api.dto.TokenResponse;
-import it.palestra.service.AutenticazioneService;
-import it.palestra.service.JwtService;
+import it.palestra.service.SessioneService;
 import jakarta.validation.Valid;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 // @RestController = @Controller + @ResponseBody: ciò che i metodi restituiscono diventa JSON (niente template).
@@ -26,33 +32,42 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class AuthApiController {
 
-    private final AutenticazioneService autenticazione;
-    private final JwtService jwt;
+    private final SessioneService sessioni;
 
-    public AuthApiController(AutenticazioneService autenticazione, JwtService jwt) {
-        this.autenticazione = autenticazione;
-        this.jwt = jwt;
+    public AuthApiController(SessioneService sessioni) {
+        this.sessioni = sessioni;
     }
 
     // @RequestBody = "il corpo della richiesta è un JSON: trasformalo in un oggetto LoginRequest". @Valid esegue le
     // regole di validazione (campi obbligatori); se falliscono parte da sola la risposta 400 (GestoreErroriApi).
+    // Credenziali sbagliate -> BadCredentialsException -> 401 (messaggio uguale per email inesistente e password errata).
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest richiesta) {
-        // Se email o password sono sbagliate lancia BadCredentialsException -> 401 (vedi GestoreErroriApi).
-        Authentication utente = autenticazione.autentica(richiesta.email().trim(), richiesta.password());
+        return TokenResponse.da(sessioni.login(richiesta.email().trim(), richiesta.password()));
+    }
 
-        // Nel token vanno SOLO i ruoli. Un utente autenticato di Spring ha una lista di "autorità", e non tutte sono ruoli:
-        // Spring Security 7 aggiunge anche FACTOR_PASSWORD, che registra COME ci si è autenticati (con la password) e
-        // non è un ruolo. I ruoli veri hanno il prefisso "ROLE_" (ROLE_ADMIN): si filtra su quello e si toglie, così nel
-        // token c'è il nome pulito ("ADMIN").
-        var ruoli = utente.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(nome -> nome.startsWith("ROLE_"))
-                .map(nome -> nome.substring("ROLE_".length()))
-                .sorted()
-                .toList();
+    // Rinnovo: il refresh token viene USATO (e invalidato) e si riceve una coppia nuova. Se il token è sconosciuto, scaduto o
+    // già usato -> 401. Il motivo preciso lo scrive solo il log del server.
+    @PostMapping("/refresh")
+    public TokenResponse rinnova(@RequestBody RefreshRequest richiesta) {
+        return TokenResponse.da(sessioni.rinnova(tokenDi(richiesta)));
+    }
 
-        JwtService.TokenEmesso token = jwt.emetti(utente.getName(), ruoli);
-        return TokenResponse.bearer(token.token(), token.scadeTraSecondi());
+    // Logout: revoca il refresh token. Risponde SEMPRE 204 (anche se il token non esiste o è già revocato), così non si
+    // possono scoprire quali token esistono. L'access token già emesso vale fino alla scadenza (60 minuti).
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@RequestBody RefreshRequest richiesta) {
+        sessioni.logout(tokenDi(richiesta));
+    }
+
+    // Controlla che il refresh token sia stato inviato (non null e non vuoto) e lo restituisce. Se manca: 400 con il campo
+    // "refresh_token", cioè con il nome che il client ha usato nel JSON.
+    private String tokenDi(RefreshRequest richiesta) {
+        String token = richiesta.refreshToken();
+        if (token == null || token.isBlank()) {
+            throw ErroreSuCampoException.su("refresh_token", "Il refresh_token è obbligatorio");
+        }
+        return token.trim();
     }
 }

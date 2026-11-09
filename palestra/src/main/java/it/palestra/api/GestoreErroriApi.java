@@ -16,6 +16,7 @@
 package it.palestra.api;
 
 import it.palestra.api.dto.ErroreApi;
+import it.palestra.exception.RefreshTokenNonValidoException;
 import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
 import java.util.ArrayList;
@@ -82,9 +83,13 @@ public class GestoreErroriApi {
 
     // 401: credenziali sbagliate al login (lanciata da AutenticazioneService). Messaggio uguale per email inesistente e
     // password errata. Nota: le eccezioni di autenticazione dei FILTRI non passano da qui: le gestisce SecurityConfig.
+    // Per il refresh token il messaggio è un altro, ma sempre generico (il motivo preciso è solo nel log del server).
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<ErroreApi> credenzialiNonValide(AuthenticationException e) {
-        return risposta(HttpStatus.UNAUTHORIZED, "Non autenticato", "Credenziali non valide", null);
+        String messaggio = e instanceof RefreshTokenNonValidoException
+                ? "Refresh token non valido o scaduto: rifai il login"
+                : "Credenziali non valide";
+        return risposta(HttpStatus.UNAUTHORIZED, "Non autenticato", messaggio, null);
     }
 
     private ResponseEntity<ErroreApi> risposta(HttpStatus stato, String errore, String messaggio,

@@ -47,7 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 abstract class BaseWebTest {
 
     // Email dell'admin creato all'avvio da AdminIniziale (da app.admin.email in application.properties).
-    protected static final String EMAIL_ADMIN = "admin@palestra.local";
+    static final String EMAIL_ADMIN = "admin@palestra.local";
 
     // @Autowired = "Spring, mettimi qui l'oggetto" (dependency injection anche nei test).
     @Autowired protected MockMvc mockMvc;

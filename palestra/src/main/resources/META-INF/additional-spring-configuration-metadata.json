@@ -11,6 +11,11 @@
       "description": "Chiave segreta (almeno 32 caratteri) con cui si firmano i token JWT della API. In produzione va impostata con la variabile d'ambiente JWT_SECRET."
     },
     {
+      "name": "app.jwt.refresh-durata-giorni",
+      "type": "java.lang.Long",
+      "description": "Durata di un refresh token in giorni (rinnovo dell'accesso alla API senza rifare il login)."
+    },
+    {
       "name": "app.jwt.durata-minuti",
       "type": "java.lang.Long",
       "description": "Durata di un token JWT in minuti."

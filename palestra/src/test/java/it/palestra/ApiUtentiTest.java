@@ -134,7 +134,7 @@ class ApiUtentiTest extends BaseApiTest {
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"luca@example.com\",\"password\":\"password-di-luca\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty());
+                .andExpect(jsonPath("$.access_token").isNotEmpty());
     }
 
     @Test

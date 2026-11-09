@@ -67,8 +67,10 @@ public class SecurityConfig {
             // STATELESS: il server non crea né usa sessioni. Ogni richiesta porta con sé tutto ciò che serve (il token).
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
-                // Il login è pubblico: è l'unico modo per ottenere un token.
-                .requestMatchers("/api/auth/login").permitAll()
+                // Login, rinnovo e logout sono pubblici: sono il modo di OTTENERE (o chiudere) l'accesso, quindi non possono
+                // richiedere un access token (che può essere scaduto: è proprio per questo che si fa il rinnovo).
+                // Si autenticano con le credenziali o con il refresh token che il client invia nel corpo.
+                .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
                 // Tutto il resto della API richiede un token valido con il ruolo ADMIN.
                 .anyRequest().hasRole("ADMIN"))
             // "Resource server": la API verifica i token JWT in arrivo. Il decodificatore (JwtConfig) controlla firma e
@@ -108,7 +110,7 @@ public class SecurityConfig {
                     eccezione.getMessage());
             risposta.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
             scriviJson(risposta, HttpStatus.UNAUTHORIZED, "Non autenticato",
-                    "Token mancante, scaduto o non valido: esegui il login su /api/auth/login");
+                    "Token mancante, scaduto o non valido: rinnovalo con /api/auth/refresh o rifai il login su /api/auth/login");
         };
     }
 

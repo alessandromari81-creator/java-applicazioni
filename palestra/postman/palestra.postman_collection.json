@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Palestra API",
-    "description": "API REST della Palestra (JWT). 1) Importa anche l'Environment 'Palestra locale' e SELEZIONALO in alto a destra; 2) scrivi la password dell'admin nella variabile 'password' dell'Environment (colonna Current value) e salva; 3) esegui 'Auth > Login': il token viene salvato da solo in jwt_token; 4) usa le altre richieste. Guida: palestra/API.md",
+    "description": "API REST della Palestra (JWT + refresh token, formato OAuth2). 1) Importa collection ED Environment 'Palestra locale' e SELEZIONALO in alto a destra; 2) scrivi la password dell'admin nella variabile 'password' dell'Environment (Current value) e salva; 3) esegui 'Auth > Login': access_token e refresh_token vengono salvati da soli; 4) usa le altre richieste; se danno 401 esegui 'Auth > Refresh token'. Guida: palestra/API.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -40,6 +40,10 @@
     },
     {
       "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
       "value": ""
     },
     {
@@ -84,7 +88,7 @@
                 "login"
               ]
             },
-            "description": "Restituisce il token JWT e lo salva nella variabile jwt_token dell'Environment attivo (e, come ripiego, della collection): da qui in poi le altre richieste sono autenticate da sole. Non devi copiare nulla.",
+            "description": "Restituisce access_token (JWT, 60 minuti) e refresh_token (7 giorni), nel formato standard OAuth2. Li salva nelle variabili jwt_token e refresh_token dell'Environment attivo (e, come ripiego, della collection): da qui in poi le altre richieste sono autenticate da sole. Non devi copiare nulla.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
@@ -104,22 +108,23 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// Verifica visibile nella scheda 'Test Results': il login deve rispondere 200.",
                   "pm.test(\"Login riuscito (200)\", function () { pm.expect(pm.response.code).to.eql(200); });",
                   "",
                   "if (pm.response.code === 200) {",
                   "    const risposta = pm.response.json();",
-                  "    const token = risposta.token;                       // il JWT vero e proprio",
+                  "    const token = risposta.access_token;               // il JWT da mandare in ogni richiesta",
+                  "    const refresh_token = risposta.refresh_token;      // serve a ottenerne uno nuovo senza rifare il login",
                   "",
-                  "    // Ripiego: salvato tra le variabili della collection, cosi' funziona anche senza Environment selezionato.",
+                  "    // Ripiego: salvati tra le variabili della collection, cosi' funziona anche senza Environment selezionato.",
                   "    pm.collectionVariables.set(\"jwt_token\", token);",
+                  "    pm.collectionVariables.set(\"refresh_token\", refresh_token);",
                   "",
-                  "    // Come negli altri progetti: salvato nell'Environment ATTIVO nella variabile jwt_token.",
-                  "    // (pm.environment.name e' vuoto se non e' selezionato nessun Environment: in quel caso si salta.)",
+                  "    // Come negli altri progetti: salvati nell'Environment ATTIVO (pm.environment.name e' vuoto se non ce n'e' uno).",
                   "    if (pm.environment.name) {",
                   "        pm.environment.set(\"jwt_token\", token);",
+                  "        pm.environment.set(\"refresh_token\", refresh_token);",
                   "    }",
-                  "    console.log(\"JWT salvato con successo (scade tra \" + risposta.scadeTraSecondi + \" secondi)\");",
+                  "    console.log(\"JWT salvato con successo (scade tra \" + risposta.expires_in + \" secondi)\");",
                   "} else {",
                   "    console.log(\"Login NON riuscito: controlla email e password (Environment o variabili della collection)\");",
                   "}"
@@ -127,6 +132,125 @@
               }
             }
           ]
+        },
+        {
+          "name": "Refresh token (rinnova l'accesso)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Rinnovo riuscito (200)\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const risposta = pm.response.json();",
+                  "    const token = risposta.access_token;               // il JWT da mandare in ogni richiesta",
+                  "    const refresh_token = risposta.refresh_token;      // serve a ottenerne uno nuovo senza rifare il login",
+                  "",
+                  "    // Ripiego: salvati tra le variabili della collection, cosi' funziona anche senza Environment selezionato.",
+                  "    pm.collectionVariables.set(\"jwt_token\", token);",
+                  "    pm.collectionVariables.set(\"refresh_token\", refresh_token);",
+                  "",
+                  "    // Come negli altri progetti: salvati nell'Environment ATTIVO (pm.environment.name e' vuoto se non ce n'e' uno).",
+                  "    if (pm.environment.name) {",
+                  "        pm.environment.set(\"jwt_token\", token);",
+                  "        pm.environment.set(\"refresh_token\", refresh_token);",
+                  "    }",
+                  "    console.log(\"JWT salvato con successo (scade tra \" + risposta.expires_in + \" secondi)\");",
+                  "} else {",
+                  "    console.log(\"Rinnovo NON riuscito: refresh token scaduto, gia' usato o revocato. Rifai il Login.\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base}}/api/auth/refresh",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Con il refresh_token salvato ottiene una NUOVA coppia di token (e invalida il refresh_token usato: rotazione). Usalo quando le richieste danno 401 perche' l'access token e' scaduto (dura 60 minuti). Se anche questo da 401, rifai il Login. ATTENZIONE: non ripetere due volte lo stesso refresh_token: un riuso viene trattato come sospetto furto e chiude tutte le sessioni.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Logout (revoca il refresh token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Logout riuscito (204)\", function () { pm.expect(pm.response.code).to.eql(204); });",
+                  "",
+                  "// Il refresh token e' ormai revocato: lo svuoto, cosi' non lo si riusa per sbaglio (un riuso chiude tutte le sessioni).",
+                  "if (pm.response.code === 204) {",
+                  "    pm.collectionVariables.set(\"refresh_token\", \"\");",
+                  "    if (pm.environment.name) { pm.environment.set(\"refresh_token\", \"\"); }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base}}/api/auth/logout",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revoca il refresh_token salvato (204). L'access token gia' emesso vale fino alla sua scadenza (60 minuti).",
+            "auth": {
+              "type": "noauth"
+            }
+          }
         }
       ]
     },

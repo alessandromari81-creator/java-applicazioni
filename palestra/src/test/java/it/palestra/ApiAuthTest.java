@@ -62,7 +62,7 @@ class ApiAuthTest extends BaseApiTest {
 
     // Esegue il login da admin e restituisce solo la stringa del token.
     private String tokenDaAdmin() throws Exception {
-        return JsonPath.read(login(EMAIL_ADMIN, "admin"), "$.token");
+        return JsonPath.read(login(EMAIL_ADMIN, "admin"), "$.access_token");
     }
 
     // Costruisce un token con un contenuto deciso dal test e lo firma con l'encoder indicato.
@@ -81,15 +81,17 @@ class ApiAuthTest extends BaseApiTest {
     // ------------------------------------------------------------------------------ LOGIN
 
     @Test
-    @DisplayName("Login riuscito: restituisce un token Bearer che dura 60 minuti")
+    @DisplayName("Login riuscito: risposta nel formato standard OAuth2 (access token 60 minuti, refresh token 7 giorni)")
     void loginRiuscito() throws Exception {
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + EMAIL_ADMIN + "\",\"password\":\"admin\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.tipo").value("Bearer"))
-                .andExpect(jsonPath("$.scadeTraSecondi").value(3600));   // app.jwt.durata-minuti = 60
+                .andExpect(jsonPath("$.access_token").isNotEmpty())
+                .andExpect(jsonPath("$.token_type").value("Bearer"))
+                .andExpect(jsonPath("$.expires_in").value(3600))                  // app.jwt.durata-minuti = 60
+                .andExpect(jsonPath("$.refresh_token").isNotEmpty())
+                .andExpect(jsonPath("$.refresh_expires_in").value(7 * 24 * 3600)); // app.jwt.refresh-durata-giorni = 7
     }
 
     @Test
