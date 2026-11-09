@@ -66,6 +66,15 @@ hanno la precedenza su quelli della collection.
 `Authorization`: nel log dell'app vedrai `intestazione Authorization ASSENTE`. Quasi sempre è la `password` (vuota o sbagliata,
 o scritta solo in *Initial value*), oppure l'Environment non è selezionato.
 
+### Aggiornare la collection quando cambia (senza cancellare)
+La collection e l'Environment hanno un **identificativo fisso**. Quando il file cambia (nuove richieste o script):
+1. **Import** → scegli di nuovo `palestra.postman_collection.json`.
+2. Postman, riconoscendo la stessa collection, propone di **sostituirla** (*Replace*) invece di crearne una nuova:
+   scegli **Replace**. Non cancellare niente a mano.
+3. L'**Environment non va reimportato**: contiene la tua `password`. Reimportarlo la azzererebbe. Se una nuova versione
+   aggiunge una variabile (come è successo con `refresh_token`), aggiungila a mano in *Environments → Palestra locale*.
+La sostituzione riporta la collection a come è nel file: eventuali modifiche fatte a mano dentro Postman si perdono.
+
 ### In Bruno / Postman (a mano)
 - Crea una richiesta `POST {{base}}/api/auth/login` con corpo JSON; nello script post-risposta salva `access_token` e `refresh_token`
   in variabili d'ambiente (come fai per Keycloak con `pm.environment.set`).

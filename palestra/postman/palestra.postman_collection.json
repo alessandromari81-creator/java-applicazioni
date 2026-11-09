@@ -1,5 +1,6 @@
 {
   "info": {
+    "_postman_id": "3f6c2d1e-8a47-4b19-9c5e-7d0a1b2c4e55",
     "name": "Palestra API",
     "description": "API REST della Palestra (JWT + refresh token, formato OAuth2). 1) Importa collection ED Environment 'Palestra locale' e SELEZIONALO in alto a destra; 2) scrivi la password dell'admin nella variabile 'password' dell'Environment (Current value) e salva; 3) esegui 'Auth > Login': access_token e refresh_token vengono salvati da soli; 4) usa le altre richieste; se danno 401 esegui 'Auth > Refresh token'. Guida: palestra/API.md",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
