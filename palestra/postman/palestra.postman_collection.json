@@ -1,0 +1,701 @@
+{
+  "info": {
+    "name": "Palestra API",
+    "description": "API REST della Palestra (JWT). 1) Compila la variabile 'password' (scheda Variables della collection) con la password dell'admin; 2) esegui 'Auth > Login' (salva il token da solo); 3) usa le altre richieste. Guida completa: palestra/API.md Ogni richiesta (tranne il Login) ha l'autenticazione Bearer {{token}} impostata direttamente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.collectionVariables.set('oggi', new Date().toISOString().slice(0, 10));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "email",
+      "value": "admin@palestra.local"
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "corsoId",
+      "value": "1"
+    },
+    {
+      "key": "utenteId",
+      "value": "1"
+    },
+    {
+      "key": "abbonamentoId",
+      "value": "1"
+    },
+    {
+      "key": "oggi",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/auth/login",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Restituisce il token JWT e lo salva nella variabile {{token}}: da qui in poi le altre richieste sono autenticate.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Se il login riesce, salva il token nella variabile di collection 'token'.",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('token', pm.response.json().token); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Corsi",
+      "item": [
+        {
+          "name": "Elenco corsi",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/corsi",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "corsi"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dettaglio corso",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/corsi/{{corsoId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "corsi",
+                "{{corsoId}}"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crea corso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/corsi",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "corsi"
+              ]
+            },
+            "description": "201 Created. Salva l'id in {{corsoId}}. istruttoreId: id di un utente con ruolo ISTRUTTORE, oppure null.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Zumba {{$timestamp}}\",\n  \"descrizione\": \"Danza\",\n  \"durataMinuti\": 55,\n  \"livello\": \"INTERMEDIO\",\n  \"istruttoreId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Salva l'id della risorsa creata nella variabile di collection 'corsoId' (le altre richieste la usano).",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('corsoId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifica corso (PUT: sostituisce tutto)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/corsi/{{corsoId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "corsi",
+                "{{corsoId}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Zumba Fit\",\n  \"descrizione\": \"Danza e fitness\",\n  \"durataMinuti\": 60,\n  \"livello\": \"AVANZATO\",\n  \"istruttoreId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Elimina corso",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/corsi/{{corsoId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "corsi",
+                "{{corsoId}}"
+              ]
+            },
+            "description": "204 se riesce; 409 se ci sono utenti iscritti.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Utenti",
+      "item": [
+        {
+          "name": "Elenco utenti",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/utenti",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dettaglio utente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/utenti/{{utenteId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti",
+                "{{utenteId}}"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crea utente (iscritto)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/utenti",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti"
+              ]
+            },
+            "description": "201 Created. Salva l'id in {{utenteId}}. Per un ADMIN aggiungi anche \"password\" (min. 8 caratteri).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mario\",\n  \"cognome\": \"Rossi\",\n  \"email\": \"mario-{{$timestamp}}@example.com\",\n  \"ruoli\": [\n    \"ISCRITTO\"\n  ],\n  \"corsiIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Salva l'id della risorsa creata nella variabile di collection 'utenteId' (le altre richieste la usano).",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('utenteId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifica utente (PUT: sostituisce ruoli e corsi)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/utenti/{{utenteId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti",
+                "{{utenteId}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mario\",\n  \"cognome\": \"Bianchi\",\n  \"email\": \"mario-modificato-{{$timestamp}}@example.com\",\n  \"ruoli\": [\n    \"ISCRITTO\"\n  ],\n  \"corsiIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Elimina utente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/utenti/{{utenteId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti",
+                "{{utenteId}}"
+              ]
+            },
+            "description": "204 se riesce; 409 se è l'ultimo admin, tiene corsi o ha abbonamenti.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Abbonamenti",
+      "item": [
+        {
+          "name": "Elenco di tutti gli abbonamenti",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/abbonamenti",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "abbonamenti"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Storico di un utente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/utenti/{{utenteId}}/abbonamenti",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti",
+                "{{utenteId}}",
+                "abbonamenti"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Primo giorno libero (per un rinnovo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/utenti/{{utenteId}}/abbonamenti/primo-giorno-libero",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti",
+                "{{utenteId}}",
+                "abbonamenti",
+                "primo-giorno-libero"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crea abbonamento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/api/utenti/{{utenteId}}/abbonamenti",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "utenti",
+                "{{utenteId}}",
+                "abbonamenti"
+              ]
+            },
+            "description": "201 Created. L'utente deve avere il ruolo ISCRITTO. Data di fine e prezzo li calcola il server. Se si sovrappone a un altro abbonamento: 400 (usa 'Primo giorno libero' per la data giusta). Salva l'id in {{abbonamentoId}}.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"MENSILE\",\n  \"dataInizio\": \"{{oggi}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Salva l'id della risorsa creata nella variabile di collection 'abbonamentoId' (le altre richieste la usano).",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('abbonamentoId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dettaglio abbonamento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/abbonamenti/{{abbonamentoId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "abbonamenti",
+                "{{abbonamentoId}}"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Elimina abbonamento (solo non ancora iniziati)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/api/abbonamenti/{{abbonamentoId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "api",
+                "abbonamenti",
+                "{{abbonamentoId}}"
+              ]
+            },
+            "description": "204 se non è ancora iniziato; 409 se è attivo o scaduto (restano nello storico).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

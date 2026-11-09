@@ -24,6 +24,8 @@
 package it.palestra.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +50,9 @@ import org.springframework.security.web.SecurityFilterChain;
 // registra nel suo container (come i Service Provider di Laravel).
 @Configuration
 public class SecurityConfig {
+
+    // Il registro (log) dell'applicazione: ciò che scrive compare nel terminale in cui gira l'app, mai nelle risposte.
+    private static final Logger LOG = LoggerFactory.getLogger(SecurityConfig.class);
 
     // CATENA 1: la API REST (/api/**). Provata per prima (@Order(1)).
     @Bean
@@ -90,8 +95,17 @@ public class SecurityConfig {
     // 401 Unauthorized: token mancante, scaduto, modificato o firmato male. Il testo è fisso e generico di proposito:
     // dire PERCHÉ il token è stato rifiutato aiuterebbe solo chi attacca. L'intestazione WWW-Authenticate è quella
     // che lo standard richiede in un 401 (dice quale schema di autenticazione usare).
+    //
+    // IL MOTIVO VERO PERÒ SI SCRIVE NEL LOG DEL SERVER: chi sviluppa deve poter capire perché una richiesta è stata
+    // rifiutata (token scaduto? firma sbagliata? intestazione assente?) senza che il client lo venga a sapere. Si
+    // indica anche se l'intestazione Authorization c'era: è la causa più comune ("il token non viene inviato").
+    // Il token in sé NON si scrive mai nel log, solo il motivo fornito da Spring (es. "Jwt expired at ...").
     private AuthenticationEntryPoint rispostaNonAutenticato() {
         return (richiesta, risposta, eccezione) -> {
+            boolean conIntestazione = richiesta.getHeader(HttpHeaders.AUTHORIZATION) != null;
+            LOG.warn("API {} {} rifiutata con 401 ({}): {}", richiesta.getMethod(), richiesta.getRequestURI(),
+                    conIntestazione ? "intestazione Authorization presente" : "intestazione Authorization ASSENTE",
+                    eccezione.getMessage());
             risposta.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
             scriviJson(risposta, HttpStatus.UNAUTHORIZED, "Non autenticato",
                     "Token mancante, scaduto o non valido: esegui il login su /api/auth/login");
@@ -100,8 +114,11 @@ public class SecurityConfig {
 
     // 403 Forbidden: il token è valido ma l'utente non ha il ruolo richiesto (ADMIN).
     private AccessDeniedHandler rispostaAccessoNegato() {
-        return (richiesta, risposta, eccezione) ->
-                scriviJson(risposta, HttpStatus.FORBIDDEN, "Accesso negato", "Non hai i permessi per questa risorsa");
+        return (richiesta, risposta, eccezione) -> {
+            LOG.warn("API {} {} negata con 403: il token è valido ma l'utente non ha il ruolo richiesto",
+                    richiesta.getMethod(), richiesta.getRequestURI());
+            scriviJson(risposta, HttpStatus.FORBIDDEN, "Accesso negato", "Non hai i permessi per questa risorsa");
+        };
     }
 
     // Scrive una risposta JSON {status, errore, messaggio}. Il testo è composto solo da costanti nostre (mai da dati

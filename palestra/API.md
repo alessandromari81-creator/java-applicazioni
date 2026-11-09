@@ -21,7 +21,16 @@ dati e le stesse regole delle pagine (stessi *service*). Avvio: vedi `CLAUDE.md`
 3. Il token dura **60 minuti**; poi si rifà il login. Serve il ruolo **ADMIN** (un iscritto con password ottiene
    un token ma riceve 403).
 
-### In Bruno / Postman
+### In Postman: collection già pronta
+1. Postman → **Import** → scegli il file `palestra/postman/palestra.postman_collection.json` (o trascinalo nella finestra).
+2. Apri la collection **Palestra API** → scheda **Variables** → nella riga `password` scrivi la password dell'admin nella colonna
+   *Current value* e premi **Save** (`base` è già `http://localhost:8080`, `email` è `admin@palestra.local`).
+3. Esegui **Auth → Login**: se riesce (200) il token viene salvato da solo nella variabile `token`.
+4. Da qui in poi tutte le altre richieste usano quel token (è impostato come *Bearer Token* sull'intera collection).
+   Le richieste di creazione (`Crea corso`, `Crea utente`, `Crea abbonamento`) salvano l'id creato, che le richieste
+   successive (dettaglio, modifica, elimina) usano da sole. Se ricevi 401, il token è scaduto: rifai il Login.
+
+### In Bruno / Postman (a mano)
 - Crea una richiesta `POST {{base}}/api/auth/login` con corpo JSON; copia il `token` della risposta.
 - Nelle altre richieste: scheda **Auth** → tipo **Bearer Token** → incolla il token (meglio in una variabile
   d'ambiente `token`, e `base` = `http://localhost:8080`).
@@ -90,7 +99,27 @@ Sempre JSON, con questa forma:
 Nota: un indirizzo `/api/...` che non esiste risponde 404 nel formato standard di Spring Boot
 (`timestamp`, `status`, `error`, `path`), non in quello sopra.
 
-## 5. Sicurezza in breve
+## 5. Se ricevi 401 o 403: come capire perché
+
+La risposta al client è volutamente generica ("Token mancante, scaduto o non valido"). Il **motivo vero** lo scrive l'app nel
+suo **log**, cioè nel terminale di VS Code in cui gira. Cerca la riga `WARN ... API GET /api/... rifiutata con 401`:
+
+| Cosa dice il log | Significato | Cosa fare |
+|---|---|---|
+| `intestazione Authorization ASSENTE` | il client non ha inviato il token. In Postman succede **quasi sempre perché la variabile `token` è vuota**: se il token è vuoto, Postman non aggiunge nemmeno l'intestazione | rifai **Auth → Login** e controlla che risponda **200** (se dà 401 controlla `email` e `password` nelle Variables della collection); poi riprova |
+| `Bearer token is malformed` | l'intestazione c'è ma il token è vuoto o rotto | la variabile `token` è vuota o non risolta: rifai **Auth → Login** e controlla che dia 200 |
+| `Jwt expired at ...` | token scaduto (dura 60 minuti) | rifai il Login |
+| `Invalid signature` | token firmato con un'altra chiave (es. emesso da un'altra installazione o con un `JWT_SECRET` diverso) | rifai il Login sull'app che stai interrogando |
+| `negata con 403` | token valido ma senza ruolo ADMIN | usa un admin |
+
+In Postman, per vedere cosa parte davvero: **View → Show Postman Console** e rilancia la richiesta: si vede l'intestazione
+`Authorization` inviata. Se vedi `Bearer {{token}}` (con le graffe) o `Bearer ` vuoto, la variabile non è stata sostituita:
+controlla che nella collection la variabile `token` abbia un *Current value* e che **non sia selezionato un Environment**
+(in alto a destra) con una variabile `token` o `base` che la sovrascrive.
+
+Il log compare solo dopo aver **riavviato l'app** con il codice aggiornato.
+
+## 6. Sicurezza in breve
 
 - Niente sessioni né cookie: ogni richiesta porta il proprio token (per questo non serve il token CSRF).
 - Il token è firmato con la chiave `app.jwt.secret` (**in produzione va impostata con la variabile d'ambiente

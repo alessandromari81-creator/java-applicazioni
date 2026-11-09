@@ -27,7 +27,10 @@ import java.util.List;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -39,6 +42,9 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
+// OutputCaptureExtension "cattura" ciò che l'applicazione scrive nel terminale (il log) durante il test: così si può
+// controllare che il MOTIVO di un rifiuto finisca nel log del server e NON nella risposta al client.
+@ExtendWith(OutputCaptureExtension.class)
 class ApiAuthTest extends BaseApiTest {
 
     @Autowired JwtService jwtService;
@@ -150,13 +156,16 @@ class ApiAuthTest extends BaseApiTest {
 
     @Test
     @DisplayName("Senza token: 401 in JSON (non un redirect alla pagina di login) con l'intestazione WWW-Authenticate")
-    void senzaToken() throws Exception {
+    void senzaToken(CapturedOutput log) throws Exception {
         mockMvc.perform(get("/api/corsi"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE, "Bearer"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.errore").value("Non autenticato"));
+
+        // Il log dice al programmatore che l'intestazione Authorization non c'era (causa tipica: "il token non viene inviato").
+        assertThat(log.getAll()).contains("rifiutata con 401").contains("intestazione Authorization ASSENTE");
     }
 
     @Test
@@ -167,12 +176,17 @@ class ApiAuthTest extends BaseApiTest {
 
     @Test
     @DisplayName("Un token SCADUTO è rifiutato, anche se la firma è giusta")
-    void tokenScaduto() throws Exception {
+    void tokenScaduto(CapturedOutput log) throws Exception {
         // PREPARO: un token firmato con la chiave vera ma già scaduto da un'ora.
         Instant unOraFa = Instant.now().minusSeconds(3600);
         String scaduto = token(jwtEncoder, EMAIL_ADMIN, List.of("ADMIN"), unOraFa.minusSeconds(3600), unOraFa);
 
-        chiediCorsiCon(scaduto).andExpect(status().isUnauthorized());
+        chiediCorsiCon(scaduto).andExpect(status().isUnauthorized())
+                .andExpect(content().string(not(containsString("expired"))));   // il client NON sa il motivo...
+
+        // ...ma nel log del server sì (e il token in sé non viene mai scritto).
+        assertThat(log.getAll()).contains("intestazione Authorization presente").contains("Jwt expired");
+        assertThat(log.getAll()).doesNotContain(scaduto);
     }
 
     @Test
@@ -193,7 +207,7 @@ class ApiAuthTest extends BaseApiTest {
 
     @Test
     @DisplayName("Un token firmato con un'ALTRA chiave è rifiutato, anche se dice di essere un admin")
-    void tokenFirmatoConAltraChiave() throws Exception {
+    void tokenFirmatoConAltraChiave(CapturedOutput log) throws Exception {
         // Chi non conosce la chiave segreta del server non può fabbricarsi un token valido: lo firma con la sua.
         var chiaveDelFalsario = new SecretKeySpec(
                 "una-chiave-diversa-lunga-almeno-32-caratteri!".getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -201,11 +215,12 @@ class ApiAuthTest extends BaseApiTest {
         String falso = token(encoderFalso, EMAIL_ADMIN, List.of("ADMIN"), Instant.now(), Instant.now().plusSeconds(3600));
 
         chiediCorsiCon(falso).andExpect(status().isUnauthorized());
+        assertThat(log.getAll()).contains("Invalid signature");
     }
 
     @Test
     @DisplayName("Un token valido ma SENZA il ruolo ADMIN riceve 403 (autenticato, non autorizzato)")
-    void tokenSenzaRuoloAdmin() throws Exception {
+    void tokenSenzaRuoloAdmin(CapturedOutput log) throws Exception {
         String comeIscritto = jwtService.emetti("mario@example.com", List.of("ISCRITTO")).token();
 
         chiediCorsiCon(comeIscritto)
@@ -213,6 +228,16 @@ class ApiAuthTest extends BaseApiTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.errore").value("Accesso negato"));
+        assertThat(log.getAll()).contains("negata con 403");
+    }
+
+    @Test
+    @DisplayName("Un'intestazione 'Bearer ' con il token VUOTO (variabile di Postman non risolta) è 401, e il log lo segnala")
+    void tokenVuoto(CapturedOutput log) throws Exception {
+        // Succede quando in Postman la variabile {{token}} è vuota: l'intestazione c'è, ma senza token dentro.
+        mockMvc.perform(get("/api/corsi").header(HttpHeaders.AUTHORIZATION, "Bearer "))
+                .andExpect(status().isUnauthorized());
+        assertThat(log.getAll()).contains("intestazione Authorization presente").contains("malformed");
     }
 
     @Test
