@@ -1,8 +1,8 @@
 # FILE: compose.yaml
-# A COSA SERVE: descrive i servizi dell'applicazione. Due modi d'uso:
+# A COSA SERVE: descrive i servizi dell'applicazione (database, finto server di posta Mailpit e, a richiesta, l'app). Due modi d'uso:
 #
-#   1) SVILUPPO (come sempre): `docker compose up -d` avvia solo il database PostgreSQL; l'app si avvia dall'editor
-#      o con `./mvnw spring-boot:run`. Si ferma con `docker compose stop`.
+#   1) SVILUPPO: `docker compose up -d` avvia il database PostgreSQL e Mailpit (il finto server di posta: le email dell'app, come la conferma di
+#      registrazione, si leggono su http://localhost:8025); l'app si avvia dall'editor o con `./mvnw spring-boot:run`. Si ferma con `docker compose stop`.
 #
 #   2) PROVA COMPLETA, senza installare Java né Maven: `docker compose --profile app up --build` costruisce l'immagine
 #      dell'app (vedi Dockerfile) e avvia database + app. Poi http://localhost:8080 (login admin@palestra.local / admin).
@@ -27,16 +27,32 @@ services:
       timeout: 3s
       retries: 20
 
+  # MAILPIT: un server di posta FINTO per lo sviluppo. L'app gli spedisce le email (SMTP sulla porta 1025) e lui non le consegna a nessuno: le conserva e le
+  # mostra in una pagina web (http://localhost:8025), dove si leggono i messaggi e si cliccano i link (conferma registrazione, password dimenticata).
+  # Non è pensato per la produzione: lì serve il server di posta vero (spring.mail.* in application.properties).
+  mailpit:
+    image: axllent/mailpit
+    container_name: palestra-mailpit
+    ports:
+      - "8025:8025"               # pagina web per leggere le email
+      - "1025:1025"               # SMTP: dove l'app spedisce le email
+
   app:
     profiles: ["app"]             # parte solo con `docker compose --profile app ...`
     build: .                      # costruisce l'immagine dal Dockerfile in questa cartella
     depends_on:
       db:
         condition: service_healthy   # l'app parte solo quando il database è pronto (altrimenti all'avvio fallirebbe)
+      mailpit:
+        condition: service_started   # e dopo il finto server di posta, a cui spedisce le email
     environment:                  # sovrascrivono le impostazioni di application.properties
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/palestra   # dentro Docker il database si chiama "db", non "localhost"
       DB_USER: palestra
       DB_PASSWORD: palestra
+      SPRING_MAIL_HOST: mailpit     # dentro Docker il server di posta si chiama "mailpit" (SMTP 1025)
+      # Indirizzo con cui l'app costruisce i link nelle email (conferma registrazione, password): è quello con cui si apre il sito dal browser.
+      # Se cambi la porta pubblicata qui sotto, cambia anche questo valore.
+      APP_URL_PUBBLICO: http://localhost:8080
       # Chiave con cui si firmano i token JWT: SOLO PER LA PROVA. In un uso vero imposta JWT_SECRET con una chiave lunga e casuale
       # (almeno 32 caratteri); con ${JWT_SECRET:-...} si legge dall'ambiente e, se manca, si usa il valore di prova.
       JWT_SECRET: ${JWT_SECRET:-chiave-solo-per-la-prova-con-docker-cambiala-0123456789}

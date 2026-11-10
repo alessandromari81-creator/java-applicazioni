@@ -7,6 +7,7 @@
 package it.palestra.model;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,6 +38,28 @@ public class Utente {
     // campo aveva in quel momento; aumentandolo (revocaTokenAccesso) tutti i JWT già emessi per questo utente smettono di valere.
     @Column(nullable = false)
     private int versioneToken;
+
+    // Indirizzo di casa (facoltativo: chi è stato creato dall'amministratore potrebbe non averlo). Colonne indirizzo, cap, citta (migration V11).
+    @Column
+    private String indirizzo;
+
+    @Column(length = 10)
+    private String cap;
+
+    @Column(length = 100)
+    private String citta;
+
+    // Consensi privacy (migration V11). privacyAccettataIl: quando ha accettato l'informativa (null = non registrata, es. creato dall'admin);
+    // privacyVersione: quale versione del testo ha accettato; consensoMarketingIl: quando ha dato il consenso FACOLTATIVO alle comunicazioni
+    // promozionali (null = nessun consenso).
+    @Column
+    private Instant privacyAccettataIl;
+
+    @Column(length = 20)
+    private String privacyVersione;
+
+    @Column
+    private Instant consensoMarketingIl;
 
     // Relazione molti-a-molti con i corsi: tabella pivot "utente_corso".
     // Utente è il lato "proprietario": per iscrivere/disiscrivere si modifica questo Set.
@@ -79,6 +102,28 @@ public class Utente {
     // Revoca in un colpo solo tutti i token di accesso (JWT) già emessi per questo utente: da usare su un'entità GESTITA da
     // Hibernate (dentro una transazione), così l'UPDATE parte da solo a fine transazione.
     public void revocaTokenAccesso() { this.versioneToken++; }
+
+    public String getIndirizzo() { return indirizzo; }
+    public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
+    public String getCap() { return cap; }
+    public void setCap(String cap) { this.cap = cap; }
+    public String getCitta() { return citta; }
+    public void setCitta(String citta) { this.citta = citta; }
+    public Instant getPrivacyAccettataIl() { return privacyAccettataIl; }
+    public String getPrivacyVersione() { return privacyVersione; }
+    public Instant getConsensoMarketingIl() { return consensoMarketingIl; }
+
+    // Registra l'accettazione dell'informativa privacy (quando e quale versione).
+    public void accettaPrivacy(Instant quando, String versione) {
+        this.privacyAccettataIl = quando;
+        this.privacyVersione = versione;
+    }
+
+    // Registra o ritira il consenso facoltativo alle comunicazioni promozionali: data = consenso dato, null = nessun consenso.
+    public void impostaConsensoMarketing(Instant quando) { this.consensoMarketingIl = quando; }
+
+    // true se l'utente ha una password (quindi può fare login); false per le sole anagrafiche create dall'amministratore.
+    public boolean isConPassword() { return passwordHash != null; }
 
     public Set<Ruolo> getRuoli() { return ruoli; }
     public void setRuoli(Set<Ruolo> ruoli) { this.ruoli = ruoli; }

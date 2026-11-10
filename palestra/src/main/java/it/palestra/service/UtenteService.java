@@ -263,11 +263,21 @@ public class UtenteService {
         return ruoli.findAllById(ruoliIds).stream().anyMatch(r -> nomeRuolo.equals(r.getNome()));
     }
 
+    // Toglie gli spazi ai bordi; un testo vuoto diventa null (così nel database non finiscono stringhe vuote).
+    private String vuotoANull(String testo) {
+        if (testo == null) return null;
+        String pulito = testo.trim();
+        return pulito.isEmpty() ? null : pulito;
+    }
+
     // Metodo privato usato sia da crea() sia da modifica(): copia i dati del form dentro l'entità.
     private Utente applica(Utente u, UtenteForm f) {
         u.setNome(f.getNome().trim());          // trim() toglie gli spazi ai bordi
         u.setCognome(f.getCognome().trim());
         u.setEmail(f.getEmail().trim());
+        u.setIndirizzo(vuotoANull(f.getIndirizzo()));      // i campi dell'indirizzo sono facoltativi: testo vuoto = nessun valore
+        u.setCap(vuotoANull(f.getCap()));
+        u.setCitta(vuotoANull(f.getCitta()));
         u.setCorsi(new HashSet<>(corsi.findAllById(f.getCorsiIds())));
         u.setRuoli(new HashSet<>(ruoli.findAllById(f.getRuoliIds())));
         // La password si cambia SOLO se è stata scritta: nel database finisce l'hash bcrypt, mai il testo.

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: area/home.html
+  A COSA SERVE: la pagina iniziale dell'area personale (iscritti e istruttori): un saluto, l'abbonamento più significativo (attivo, prossimo
+  o ultimo scaduto), i corsi frequentati e, per l'istruttore, il numero di corsi che tiene.
+  Riceve da AreaController.home(): "r" (AreaService.Riepilogo), "oggi" (per calcolare lo stato dell'abbonamento) e "utenteArea" (email di
+  chi è loggato, usata dalla barra). I record si leggono chiamando i metodi (r.nome()). Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>La mia area</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1 th:text="${'Ciao, ' + r.nome() + ' ' + r.cognome()}"></h1>
+
+    <h2>Il mio abbonamento</h2>
+    <!--/* Solo gli iscritti possono avere abbonamenti. "abbonamento" è null se non ne ha mai avuti. */-->
+    <p th:if="${!r.iscritto()}" class="aiuto-blocco">Il tuo profilo non prevede abbonamenti.</p>
+    <p th:if="${r.iscritto() and r.abbonamento() == null}">Non hai ancora nessun abbonamento. Rivolgiti alla segreteria per attivarlo.</p>
+    <div th:if="${r.abbonamento() != null}" th:with="a=${r.abbonamento()}, stato=${r.abbonamento().stato(oggi)}">
+      <p>
+        <span class="tag" th:classappend="${'stato-' + stato.name().toLowerCase()}" th:text="${stato.etichetta}"></span>
+        <strong th:text="${a.tipo.etichetta}"></strong>
+        <span th:text="${'dal ' + #temporals.format(a.dataInizio, 'dd/MM/yyyy') + ' al ' + #temporals.format(a.dataFine, 'dd/MM/yyyy')}"></span>
+      </p>
+      <p><a th:href="@{/area/abbonamenti}">Vedi tutto lo storico</a></p>
+    </div>
+
+    <h2>I miei corsi</h2>
+    <p th:if="${r.corsi().isEmpty()}">Non sei iscritto a nessun corso.</p>
+    <table th:unless="${r.corsi().isEmpty()}">
+      <thead><tr><th>Corso</th><th>Livello</th><th>Durata</th><th>Istruttore</th></tr></thead>
+      <tbody>
+        <tr th:each="c : ${r.corsi()}">
+          <td th:text="${c.nome()}"></td>
+          <td th:text="${c.livello()}"></td>
+          <td th:text="${c.durataMinuti() + ' min'}"></td>
+          <td th:text="${c.istruttore() != null ? c.istruttore() : '–'}"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!--/* Solo per gli istruttori: quanti corsi tengono (i dettagli e gli iscritti sono in "Corsi"). */-->
+    <div th:if="${r.istruttore()}">
+      <h2>Corsi che tengo</h2>
+      <p th:text="${r.corsiTenuti().isEmpty() ? 'Al momento non tieni nessun corso.' : 'Tieni ' + r.corsiTenuti().size() + ' corsi.'}"></p>
+      <p th:unless="${r.corsiTenuti().isEmpty()}"><a th:href="@{/area/corsi}">Vedi i corsi e gli iscritti</a></p>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

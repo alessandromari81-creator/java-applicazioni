@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: area/abbonamenti.html
+  A COSA SERVE: lo storico dei propri abbonamenti, dal più recente, in sola lettura (nessun pulsante per modificare o eliminare). Come le altre liste è
+  paginato e si ordina dalle intestazioni delle colonne. Riceve da AreaController.abbonamenti(): "abbonamenti" (la pagina), "nav" (controlli di
+  pagina e ordinamento), "oggi" (per gli stati) e "utenteArea".
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>I miei abbonamenti</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1>I miei abbonamenti</h1>
+    <p class="aiuto-blocco">Lo storico dei tuoi abbonamenti, dal più recente. Per attivarne o rinnovarne uno rivolgiti alla segreteria.</p>
+
+    <table>
+      <thead><tr>
+        <th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'tipo', 'Tipo')}"></th:block>
+        <th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataInizio', 'Dal')}"></th:block>
+        <th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataFine', 'Al')}"></th:block>
+        <th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'prezzo', 'Prezzo')}"></th:block>
+        <th>Stato</th>
+      </tr></thead>
+      <tbody>
+        <tr th:each="a : ${abbonamenti}" th:with="stato=${a.stato(oggi)}">
+          <td th:text="${a.tipo.etichetta}"></td>
+          <td th:text="${#temporals.format(a.dataInizio, 'dd/MM/yyyy')}"></td>
+          <td th:text="${#temporals.format(a.dataFine, 'dd/MM/yyyy')}"></td>
+          <td th:text="${#numbers.formatDecimal(a.prezzo, 1, 'POINT', 2, 'COMMA') + ' €'}"></td>
+          <td><span class="tag" th:classappend="${'stato-' + stato.name().toLowerCase()}" th:text="${stato.etichetta}"></span></td>
+        </tr>
+        <tr th:if="${abbonamenti.isEmpty()}"><td colspan="5">Nessun abbonamento registrato.</td></tr>
+      </tbody>
+    </table>
+
+    <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
+  </div>
+</main>
+
+</body>
+</html>

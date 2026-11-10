@@ -58,6 +58,12 @@
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
 		</dependency>
+		<!-- Invio di email (JavaMailSender): link di conferma registrazione e di reimpostazione della password. In sviluppo le email vanno a
+		     Mailpit (finto server di posta, vedi compose.yaml); in produzione serve un server SMTP vero (spring.mail.*). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 		<!-- Swagger/OpenAPI (springdoc): legge i controller /api e genera da solo la descrizione JSON (/v3/api-docs) e la pagina
 		     interattiva (/swagger-ui.html) dove si provano gli endpoint. -->
 		<dependency>

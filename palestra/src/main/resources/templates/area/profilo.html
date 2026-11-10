@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: area/profilo.html
+  A COSA SERVE: i dati personali di chi è loggato (in sola lettura: per cambiarli ci si rivolge alla segreteria), la data in cui ha accettato l'informativa
+  privacy e il consenso FACOLTATIVO alle comunicazioni promozionali, che può dare o ritirare in ogni momento. Il form invia POST /area/profilo/marketing.
+  Riceve da AreaController.profilo(): "r" (AreaService.Riepilogo) e "utenteArea". Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Il mio profilo</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1>Il mio profilo</h1>
+
+    <table>
+      <tbody>
+        <tr><th>Nome</th><td th:text="${r.nome() + ' ' + r.cognome()}"></td></tr>
+        <tr><th>Email</th><td th:text="${r.email()}"></td></tr>
+        <tr><th>Indirizzo</th>
+            <td th:text="${r.indirizzo() == null ? '–' : r.indirizzo() + ', ' + (r.cap() == null ? '' : r.cap() + ' ') + (r.citta() == null ? '' : r.citta())}"></td></tr>
+        <tr><th>Informativa privacy</th>
+            <td th:text="${r.privacyAccettata() == null ? 'Non registrata (profilo creato dalla segreteria)' : 'Accettata il ' + r.privacyAccettata()}"></td></tr>
+      </tbody>
+    </table>
+    <p class="aiuto-blocco">Per correggere i tuoi dati rivolgiti alla segreteria. La password si cambia da «Cambia password» nella barra in alto.
+       Il testo dell'informativa è nella pagina <a th:href="@{/privacy}">Privacy</a>.</p>
+
+    <h2>Comunicazioni promozionali</h2>
+    <!--/* Casella facoltativa, già spuntata se il consenso è stato dato. Il form invia "consenso=true" se spuntata; se non è spuntata il campo non
+           viene inviato e il server usa il valore predefinito "false" (= ritira il consenso). */-->
+    <form th:action="@{/area/profilo/marketing}" method="post">
+      <label class="check">
+        <input type="checkbox" name="consenso" value="true" th:checked="${r.consensoMarketing()}">
+        <span>Acconsento a ricevere comunicazioni promozionali dalla palestra</span>
+      </label>
+      <small class="aiuto">È facoltativo e puoi cambiare idea quando vuoi: togli la spunta e salva per ritirare il consenso.</small>
+      <p><button type="submit">Salva</button></p>
+    </form>
+  </div>
+</main>
+
+</body>
+</html>

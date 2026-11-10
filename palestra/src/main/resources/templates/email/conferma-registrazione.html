@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: email/conferma-registrazione.html
+  A COSA SERVE: modello dell'email «Conferma la tua registrazione», generato da NotificheEmail. Riceve "nome" (nome del destinatario) e "link" (indirizzo da aprire).
+  È HTML semplice con stili scritti nell'elemento stesso (i programmi di posta ignorano i fogli di stile esterni). Il nome si scrive con th:text, che
+  protegge da eventuali caratteri speciali.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.5;">
+  <h2 style="color: #111827;">Conferma la tua registrazione</h2>
+  <p>Ciao <span th:text="${nome}">Nome</span>,</p>
+  <p>per completare la registrazione scegli la tua password cliccando sul pulsante qui sotto.</p>
+  <p>
+    <a th:href="${link}" style="display: inline-block; padding: 10px 18px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px;">Conferma e scegli la password</a>
+  </p>
+  <p style="font-size: 13px; color: #6b7280;">Se il pulsante non funziona, copia questo indirizzo nel browser:<br><span th:text="${link}">indirizzo</span></p>
+  <p style="font-size: 13px; color: #6b7280;">Il link vale 24 ore. Se non sei stato tu a registrarti, ignora questo messaggio: non succederà nulla.</p>
+</body>
+</html>

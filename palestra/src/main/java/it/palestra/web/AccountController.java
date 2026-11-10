@@ -9,7 +9,7 @@ package it.palestra.web;
 
 import it.palestra.service.UtenteService;
 import jakarta.validation.Valid;
-import java.security.Principal;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -31,9 +31,9 @@ public class AccountController {
 
     // GET /account/password -> mostra il form vuoto. "Principal" è l'utente loggato: getName() è la sua email.
     @GetMapping
-    public String form(Model model, Principal utenteLoggato) {
+    public String form(Model model, Authentication utenteLoggato) {
         model.addAttribute("cambiaPasswordForm", new CambiaPasswordForm());
-        model.addAttribute("admin", utenteLoggato.getName());   // la barra in alto mostra chi è loggato e "Esci"
+        passaUtenteAllaBarra(model, utenteLoggato);
         return "account/password";
     }
 
@@ -46,7 +46,7 @@ public class AccountController {
     // doppi o inutili. In caso di errori si rimostra il form, e le password NON vengono rimesse nei campi.
     @PostMapping
     public String cambia(@Valid @ModelAttribute CambiaPasswordForm cambiaPasswordForm, BindingResult errori,
-                         Principal utenteLoggato, Model model, RedirectAttributes flash) {
+                         Authentication utenteLoggato, Model model, RedirectAttributes flash) {
         String email = utenteLoggato.getName();
         String attuale = cambiaPasswordForm.getPasswordAttuale();
         String nuova = cambiaPasswordForm.getNuovaPassword();
@@ -67,12 +67,22 @@ public class AccountController {
         }
 
         if (errori.hasErrors()) {
-            model.addAttribute("admin", email);
+            passaUtenteAllaBarra(model, utenteLoggato);
             return "account/password";
         }
 
         service.cambiaPassword(email, nuova);
         flash.addFlashAttribute("messaggio", "Password aggiornata");
-        return "redirect:/utenti";
+        return èAdmin(utenteLoggato) ? "redirect:/utenti" : "redirect:/area";
+    }
+
+    // La barra in alto mostra chi è loggato e "Esci": quella del pannello per l'amministratore ("admin"), quella dell'area personale per gli altri
+    // ("utenteArea"). Vedi layout/base.html.
+    private void passaUtenteAllaBarra(Model model, Authentication utenteLoggato) {
+        model.addAttribute(èAdmin(utenteLoggato) ? "admin" : "utenteArea", utenteLoggato.getName());
+    }
+
+    private boolean èAdmin(Authentication utenteLoggato) {
+        return utenteLoggato.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 }

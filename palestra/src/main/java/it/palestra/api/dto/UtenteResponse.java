@@ -12,7 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public record UtenteResponse(Long id, String nome, String cognome, String email, boolean haPassword,
-                             List<String> ruoli, List<CorsoSintesi> corsi, List<CorsoSintesi> corsiInsegnati) {
+                             String indirizzo, String cap, String citta, List<String> ruoli, List<CorsoSintesi> corsi, List<CorsoSintesi> corsiInsegnati) {
 
     // Costruisce la risposta da un utente con ruoli e corsi già caricati (vedi EntityGraph in UtenteRepository).
     // Gli elenchi sono ordinati: così la risposta è sempre uguale per gli stessi dati (utile nei test e ai client).
@@ -20,6 +20,7 @@ public record UtenteResponse(Long id, String nome, String cognome, String email,
         return new UtenteResponse(
                 u.getId(), u.getNome(), u.getCognome(), u.getEmail(),
                 u.getPasswordHash() != null,
+                u.getIndirizzo(), u.getCap(), u.getCitta(),
                 u.getRuoli().stream().map(ruolo -> ruolo.getNome()).sorted().toList(),
                 sintesi(u.getCorsi()),
                 sintesi(u.getCorsiInsegnati()));

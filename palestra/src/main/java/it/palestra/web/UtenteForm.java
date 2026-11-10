@@ -37,6 +37,16 @@ public class UtenteForm {
     // dipendono dai ruoli scelti (obbligatoria per gli ADMIN): le controlla UtenteService.erroreSullaPassword().
     private String password;
 
+    // Indirizzo di casa: tutti facoltativi nel pannello (chi si registra da solo li compila nel modulo di registrazione).
+    @Size(max = 255, message = "Massimo 255 caratteri")
+    private String indirizzo;
+
+    @Size(max = 10, message = "Massimo 10 caratteri")
+    private String cap;
+
+    @Size(max = 100, message = "Massimo 100 caratteri")
+    private String citta;
+
     // Gli id dei ruoli e dei corsi spuntati nelle checkbox (possono essere vuoti).
     private List<Long> ruoliIds = new ArrayList<>();
     private List<Long> corsiIds = new ArrayList<>();
@@ -48,6 +58,9 @@ public class UtenteForm {
         f.nome = u.getNome();
         f.cognome = u.getCognome();
         f.email = u.getEmail();
+        f.indirizzo = u.getIndirizzo();
+        f.cap = u.getCap();
+        f.citta = u.getCitta();
         u.getRuoli().forEach(r -> f.ruoliIds.add(r.getId()));
         u.getCorsi().forEach(c -> f.corsiIds.add(c.getId()));
         return f;
@@ -61,6 +74,12 @@ public class UtenteForm {
     public void setCognome(String cognome) { this.cognome = cognome; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getIndirizzo() { return indirizzo; }
+    public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
+    public String getCap() { return cap; }
+    public void setCap(String cap) { this.cap = cap; }
+    public String getCitta() { return citta; }
+    public void setCitta(String citta) { this.citta = citta; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public List<Long> getRuoliIds() { return ruoliIds; }

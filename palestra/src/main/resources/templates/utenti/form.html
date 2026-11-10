@@ -49,6 +49,19 @@
       <input type="email" id="email" th:field="*{email}">
       <div class="campo-err" th:errors="*{email}"></div>
 
+      <!--/* Indirizzo di casa: tutti facoltativi (chi si registra da solo li compila nel modulo di registrazione). */-->
+      <label for="indirizzo">Indirizzo</label>
+      <input type="text" id="indirizzo" th:field="*{indirizzo}">
+      <div class="campo-err" th:errors="*{indirizzo}"></div>
+
+      <label for="cap">CAP</label>
+      <input type="text" id="cap" th:field="*{cap}" maxlength="10">
+      <div class="campo-err" th:errors="*{cap}"></div>
+
+      <label for="citta">Città</label>
+      <input type="text" id="citta" th:field="*{citta}">
+      <div class="campo-err" th:errors="*{citta}"></div>
+
       <!--/* Password: campo scritto a mano e NON con th:field, così il valore non viene mai rimesso nell'HTML
              dopo un errore. th:errors invece mostra gli errori di validazione del campo "password".
              Serve solo agli ADMIN (che fanno login); in modifica, lasciarla vuota significa "non cambiarla".

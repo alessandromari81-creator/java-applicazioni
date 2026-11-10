@@ -14,6 +14,7 @@ import it.palestra.pagina.OrdinamentiListe;
 import it.palestra.pagina.RichiestaPagina;
 import it.palestra.pagina.StatoLista;
 import it.palestra.service.AbbonamentoService;
+import it.palestra.service.RecuperoPasswordService;
 import it.palestra.service.UtenteService;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -33,11 +34,13 @@ public class UtenteController {
 
     private final UtenteService service;
     private final AbbonamentoService abbonamenti;
+    private final RecuperoPasswordService recupero;
 
     // I service arrivano tramite dependency injection (Spring li passa al costruttore).
-    public UtenteController(UtenteService service, AbbonamentoService abbonamenti) {
+    public UtenteController(UtenteService service, AbbonamentoService abbonamenti, RecuperoPasswordService recupero) {
         this.service = service;
         this.abbonamenti = abbonamenti;
+        this.recupero = recupero;
     }
 
     // GET /utenti -> lista. "Model" è il contenitore dei dati per il template.
@@ -163,5 +166,18 @@ public class UtenteController {
     private void controllaCorsi(UtenteForm form, Long id, BindingResult errori) {
         service.erroreSuiCorsiScelti(form, id)
                 .ifPresent(messaggio -> errori.rejectValue("corsiIds", "istruttore-del-corso", messaggio));
+    }
+
+    // POST /utenti/5/invito -> invia a un utente SENZA password l'email con il link per scegliere la password (e quindi poter accedere alla sua area).
+    // Se ha già una password o l'email non parte si mostra il messaggio in rosso. Poi si torna alla stessa pagina della lista.
+    @PostMapping("/{id}/invito")
+    public String invito(@PathVariable Long id, @ModelAttribute("lista") StatoLista lista, RedirectAttributes flash) {
+        try {
+            String email = recupero.invita(id);
+            flash.addFlashAttribute("messaggio", "Invito inviato a " + email);
+        } catch (RegolaViolataException e) {
+            flash.addFlashAttribute("errore", e.getMessage());
+        }
+        return "redirect:/utenti" + lista.query(OrdinamentiListe.UTENTI);
     }
 }

@@ -89,6 +89,13 @@
             <div class="azioni">
               <!--/* Link di modifica: l'id viene inserito nel percorso /utenti/{id}/modifica. */-->
               <a class="btn btn-sec" th:href="@{${'/utenti/' + u.id + '/modifica' + lista.querystring}}">Modifica</a>
+              <!--/* «Invita»: solo per chi non ha ancora una password. Invia per email il link con cui l'utente sceglie la password e può accedere
+                     alla sua area. */-->
+              <form th:unless="${u.conPassword}" th:action="@{/utenti/{id}/invito(id=${u.id})}" method="post"
+                    onsubmit="return confirm('Inviare a questo utente l\'email per scegliere la password?')">
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+                <button type="submit" class="btn-sec" title="Invia l'email per scegliere la password">Invita</button>
+              </form>
               <!--/* Eliminazione con POST; confirm() del browser chiede conferma prima dell'invio. */-->
               <form th:action="@{/utenti/{id}/elimina(id=${u.id})}" method="post"
                     onsubmit="return confirm('Eliminare questo utente?')">

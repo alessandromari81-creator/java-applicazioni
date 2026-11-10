@@ -49,6 +49,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import it.palestra.service.JwtService;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 // @Configuration = classe di configurazione: i metodi @Bean creano oggetti che Spring
 // registra nel suo container.
@@ -146,12 +147,21 @@ public class SecurityConfig {
     SecurityFilterChain filtri(HttpSecurity http, LimiteTentativiLogin limite) throws Exception {
         // Dopo un login riuscito si va sempre al pannello (/utenti); dopo uno fallito si torna a /login?error. In entrambi i casi si
         // avvisa il limite ai tentativi (LimiteTentativiLogin): azzera il contatore o lo aumenta.
-        SimpleUrlAuthenticationSuccessHandler successo = new SimpleUrlAuthenticationSuccessHandler("/utenti") {
+        SimpleUrlAuthenticationSuccessHandler successo = new SimpleUrlAuthenticationSuccessHandler() {
             @Override
             public void onAuthenticationSuccess(HttpServletRequest richiesta, HttpServletResponse risposta,
                                                 Authentication autenticazione) throws IOException, ServletException {
                 limite.registraSuccesso(richiesta.getRemoteAddr(), richiesta.getParameter("username"));
                 super.onAuthenticationSuccess(richiesta, risposta, autenticazione);
+            }
+
+            // Dove mandare chi ha appena fatto login: l'amministratore al pannello (/utenti), chiunque altro (iscritto o istruttore) alla
+            // propria area personale (/area). Si decide per ogni richiesta, senza modificare lo stato dell'handler (è condiviso).
+            @Override
+            protected String determineTargetUrl(HttpServletRequest richiesta, HttpServletResponse risposta,
+                                                Authentication autenticazione) {
+                boolean admin = autenticazione.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+                return admin ? "/utenti" : "/area";
             }
         };
         SimpleUrlAuthenticationFailureHandler fallimento = new SimpleUrlAuthenticationFailureHandler("/login?error") {
@@ -167,8 +177,15 @@ public class SecurityConfig {
                 // /login e i file CSS sono pubblici (senza questo non si vedrebbe nemmeno il login).
                 // /error è la pagina interna a cui Spring Boot passa gli errori (404, 500...):
                 // se non fosse pubblica, anche la pagina di errore chiederebbe il login.
-                .requestMatchers("/login", "/css/**", "/error").permitAll()
-                // TUTTO il resto richiede di essere loggati E di avere il ruolo ADMIN.
+                .requestMatchers("/login", "/css/**", "/error", "/privacy",
+                        "/registrazione", "/registrazione/**", "/password-dimenticata", "/password/imposta").permitAll()
+                // La radice "/" manda ognuno alla propria pagina (admin: pannello, altri: area): basta essere loggati.
+                .requestMatchers("/").authenticated()
+                // L'AREA PERSONALE è per chi ha il ruolo ISCRITTO o ISTRUTTORE (un amministratore senza questi ruoli non c'entra).
+                .requestMatchers("/area/**").hasAnyRole("ISCRITTO", "ISTRUTTORE")
+                // "Cambia password" serve a chiunque abbia fatto login, qualunque ruolo.
+                .requestMatchers("/account/**").authenticated()
+                // TUTTO il resto (il pannello di amministrazione, Swagger...) richiede di essere loggati E di avere il ruolo ADMIN.
                 // hasRole("ADMIN") controlla l'autorità ROLE_ADMIN.
                 // Se non sei loggato vai al login; se sei loggato ma senza ruolo ADMIN ricevi un 403.
                 .anyRequest().hasRole("ADMIN"))
@@ -181,6 +198,9 @@ public class SecurityConfig {
                 .permitAll())
             // Dopo il logout torna al login con ?logout (per mostrare il messaggio).
             // Il logout si fa con POST /logout (protetto da CSRF automaticamente).
+            // Referrer-Policy: no-referrer = quando da una pagina si clicca un link esterno il browser non invia l'indirizzo della pagina di
+            // provenienza. Serve perché i link delle email (registrazione, reimpostazione password) contengono un token nell'indirizzo.
+            .headers(h -> h.referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
             .logout(l -> l.logoutSuccessUrl("/login?logout"));
         // Il CSRF è attivo di default: i form Thymeleaf aggiungono da soli il token
         // nascosto.

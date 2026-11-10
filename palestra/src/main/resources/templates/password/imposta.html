@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: password/imposta.html
+  A COSA SERVE: la pagina che si apre dal link ricevuto per email per SCEGLIERE LA PASSWORD: serve per la password dimenticata, per l'invito dell'amministratore
+  e (con un'altra azione) per completare la registrazione. Pagina PUBBLICA. Riceve:
+    "tokenValido"          true = mostra il modulo; false = mostra «link non valido o scaduto» (non si distingue tra inesistente, scaduto e già usato);
+    "azione"               a quale indirizzo inviare il modulo (/password/imposta oppure /registrazione/conferma);
+    "titolo"               titolo della pagina;
+    "impostaPasswordForm"  dati ed errori del modulo (il token è un campo nascosto);
+    "nuovoLink", "testoNuovoLink"  dove mandare chi ha un link non valido (richiedere un nuovo link).
+  Le password non vengono mai rimesse nei campi. Il token sta nell'indirizzo: per questo l'applicazione invia l'intestazione Referrer-Policy no-referrer.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Scegli la password</title>
+</head>
+<body>
+
+<th:block layout:fragment="barra"></th:block>
+
+<div layout:fragment="contenuto" class="card login">
+  <h1 th:text="${titolo}">Scegli la password</h1>
+
+  <!--/* Link non valido: non si dice il motivo (inesistente, scaduto o già usato). */-->
+  <div th:unless="${tokenValido}">
+    <div class="err">Il link non è valido oppure è scaduto, o è già stato usato.</div>
+    <p><a th:href="@{${nuovoLink}}" th:text="${testoNuovoLink}">Richiedi un nuovo link</a></p>
+  </div>
+
+  <form th:if="${tokenValido}" th:action="@{${azione}}" th:object="${impostaPasswordForm}" method="post">
+    <input type="hidden" name="token" th:value="*{token}">
+
+    <label for="nuovaPassword">Nuova password</label>
+    <input type="password" id="nuovaPassword" name="nuovaPassword" autocomplete="new-password" autofocus required>
+    <small class="aiuto">Da 8 a 72 caratteri.</small>
+    <div class="campo-err" th:errors="*{nuovaPassword}"></div>
+
+    <label for="confermaPassword">Ripeti la password</label>
+    <input type="password" id="confermaPassword" name="confermaPassword" autocomplete="new-password" required>
+    <div class="campo-err" th:errors="*{confermaPassword}"></div>
+
+    <p><button type="submit">Salva la password</button></p>
+  </form>
+</div>
+
+</body>
+</html>

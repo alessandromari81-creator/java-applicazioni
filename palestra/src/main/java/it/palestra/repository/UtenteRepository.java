@@ -71,4 +71,13 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
     @Modifying
     @Query("update Utente u set u.versioneToken = u.versioneToken + 1 where u.id = :id")
     int incrementaVersioneToken(@Param("id") Long id);
+
+    // L'utente con questa email (senza distinguere maiuscole) con tutte le relazioni che servono all'area personale: ruoli, corsi frequentati e
+    // corsi tenuti. Una sola query, perché fuori dalla transazione le collezioni non si possono più leggere.
+    @EntityGraph(attributePaths = {"corsi", "ruoli", "corsiInsegnati"})
+    Optional<Utente> findWithRelazioniByEmailIgnoreCase(String email);
+
+    // Nome e cognome (e basta: niente email né altri dati) degli iscritti a un corso, in ordine alfabetico. Li usa l'area dell'istruttore.
+    @Query("select u.nome as nome, u.cognome as cognome from Utente u join u.corsi c where c.id = :corsoId order by u.cognome, u.nome, u.id")
+    List<NomeCognome> findIscrittiDelCorso(@Param("corsoId") Long corsoId);
 }

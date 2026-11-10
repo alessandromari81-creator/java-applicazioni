@@ -155,9 +155,11 @@ La API si documenta da sola (libreria springdoc, legge i controller e i DTO): no
 **Utente** (`POST`/`PUT /api/utenti`):
 ```json
 { "nome": "Mario", "cognome": "Rossi", "email": "mario@example.com",
-  "password": "obbligatoria-solo-per-ADMIN", "ruoli": ["ISCRITTO"], "corsiIds": [1, 2] }
+  "password": "obbligatoria-solo-per-ADMIN", "indirizzo": "Via Roma 1", "cap": "00100", "citta": "Roma",
+  "ruoli": ["ISCRITTO"], "corsiIds": [1, 2] }
 ```
-Ruoli per **nome** (`ADMIN`, `ISTRUTTORE`, `ISCRITTO`). La risposta non contiene mai la password: c'è solo `haPassword`.
+Ruoli per **nome** (`ADMIN`, `ISTRUTTORE`, `ISCRITTO`). `indirizzo`, `cap` e `citta` (indirizzo di casa) sono facoltativi; `PUT` sostituisce tutti i campi,
+quindi un `PUT` senza indirizzo lo svuota. La risposta non contiene mai la password: c'è solo `haPassword`. I consensi privacy non si modificano dalla API.
 
 **Abbonamento** (`POST /api/utenti/{id}/abbonamenti`):
 ```json

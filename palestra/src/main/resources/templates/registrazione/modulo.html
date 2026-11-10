@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: registrazione/modulo.html
+  A COSA SERVE: il modulo di REGISTRAZIONE LIBERA (pagina pubblica). Chiede nome, cognome, email, indirizzo di casa (via, CAP, città) e l'accettazione
+  OBBLIGATORIA dell'informativa sulla privacy; il consenso alle comunicazioni promozionali è una casella FACOLTATIVA e separata. La password non si
+  sceglie qui: si sceglie dopo aver aperto il link ricevuto per email. Dopo l'invio RegistrazioneController rimanda qui con
+  ?inviata e si mostra SEMPRE lo stesso messaggio (che l'indirizzo sia nuovo o già registrato): è voluto, per non rivelare quali email esistono.
+  Il campo "sito" è nascosto alle persone (classe "trappola"): serve a fermare i programmi automatici, che lo compilano.
+  Riceve "registrazioneForm" (dati ed errori del modulo).
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Registrazione</title>
+</head>
+<body>
+
+<th:block layout:fragment="barra"></th:block>
+
+<div layout:fragment="contenuto" class="card login">
+  <h1>Registrati</h1>
+
+  <!--/* Messaggio identico in ogni caso. */-->
+  <div class="ok" th:if="${param.inviata}">
+    Controlla la tua email: se i dati sono corretti ti abbiamo inviato un link per confermare la registrazione e scegliere la password. Il link vale 24 ore.
+    Se non lo vedi, guarda anche nella cartella dello spam, oppure compila di nuovo il modulo tra qualche minuto.
+  </div>
+
+  <form th:unless="${param.inviata}" th:action="@{/registrazione}" th:object="${registrazioneForm}" method="post">
+    <label for="nome">Nome</label>
+    <input type="text" id="nome" th:field="*{nome}" autofocus>
+    <div class="campo-err" th:errors="*{nome}"></div>
+
+    <label for="cognome">Cognome</label>
+    <input type="text" id="cognome" th:field="*{cognome}">
+    <div class="campo-err" th:errors="*{cognome}"></div>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" th:field="*{email}">
+    <div class="campo-err" th:errors="*{email}"></div>
+
+    <label for="indirizzo">Indirizzo (via e numero)</label>
+    <input type="text" id="indirizzo" th:field="*{indirizzo}">
+    <div class="campo-err" th:errors="*{indirizzo}"></div>
+
+    <label for="cap">CAP</label>
+    <input type="text" id="cap" th:field="*{cap}" maxlength="5" inputmode="numeric">
+    <div class="campo-err" th:errors="*{cap}"></div>
+
+    <label for="citta">Città</label>
+    <input type="text" id="citta" th:field="*{citta}">
+    <div class="campo-err" th:errors="*{citta}"></div>
+
+    <!--/* Campo trappola: nascosto con il CSS, fuori dalla tastiera e senza completamento automatico. Una persona non lo vede e non lo compila. */-->
+    <div class="trappola" aria-hidden="true">
+      <label for="sito">Non compilare questo campo</label>
+      <input type="text" id="sito" name="sito" tabindex="-1" autocomplete="off">
+    </div>
+
+    <!--/* Casella OBBLIGATORIA: senza non si può registrare. th:field su un booleano aggiunge da solo un campo nascosto, così anche la casella
+           NON spuntata arriva al server (come "false"). */-->
+    <label class="check">
+      <input type="checkbox" th:field="*{accettoPrivacy}">
+      <span>Ho letto l'<a th:href="@{/privacy}" target="_blank" rel="noopener">informativa sulla privacy</a> e la accetto (obbligatorio)</span>
+    </label>
+    <div class="campo-err" th:errors="*{accettoPrivacy}"></div>
+
+    <!--/* Casella FACOLTATIVA e separata: non serve per registrarsi, si può dare o ritirare in ogni momento dal profilo. */-->
+    <label class="check">
+      <input type="checkbox" th:field="*{consensoMarketing}">
+      <span>Acconsento a ricevere comunicazioni promozionali dalla palestra (facoltativo)</span>
+    </label>
+
+    <p><button type="submit">Registrati</button></p>
+  </form>
+
+  <p>Hai già un account? <a th:href="@{/login}">Accedi</a></p>
+</div>
+
+</body>
+</html>

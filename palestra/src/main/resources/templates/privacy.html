@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: privacy.html
+  A COSA SERVE: l'informativa sulla privacy, pagina PUBBLICA (la leggono anche i visitatori prima di registrarsi). Mostrata da HomeController.privacy().
+  Riceve "versionePrivacy" (app.privacy.versione): è la versione che chi si registra accetta e che viene salvata con il consenso.
+  ATTENZIONE: il testo qui sotto è un TESTO DI ESEMPIO, scritto per questo progetto dimostrativo. Prima di usare l'applicazione con persone vere va
+  sostituito con l'informativa redatta dal titolare del trattamento (e, se serve, riletta da un consulente); quando lo si modifica si aggiorna
+  anche app.privacy.versione in application.properties.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Informativa privacy</title>
+</head>
+<body>
+
+<th:block layout:fragment="barra"></th:block>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1>Informativa sulla privacy</h1>
+    <p class="aiuto-blocco">Versione <span th:text="${versionePrivacy}"></span>. <strong>Testo di esempio</strong> di un progetto dimostrativo:
+       va sostituito con l'informativa del titolare prima di un uso reale.</p>
+
+    <h2>Titolare del trattamento</h2>
+    <p>Il titolare è la palestra che gestisce questo servizio. I recapiti del titolare vanno indicati qui.</p>
+
+    <h2>Quali dati raccogliamo</h2>
+    <ul>
+      <li>Dati anagrafici e di contatto: nome, cognome, indirizzo email, indirizzo di casa (via, CAP, città).</li>
+      <li>Dati sul rapporto con la palestra: corsi frequentati, abbonamenti (tipo, date, prezzo).</li>
+      <li>Credenziali di accesso: la password non viene conservata in chiaro, ma solo in forma cifrata (hash).</li>
+    </ul>
+
+    <h2>Perché li trattiamo</h2>
+    <ul>
+      <li>Per gestire l'iscrizione, i corsi e gli abbonamenti e per permetterti di accedere alla tua area personale (esecuzione del rapporto con te).</li>
+      <li>Per inviarti comunicazioni di servizio, come la conferma della registrazione o il link per reimpostare la password.</li>
+      <li>Solo se acconsenti con la casella facoltativa, per inviarti comunicazioni promozionali. Il consenso è libero e si ritira in ogni momento
+          dal tuo profilo.</li>
+    </ul>
+
+    <h2>Per quanto tempo</h2>
+    <p>I dati si conservano finché il rapporto è attivo e per il tempo richiesto dagli obblighi di legge. Le registrazioni non confermate via email
+       si cancellano automaticamente dopo 24 ore.</p>
+
+    <h2>I tuoi diritti</h2>
+    <p>Puoi chiedere accesso, rettifica, cancellazione dei tuoi dati, limitazione e opposizione al trattamento, e ritirare i consensi, rivolgendoti
+       al titolare. Puoi inoltre presentare reclamo all'autorità di controllo (Garante per la protezione dei dati personali).</p>
+  </div>
+</main>
+
+</body>
+</html>

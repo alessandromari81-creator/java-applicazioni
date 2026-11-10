@@ -14,7 +14,9 @@ Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione
 **Stack:** Java 21 (Temurin) · Spring Boot 4.1 · Maven · Thymeleaf · Spring Security (sessione per il pannello, JWT per la API) · JPA/Hibernate · PostgreSQL 17 (Docker) + Flyway · Swagger/OpenAPI (springdoc) · JUnit + MockMvc.
 
 **Cosa fa**
-- Login nel pannello (solo ruolo ADMIN) e CRUD di corsi, utenti e abbonamenti, con liste paginate, ordinabili e con ricerca.
+- Pannello di amministrazione (ruolo ADMIN): CRUD di corsi, utenti e abbonamenti, con liste paginate, ordinabili e con ricerca.
+- **Area personale** per iscritti e istruttori: ognuno vede i propri dati (profilo, corsi, abbonamenti); l'istruttore vede gli iscritti ai propri corsi (solo nome e cognome).
+- **Registrazione libera con conferma via email**, «password dimenticata» e invito dell'amministratore, con link monouso e a tempo (in sviluppo le email si leggono in Mailpit).
 - Istruttori (uno-a-molti verso i corsi) e iscritti (molti-a-molti), con regole di business (es. un istruttore non può iscriversi al proprio corso; abbonamenti senza sovrapposizioni).
 - API REST sotto `/api` con JWT + refresh token (formato OAuth2) e documentazione Swagger.
 
@@ -27,6 +29,18 @@ Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione
 | Corsi con istruttore | Abbonamenti con stato |
 |---|---|
 | ![Elenco corsi](docs/screenshots/corsi.png) | ![Elenco abbonamenti](docs/screenshots/abbonamenti.png) |
+
+| Registrazione | Email di conferma |
+|---|---|
+| ![Modulo di registrazione](docs/screenshots/registrazione.png) | ![Email di conferma registrazione](docs/screenshots/email-conferma.png) |
+
+| Area personale di un iscritto | Area di un istruttore: i suoi corsi e gli iscritti |
+|---|---|
+| ![Area personale](docs/screenshots/area.png) | ![Area dell'istruttore](docs/screenshots/area-istruttore.png) |
+
+| Documentazione interattiva della API (Swagger) |
+|---|
+| ![Swagger UI](docs/screenshots/swagger.png) |
 
 I dati negli screenshot sono di esempio (nomi e indirizzi inventati).
 
@@ -43,14 +57,16 @@ docker compose --profile app up --build
 La prima volta Docker scarica le dipendenze e compila l'applicazione (qualche minuto); poi avvia PostgreSQL e l'app e applica da solo le migration del database, con alcuni corsi di prova.
 Quando nel terminale compare `Started PalestraApplication`, apri http://localhost:8080 e accedi con `admin@palestra.local` / `admin`.
 
+Per provare la **registrazione**: da http://localhost:8080/registrazione compila il modulo, poi apri **Mailpit** su http://localhost:8025 (un finto server di posta incluso: l'email non esce dal tuo computer), clicca il link nell'email di conferma e scegli la password. Poi accedi dalla pagina di login: arrivi alla tua area personale.
+
 - Si ferma con `Ctrl+C`; `docker compose --profile app down` rimuove i container, `docker compose --profile app down -v` cancella anche i dati del database.
 - **Solo per provare:** la password dell'amministratore, la password del database e la chiave dei token (`JWT_SECRET`) sono valori di esempio. Per un uso vero vanno cambiati (la chiave si imposta con la variabile d'ambiente `JWT_SECRET`, lunga e casuale).
-- Se la porta 8080 o la 5432 sono già occupate, ferma ciò che le usa oppure cambia la parte a sinistra in `compose.yaml` (`"8080:8080"`, `"5432:5432"`).
+- Se la porta 8080, la 5432, la 8025 o la 1025 sono già occupate, ferma ciò che le usa oppure cambia la parte a sinistra in `compose.yaml` (`"8080:8080"`, `"5432:5432"`, `"8025:8025"`, `"1025:1025"`). Se cambi la porta dell'app cambia anche `APP_URL_PUBBLICO` nello stesso file: è l'indirizzo che finisce nei link delle email.
 
 <details>
 <summary><strong>Guida passo passo con Docker</strong> (anche se non lo hai mai usato, o se hai già qualcosa sulle porte 8080 e 5432)</summary>
 
-Questa guida avvia una copia **separata** dell'applicazione e del suo database, su porte diverse (app su **8082**, database su **5433**), con container e dati propri: non tocca niente di ciò che hai già in esecuzione.
+Questa guida avvia una copia **separata** dell'applicazione e del suo database, su porte diverse (app su **8082**, database su **5433**, Mailpit su **8026**), con container e dati propri: non tocca niente di ciò che hai già in esecuzione.
 
 1. **Accendi Docker Desktop** e aspetta che in basso a sinistra compaia «Engine running» (verde). Finché non lo è, i comandi danno errore.
 2. **Apri un terminale nella cartella `palestra/`** del progetto e controlla di essere nel posto giusto: `ls` deve mostrare `compose.yaml`, `Dockerfile` e `pom.xml`.
@@ -61,8 +77,13 @@ Questa guida avvia una copia **separata** dell'applicazione e del suo database, 
      db:
        container_name: palestra-db-prova
        ports: !override ["5433:5432"]
+     mailpit:
+       container_name: palestra-mailpit-prova
+       ports: !override ["8026:8025", "1026:1025"]
      app:
        ports: !override ["8082:8080"]
+       environment:
+         APP_URL_PUBBLICO: http://localhost:8082
    EOF
    ```
 4. **Avvia tutto**:
@@ -74,6 +95,7 @@ Questa guida avvia una copia **separata** dell'applicazione e del suo database, 
    - ti manda alla pagina di login; accedi con `admin@palestra.local` / `admin`;
    - in «Corsi» devi vedere 4 corsi di prova (Yoga, Spinning, CrossFit, Pilates);
    - crea, modifica ed elimina un utente;
+   - da http://localhost:8082/registrazione registrati con un tuo indirizzo (anche inventato) e leggi l'email su **Mailpit**, http://localhost:8026: clicca il link, scegli la password e accedi alla tua area;
    - la documentazione della API è su http://localhost:8082/swagger-ui.html (serve essere loggati).
 6. **Prova la API da terminale** (apri un secondo terminale, perché il primo è occupato):
    ```bash
@@ -94,7 +116,8 @@ Se qualcosa non va:
 |---|---|---|
 | `Cannot connect to the Docker daemon` | Docker Desktop è spento | passo 1 |
 | `no configuration file provided` | sei nella cartella sbagliata | passo 2 |
-| `port is already allocated` / `address already in use` | la porta 8082 o 5433 è occupata | chiudi ciò che la usa (`lsof -i :8082`) |
+| `port is already allocated` / `address already in use` | la porta 8082, 5433, 8026 o 1026 è occupata | chiudi ciò che la usa (`lsof -i :8082`) |
+| il link nell'email non si apre | l'indirizzo del link non è quello con cui apri il sito | controlla `APP_URL_PUBBLICO` (passo 3: deve essere `http://localhost:8082`) |
 | «Credenziali non valide» al login | password sbagliata | su questa copia è `admin` |
 | la pagina non si apre | l'app non ha ancora finito di partire | aspetta la riga `Started PalestraApplication` |
 
@@ -106,18 +129,20 @@ Requisiti: Java 21 e Docker Desktop.
 
 ```bash
 cd palestra
-docker compose up -d      # avvia PostgreSQL (database/utente/password: palestra, porta 5432)
+docker compose up -d      # avvia PostgreSQL (database/utente/password: palestra, porta 5432) e Mailpit (email su http://localhost:8025)
 ./mvnw spring-boot:run    # avvia l'app
 ```
 
 Poi apri http://localhost:8080 — utente iniziale `admin@palestra.local`, password `admin` (si cambia dal pannello, «Cambia password»).
-Per fermare il database: `docker compose stop`.
+Le email dell'applicazione (conferma registrazione, password dimenticata, invito) si leggono su http://localhost:8025. Per fermare database e Mailpit: `docker compose stop`.
 
 ### Indirizzi utili
 
 | Cosa | Indirizzo |
 |---|---|
-| Pannello | http://localhost:8080 |
+| Pannello di amministrazione | http://localhost:8080 |
+| Registrazione / area personale | http://localhost:8080/registrazione · http://localhost:8080/area |
+| Email in sviluppo (Mailpit) | http://localhost:8025 |
 | Swagger UI (serve il login admin nel browser) | http://localhost:8080/swagger-ui.html |
 | Descrizione OpenAPI (JSON) | http://localhost:8080/v3/api-docs |
 | Guida alla API (curl, Postman, errori 401/403) | [`palestra/API.md`](palestra/API.md) |
@@ -140,19 +165,21 @@ Le impostazioni stanno in `palestra/src/main/resources/application.properties`. 
 |---|---|
 | `JWT_SECRET` | chiave di firma dei token JWT (almeno 32 caratteri) |
 | `DB_USER`, `DB_PASSWORD` | accesso al database |
+| `APP_URL_PUBBLICO` | indirizzo pubblico del sito, usato nei link delle email (mai ricavato dalla richiesta) |
+| `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | server SMTP con cui spedire le email (in sviluppo Mailpit su `localhost:1025`) |
 | `SPRINGDOC_ENABLED=false` | spegne Swagger |
 
 ### Struttura del codice (`palestra/src/main/java/it/palestra`)
 
 | Cartella | Contenuto |
 |---|---|
-| `web/` | controller delle pagine HTML (come i controller Laravel) |
+| `web/` | controller delle pagine HTML |
 | `api/` e `api/dto/` | controller REST e oggetti di richiesta/risposta JSON |
 | `service/` | logica di business (le regole stanno qui, scritte una volta sola) |
-| `repository/` | accesso al database (Spring Data, come Eloquent) |
+| `repository/` | accesso al database (Spring Data JPA) |
 | `model/` | entità JPA |
 | `pagina/` | paginazione, ordinamento e ricerca delle liste |
-| `config/` | sicurezza, JWT, Swagger, cache, orologio |
+| `config/` | sicurezza, JWT, Swagger, cache, orologio, compiti programmati |
 | `exception/` | eccezioni di dominio |
 
 Le migration del database sono in `palestra/src/main/resources/db/migration` (una migration già applicata non si modifica: se ne crea una nuova).
@@ -166,19 +193,32 @@ erDiagram
     UTENTE ||--o{ CORSO : "insegna (corso.istruttore_id)"
     UTENTE ||--o{ ABBONAMENTO : possiede
     UTENTE ||--o{ REFRESH_TOKEN : "sessioni API"
+    UTENTE ||--o{ TOKEN_PASSWORD : "link per scegliere la password"
+    REGISTRAZIONE_IN_ATTESA }o..o| UTENTE : "diventa utente alla conferma"
 ```
 
 Non ci sono tabelle separate per iscritti e istruttori: sono **ruoli** di un'unica entità `Utente` (`ADMIN`, `ISTRUTTORE`, `ISCRITTO`; un utente può averne più d'uno).
-Solo chi ha una password può fare login (oggi gli admin); iscritti e istruttori sono anagrafiche gestite dal pannello.
+Può fare login chi ha una password, qualunque ruolo abbia: l'amministratore va al pannello, iscritti e istruttori alla propria area personale. Una scheda creata dall'amministratore senza password può essere attivata con un invito via email o dalla «password dimenticata». Chi si registra da solo non è un utente finché non conferma l'email: fino ad allora i suoi dati stanno in `registrazione_in_attesa`.
 
 ### Regole di business
 
 Le regole vivono nei `service/` e valgono sia per le pagine sia per la API (una violazione è un riquadro rosso nella pagina e un `409` nella API). Il database ripete quelle più delicate.
 
 **Utenti e ruoli**
-- Il login è con email e password. Il pannello e la API sono riservati al ruolo `ADMIN`.
+- Il login è con email e password. Il pannello e la API sono riservati al ruolo `ADMIN`; l'area personale (`/area`) ai ruoli `ISCRITTO` e `ISTRUTTORE`.
 - Non si può eliminare né declassare l'ultimo admin.
 - Un utente con abbonamenti non si elimina e non perde il ruolo `ISCRITTO`.
+
+**Area personale**
+- Ognuno vede **solo i propri dati**: la persona si ricava sempre dal login, mai da un numero scritto nell'indirizzo (nessuna pagina accetta l'id di un altro utente).
+- L'istruttore vede, per ciascun corso che tiene, nome e cognome degli iscritti: niente email, niente abbonamenti. Ognuno può dare o ritirare il consenso (facoltativo) alle comunicazioni promozionali.
+
+**Registrazione, password dimenticata e inviti**
+- Il modulo chiede nome, cognome, email, indirizzo di casa (via, CAP, città) e l'accettazione **obbligatoria** dell'informativa sulla privacy; il consenso alle comunicazioni promozionali è una casella facoltativa e separata. La versione dell'informativa accettata e la data si salvano con l'utente. Il testo in `/privacy` è di esempio: va sostituito prima di un uso reale.
+- Nessun account viene creato prima della conferma: i dati restano in una tabella di registrazioni **in attesa** (una sola per indirizzo; un nuovo invio la sostituisce e il vecchio link smette di valere; tra due email alla stessa persona passano almeno 2 minuti, ma se la persona rimanda il modulo subito dopo per correggere un dato, i dati si aggiornano comunque e l'account nasce con quelli dell'ultimo invio). Chi sbaglia l'indirizzo non blocca nessuno: la riga scade da sola. Il link vale 24 ore, si usa **una sola volta** e aprirlo non lo consuma; la password si sceglie dopo averlo aperto.
+- La risposta del sito è **sempre la stessa**, che l'email sia registrata o no (nessuno può scoprire chi è iscritto). Se l'indirizzo ha già un account con password arriva un avviso «hai già un account»; se esiste una scheda creata dall'amministratore senza password, la registrazione la **attiva** senza cambiare nome, cognome, corsi e abbonamenti già registrati.
+- «Password dimenticata»: link valido 1 ora e monouso; scegliere la nuova password revoca i token della API. L'amministratore può **invitare** dal pannello chi non ha una password (link valido 24 ore).
+- Difese: limite alle richieste di email (per indirizzo+email e per indirizzo), campo trappola per i programmi automatici, token casuali di cui nel database c'è solo l'hash, link costruiti con l'indirizzo configurato (non con quello della richiesta), `Referrer-Policy: no-referrer` sulle pagine con il token. I link scaduti si cancellano ogni notte.
 
 **Corsi e istruttori**
 - Un corso ha al massimo **un** istruttore; un istruttore può tenere **più** corsi. L'istruttore deve avere il ruolo `ISTRUTTORE`.

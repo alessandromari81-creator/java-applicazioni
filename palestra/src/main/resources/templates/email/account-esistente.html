@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: email/account-esistente.html
+  A COSA SERVE: modello dell'email «Hai già un account», generato da NotificheEmail. Riceve "nome" (nome del destinatario) e "link" (indirizzo da aprire).
+  È HTML semplice con stili scritti nell'elemento stesso (i programmi di posta ignorano i fogli di stile esterni). Il nome si scrive con th:text, che
+  protegge da eventuali caratteri speciali.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.5;">
+  <h2 style="color: #111827;">Hai già un account</h2>
+  <p>Ciao <span th:text="${nome}">Nome</span>,</p>
+  <p>qualcuno ha provato a registrarsi con questo indirizzo, ma esiste già un account.</p>
+  <p>
+    <a th:href="${link}" style="display: inline-block; padding: 10px 18px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px;">Reimposta la password</a>
+  </p>
+  <p style="font-size: 13px; color: #6b7280;">Se il pulsante non funziona, copia questo indirizzo nel browser:<br><span th:text="${link}">indirizzo</span></p>
+  <p style="font-size: 13px; color: #6b7280;">Se sei stato tu e non ricordi la password, usa il pulsante qui sopra. Se non sei stato tu, ignora questo messaggio.</p>
+</body>
+</html>

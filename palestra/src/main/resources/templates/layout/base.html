@@ -22,10 +22,13 @@
 <body>
 
 <!--/* BUCO "barra": la barra scura in alto, con contenuto di DEFAULT che le pagine possono
-       sostituire (la pagina di login la sovrascrive con un blocco vuoto).
-       Il pulsante "Esci" appare solo se la pagina ha passato "admin" (nome dell'utente loggato).
-       Il logout è un POST: th:action aggiunge da solo il token CSRF */-->
-<header layout:fragment="barra">
+       sostituire (le pagine pubbliche, come il login, la sovrascrivono con un blocco vuoto).
+       Ci sono DUE barre, scelte da quale attributo passa il controller:
+         - "admin" (email di chi è loggato)       -> barra del pannello di amministrazione;
+         - "utenteArea" (email di chi è loggato)  -> barra dell'area personale (fragments/barra-area).
+       In entrambe il pulsante "Esci" è un POST: th:action aggiunge da solo il token CSRF */-->
+<th:block layout:fragment="barra">
+<header th:if="${utenteArea == null}">
   <strong>Palestra · Pannello di controllo</strong>
   <!--/* Menu di navigazione: presente in tutte le pagine che usano la barra di default. */-->
   <nav>
@@ -40,6 +43,10 @@
     <button type="submit" class="btn-sec">Esci</button>
   </form>
 </header>
+<th:block th:if="${utenteArea != null}">
+  <th:block th:replace="~{fragments/barra-area :: barra(${utenteArea})}"></th:block>
+</th:block>
+</th:block>
 
 <!--/* MESSAGGI GLOBALI: mostrati in OGNI pagina che usa il layout, sotto la barra e sopra il
        contenuto. Arrivano dai controller con flash.addFlashAttribute("messaggio", ...) o

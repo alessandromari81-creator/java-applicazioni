@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: area/corsi.html
+  A COSA SERVE: i corsi di chi è loggato: quelli che frequenta come iscritto e, se è istruttore, quelli che tiene con nome e cognome degli
+  iscritti (solo questi due dati: niente email né abbonamenti). Riceve da AreaController.corsi(): "r" (AreaService.Riepilogo) e "utenteArea".
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>I miei corsi</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <h1>I miei corsi</h1>
+
+    <h2>Corsi che frequento</h2>
+    <p th:if="${r.corsi().isEmpty()}">Non sei iscritto a nessun corso.</p>
+    <table th:unless="${r.corsi().isEmpty()}">
+      <thead><tr><th>Corso</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th>Istruttore</th></tr></thead>
+      <tbody>
+        <tr th:each="c : ${r.corsi()}">
+          <td th:text="${c.nome()}"></td>
+          <td th:text="${c.livello()}"></td>
+          <td th:text="${c.durataMinuti() + ' min'}"></td>
+          <td th:text="${c.descrizione()}"></td>
+          <td th:text="${c.istruttore() != null ? c.istruttore() : '–'}"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!--/* Sezione solo per gli istruttori: per ogni corso tenuto, l'elenco degli iscritti come "Cognome Nome". */-->
+    <div th:if="${r.istruttore()}">
+      <h2>Corsi che tengo</h2>
+      <p class="aiuto-blocco">Per ogni corso vedi nome e cognome degli iscritti.</p>
+      <p th:if="${r.corsiTenuti().isEmpty()}">Al momento non tieni nessun corso.</p>
+      <div th:each="c : ${r.corsiTenuti()}">
+        <h3 th:text="${c.nome() + ' · ' + c.livello() + ' · ' + c.durataMinuti() + ' min'}"></h3>
+        <p th:if="${c.iscritti().isEmpty()}"><em>Nessun iscritto.</em></p>
+        <ul th:unless="${c.iscritti().isEmpty()}">
+          <li th:each="n : ${c.iscritti()}" th:text="${n}"></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

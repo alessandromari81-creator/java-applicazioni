@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: fragments/barra-area.html
+  A COSA SERVE: la barra in alto dell'AREA PERSONALE (iscritti e istruttori), diversa da quella del pannello di amministrazione: menu con le
+  sole pagine dell'area e, a destra, "Cambia password", l'email di chi è loggato e il pulsante "Esci".
+  La sceglie layout/base.html quando la pagina passa "utenteArea" (l'email di chi è loggato).
+  COME SI USA: <th:block th:replace="~{fragments/barra-area :: barra(${utenteArea})}"></th:block>
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="barra(email)">
+  <strong>Palestra · La mia area</strong>
+  <nav>
+    <a th:href="@{/area}">Riepilogo</a>
+    <a th:href="@{/area/corsi}">Corsi</a>
+    <a th:href="@{/area/abbonamenti}">Abbonamenti</a>
+    <a th:href="@{/area/profilo}">Profilo</a>
+  </nav>
+  <!--/* Il logout è un POST: th:action aggiunge da solo il token CSRF. */-->
+  <form th:action="@{/logout}" method="post">
+    <a class="link-barra" th:href="@{/account/password}">Cambia password</a>
+    <span th:text="${email}"></span>
+    <button type="submit" class="btn-sec">Esci</button>
+  </form>
+</header>
+</body>
+</html>

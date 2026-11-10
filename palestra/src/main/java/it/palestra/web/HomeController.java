@@ -15,16 +15,37 @@
  */
 package it.palestra.web;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class HomeController {
 
+    private final String versionePrivacy;
+
+    public HomeController(@Value("${app.privacy.versione}") String versionePrivacy) {
+        this.versionePrivacy = versionePrivacy;
+    }
+
     // GET / -> redirect a /utenti. Se non sei loggato Security ti porta prima al login.
+    // La radice manda ognuno alla propria pagina: l'amministratore al pannello, iscritti e istruttori alla loro area. (Chi non ha fatto login
+    // non arriva qui: SecurityConfig lo rimanda alla pagina di login.)
     @GetMapping("/")
-    public String home() {
-        return "redirect:/utenti";
+    public String home(Authentication autenticazione) {
+        boolean admin = autenticazione != null
+                && autenticazione.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        return admin ? "redirect:/utenti" : "redirect:/area";
+    }
+
+    // L'informativa sulla privacy: pagina pubblica (la leggono anche i visitatori prima di registrarsi). La versione del testo è
+    // quella salvata insieme al consenso di chi si registra (app.privacy.versione).
+    @GetMapping("/privacy")
+    public String privacy(Model model) {
+        model.addAttribute("versionePrivacy", versionePrivacy);
+        return "privacy";
     }
 
     // GET /login -> restituisce "login", cioè mostra templates/login.html.

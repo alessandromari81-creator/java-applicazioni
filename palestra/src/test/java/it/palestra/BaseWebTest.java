@@ -22,6 +22,7 @@ import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.service.LimiteRichiesteEmail;
 import it.palestra.service.LimiteTentativiLogin;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
@@ -60,6 +61,8 @@ abstract class BaseWebTest {
     @Autowired protected RuoloRepository ruoli;
     @Autowired protected AbbonamentoRepository abbonamenti;
     @Autowired protected PasswordEncoder encoder;
+    @Autowired protected LimiteRichiesteEmail limiteEmail;     // contatori delle richieste di email (registrazione, password dimenticata)
+    @Autowired protected EmailFinte emailFinte;               // le email "spedite" dall'applicazione durante il test
     @Autowired protected LimiteTentativiLogin limiteLogin;   // contatori dei login falliti: vanno azzerati tra un test e l'altro
     @Autowired protected CacheManager cacheManager;   // per svuotare le cache prima di ogni test
     @Autowired protected EntityManager em;   // serve a "svuotare" la cache di Hibernate (vedi ricarica())
@@ -68,6 +71,19 @@ abstract class BaseWebTest {
     // Non passa dal form di login: dichiara solo "chi sono" e quale ruolo ho, per provare il resto.
     protected RequestPostProcessor comeAdmin() {
         return user(EMAIL_ADMIN).roles("ADMIN");
+    }
+
+    // Simula una richiesta fatta da un utente già loggato con i ruoli indicati (es. "ISCRITTO"), identificato dall'email.
+    // I dati veri (corsi, abbonamenti...) vengono letti dal database in base a quell'email, come per un login vero.
+    protected RequestPostProcessor comeUtente(String email, String... ruoliUtente) {
+        return user(email).roles(ruoliUtente);
+    }
+
+    // Come creaUtente() ma con una password (cifrata): serve a chi deve poter fare login.
+    protected Utente creaUtenteConPassword(String nome, String cognome, String email, String password, Ruolo... ruoliUtente) {
+        Utente u = creaUtente(nome, cognome, email, ruoliUtente);
+        u.setPasswordHash(encoder.encode(password));
+        return utenti.save(u);
     }
 
     // Restituisce il ruolo col nome dato; se nel database di test non esiste ancora lo crea.
@@ -107,7 +123,10 @@ abstract class BaseWebTest {
     // dalla transazione: senza questo, i ruoli letti da un test resterebbero in cache anche se il database li ha già "dimenticati".
     @BeforeEach
     void svuotaLeCache() {
-        limiteLogin.azzera();         // anche i contatori dei login falliti vivono in memoria, fuori dalla transazione
+        limiteLogin.azzera();
+        limiteEmail.azzera();
+        emailFinte.svuota();
+        emailFinte.faiFallire(false);         // anche i contatori dei login falliti vivono in memoria, fuori dalla transazione
         for (String nome : cacheManager.getCacheNames()) {
             Cache cache = cacheManager.getCache(nome);
             if (cache != null) cache.clear();

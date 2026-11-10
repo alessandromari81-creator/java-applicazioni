@@ -27,6 +27,12 @@ public record UtenteRequest(
         // Facoltativa: obbligatoria solo per chi ha il ruolo ADMIN (regola controllata da UtenteService).
         String password,
 
+        @Size(max = 255, message = "Massimo 255 caratteri") String indirizzo,
+
+        @Size(max = 10, message = "Massimo 10 caratteri") String cap,
+
+        @Size(max = 100, message = "Massimo 100 caratteri") String citta,
+
         // Nomi dei ruoli (ADMIN, ISTRUTTORE, ISCRITTO). Assente = nessun ruolo.
         List<String> ruoli,
 

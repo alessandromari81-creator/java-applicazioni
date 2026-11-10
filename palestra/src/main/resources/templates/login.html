@@ -29,6 +29,10 @@
   <!--/* /login?bloccato: troppi tentativi falliti da questo indirizzo (vedi FiltroLimiteLogin). Il blocco dura qualche minuto. */-->
   <div class="err" th:if="${param.bloccato}">Troppi tentativi di accesso falliti: riprova tra qualche minuto</div>
   <div class="ok" th:if="${param.logout}">Sei uscito correttamente</div>
+  <!--/* Messaggi dopo aver scelto la password (/login?passwordImpostata), dopo la registrazione (/login?registrato) o se l'account esisteva già. */-->
+  <div class="ok" th:if="${param.passwordImpostata}">Password impostata: ora puoi accedere.</div>
+  <div class="ok" th:if="${param.registrato}">Registrazione completata: ora puoi accedere.</div>
+  <div class="err" th:if="${param.giaRegistrato}">Esiste già un account con questo indirizzo: accedi, oppure reimposta la password.</div>
 
   <!--/* th:action aggiunge automaticamente il token CSRF nascosto.
          Il form invia POST /login: lo elabora Spring Security, non un nostro controller.
@@ -42,6 +46,9 @@
     <input type="password" id="password" name="password" required>
     <p><button type="submit">Entra</button></p>
   </form>
+  <!--/* Pagine pubbliche: recupero della password e registrazione. */-->
+  <p><a th:href="@{/password-dimenticata}">Password dimenticata?</a></p>
+  <p>Non hai un account? <a th:href="@{/registrazione}">Registrati</a></p>
 </div>
 
 </body>

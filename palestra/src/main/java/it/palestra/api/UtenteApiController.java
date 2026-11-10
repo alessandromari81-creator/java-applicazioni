@@ -127,6 +127,9 @@ public class UtenteApiController {
         form.setCognome(r.cognome());
         form.setEmail(r.email());
         form.setPassword(r.password());
+        form.setIndirizzo(r.indirizzo());
+        form.setCap(r.cap());
+        form.setCitta(r.citta());
         form.setRuoliIds(new ArrayList<>(ruoliIds));
         form.setCorsiIds(new ArrayList<>(r.corsiIdsOVuota()));
         return form;
