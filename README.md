@@ -32,6 +32,59 @@ Quando nel terminale compare `Started PalestraApplication`, apri http://localhos
 - **Solo per provare:** la password dell'amministratore, la password del database e la chiave dei token (`JWT_SECRET`) sono valori di esempio. Per un uso vero vanno cambiati (la chiave si imposta con la variabile d'ambiente `JWT_SECRET`, lunga e casuale).
 - Se la porta 8080 o la 5432 sono già occupate, ferma ciò che le usa oppure cambia la parte a sinistra in `compose.yaml` (`"8080:8080"`, `"5432:5432"`).
 
+<details>
+<summary><strong>Guida passo passo con Docker</strong> (anche se non lo hai mai usato, o se hai già qualcosa sulle porte 8080 e 5432)</summary>
+
+Questa guida avvia una copia **separata** dell'applicazione e del suo database, su porte diverse (app su **8082**, database su **5433**), con container e dati propri: non tocca niente di ciò che hai già in esecuzione.
+
+1. **Accendi Docker Desktop** e aspetta che in basso a sinistra compaia «Engine running» (verde). Finché non lo è, i comandi danno errore.
+2. **Apri un terminale nella cartella `palestra/`** del progetto e controlla di essere nel posto giusto: `ls` deve mostrare `compose.yaml`, `Dockerfile` e `pom.xml`.
+3. **Crea il file che sposta le porte** (non stampa niente; su Windows crealo come file di testo nella cartella `palestra/` e usa il suo percorso nel passo 4):
+   ```bash
+   cat > /tmp/override-prova.yaml <<'EOF'
+   services:
+     db:
+       container_name: palestra-db-prova
+       ports: !override ["5433:5432"]
+     app:
+       ports: !override ["8082:8080"]
+   EOF
+   ```
+4. **Avvia tutto**:
+   ```bash
+   docker compose -p palestraprova -f compose.yaml -f /tmp/override-prova.yaml --profile app up --build
+   ```
+   La prima volta ci vogliono alcuni minuti (scarica e compila; vedrai scorrere molto testo, è normale). Il terminale resta occupato finché l'app gira: non chiuderlo. L'app è pronta quando compare **`Started PalestraApplication in ... seconds`**.
+5. **Prova nel browser** http://localhost:8082:
+   - ti manda alla pagina di login; accedi con `admin@palestra.local` / `admin`;
+   - in «Corsi» devi vedere 4 corsi di prova (Yoga, Spinning, CrossFit, Pilates);
+   - crea, modifica ed elimina un utente;
+   - la documentazione della API è su http://localhost:8082/swagger-ui.html (serve essere loggati).
+6. **Prova la API da terminale** (apri un secondo terminale, perché il primo è occupato):
+   ```bash
+   curl -s -X POST http://localhost:8082/api/auth/login -H 'Content-Type: application/json' \
+        -d '{"email":"admin@palestra.local","password":"admin"}'
+   ```
+   Deve rispondere con un testo che contiene `access_token` e `refresh_token`.
+7. **Verifica che i dati restino**: crea un utente senza eliminarlo, premi `Ctrl+C` nel primo terminale (l'app si ferma), rilancia il comando del passo 4 (ora parte in pochi secondi) e rifai il login: l'utente deve esserci ancora.
+8. **Spegni e pulisci tutto**: `Ctrl+C` nel primo terminale, poi
+   ```bash
+   docker compose -p palestraprova -f compose.yaml -f /tmp/override-prova.yaml --profile app down -v --rmi local
+   ```
+   Cancella container, dati e immagine di questa prova. Con `docker ps -a` non deve restare nulla che contenga `prova`.
+
+Se qualcosa non va:
+
+| Cosa vedi | Cosa significa | Cosa fare |
+|---|---|---|
+| `Cannot connect to the Docker daemon` | Docker Desktop è spento | passo 1 |
+| `no configuration file provided` | sei nella cartella sbagliata | passo 2 |
+| `port is already allocated` / `address already in use` | la porta 8082 o 5433 è occupata | chiudi ciò che la usa (`lsof -i :8082`) |
+| «Credenziali non valide» al login | password sbagliata | su questa copia è `admin` |
+| la pagina non si apre | l'app non ha ancora finito di partire | aspetta la riga `Started PalestraApplication` |
+
+</details>
+
 ### Avvio per lo sviluppo
 
 Requisiti: Java 21 e Docker Desktop.
