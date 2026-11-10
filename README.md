@@ -1,5 +1,8 @@
 # java-applicazioni
 
+[![Test](https://github.com/alessandromari81-creator/java-applicazioni/actions/workflows/test.yml/badge.svg)](https://github.com/alessandromari81-creator/java-applicazioni/actions/workflows/test.yml)
+[![Licenza: MIT](https://img.shields.io/badge/licenza-MIT-blue.svg)](LICENSE)
+
 Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione:
 
 | Cartella | Cosa è |
@@ -14,6 +17,18 @@ Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione
 - Login nel pannello (solo ruolo ADMIN) e CRUD di corsi, utenti e abbonamenti, con liste paginate, ordinabili e con ricerca.
 - Istruttori (uno-a-molti verso i corsi) e iscritti (molti-a-molti), con regole di business (es. un istruttore non può iscriversi al proprio corso; abbonamenti senza sovrapposizioni).
 - API REST sotto `/api` con JWT + refresh token (formato OAuth2) e documentazione Swagger.
+
+### Screenshot
+
+| Login | Utenti (ricerca, ordinamento, paginazione) |
+|---|---|
+| ![Pagina di login](docs/screenshots/login.png) | ![Elenco utenti](docs/screenshots/utenti.png) |
+
+| Corsi con istruttore | Abbonamenti con stato |
+|---|---|
+| ![Elenco corsi](docs/screenshots/corsi.png) | ![Elenco abbonamenti](docs/screenshots/abbonamenti.png) |
+
+I dati negli screenshot sono di esempio (nomi e indirizzi inventati).
 
 ### Prova rapida con Docker
 
@@ -194,6 +209,14 @@ Client API ─► api/ (JSON, JWT stateless)      ─┘
 - **Orologio:** la data di oggi viene da un `Clock` iniettato, mai da `LocalDate.now()`, così i test possono fissarla.
 - **Cache:** una sola, per l'elenco dei ruoli (Caffeine in memoria).
 - **Database:** schema gestito da Flyway; Hibernate lo controlla soltanto (`ddl-auto=validate`). La ricerca di testo sugli utenti usa indici trigram (PostgreSQL `pg_trgm`): con 100.000 utenti risponde in pochi millisecondi.
+
+### Test automatici (CI)
+
+A ogni push e a ogni pull request GitHub Actions ([`.github/workflows/test.yml`](.github/workflows/test.yml)) scarica il codice, installa Java 21 e lancia `./mvnw test` su un computer pulito: l'etichetta «Test» in cima a questa pagina diventa verde se tutti i test passano.
+
+### Licenza
+
+Distribuito con licenza [MIT](LICENSE): il codice si può usare, copiare e modificare liberamente.
 
 ### Note di lavoro
 

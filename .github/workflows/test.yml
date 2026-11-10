@@ -1,0 +1,29 @@
+# FILE: .github/workflows/test.yml
+# A COSA SERVE: la "CI" (integrazione continua). Ad ogni push e ad ogni pull request GitHub avvia un computer virtuale pulito, scarica
+# il codice COMMITTATO, installa Java 21 e lancia gli stessi test che si lanciano in locale con `./mvnw test`. Il risultato (verde/rosso)
+# compare accanto al commit e nel badge «build passing» del README.
+# I test non richiedono Docker né PostgreSQL: usano un database H2 in memoria (profilo "test").
+name: Test
+
+on:
+  push:                       # a ogni push, su qualsiasi ramo
+  pull_request:               # e a ogni pull request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest    # un computer Linux fornito da GitHub
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+
+      - name: Installa Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven                              # conserva le librerie scaricate tra un'esecuzione e l'altra (più veloce)
+          cache-dependency-path: palestra/pom.xml   # il progetto sta nella sottocartella palestra/
+
+      - name: Esegui i test
+        working-directory: palestra
+        run: ./mvnw -B test                         # -B = output senza colori né barre di avanzamento (adatto ai log)
