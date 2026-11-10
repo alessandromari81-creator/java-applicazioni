@@ -1,7 +1,6 @@
 # java-applicazioni
 
 [![Test](https://github.com/alessandromari81-creator/java-applicazioni/actions/workflows/test.yml/badge.svg)](https://github.com/alessandromari81-creator/java-applicazioni/actions/workflows/test.yml)
-[![Licenza: MIT](https://img.shields.io/badge/licenza-MIT-blue.svg)](LICENSE)
 
 Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione:
 
@@ -257,7 +256,3 @@ Client API ─► api/ (JSON, JWT stateless)      ─┘
 ### Test automatici (CI)
 
 A ogni push e a ogni pull request GitHub Actions ([`.github/workflows/test.yml`](.github/workflows/test.yml)) scarica il codice, installa Java 21 e lancia `./mvnw test` su un computer pulito: l'etichetta «Test» in cima a questa pagina diventa verde se tutti i test passano.
-
-### Licenza
-
-Distribuito con licenza [MIT](LICENSE): il codice si può usare, copiare e modificare liberamente.
