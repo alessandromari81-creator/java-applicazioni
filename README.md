@@ -256,3 +256,7 @@ Client API ─► api/ (JSON, JWT stateless)      ─┘
 ### Test automatici (CI)
 
 A ogni push e a ogni pull request GitHub Actions ([`.github/workflows/test.yml`](.github/workflows/test.yml)) scarica il codice, installa Java 21 e lancia `./mvnw test` su un computer pulito: l'etichetta «Test» in cima a questa pagina diventa verde se tutti i test passano.
+
+### Nota
+
+**Solo codice dimostrativo.** Il progetto è pubblicato per essere guardato e provato, non per essere riutilizzato: i dati di esempio, le password iniziali e il testo dell'informativa sulla privacy sono segnaposto.
