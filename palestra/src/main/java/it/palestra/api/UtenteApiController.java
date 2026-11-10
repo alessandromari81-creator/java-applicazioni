@@ -15,7 +15,6 @@ package it.palestra.api;
 
 import it.palestra.api.dto.UtenteRequest;
 import it.palestra.api.dto.UtenteResponse;
-import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import it.palestra.service.UtenteService;
 import it.palestra.web.UtenteForm;
@@ -85,7 +84,7 @@ public class UtenteApiController {
     // vuole per id: qui si traducono. Un nome sconosciuto è un errore sul campo "ruoli" (con l'elenco di quelli validi).
     private UtenteForm comeForm(UtenteRequest r) {
         Map<String, Long> idPerNome = service.tuttiIRuoli().stream()
-                .collect(Collectors.toMap(Ruolo::getNome, Ruolo::getId));
+                .collect(Collectors.toMap(ruolo -> ruolo.getNome(), ruolo -> ruolo.getId()));
 
         LinkedHashSet<Long> ruoliIds = new LinkedHashSet<>();   // Set: niente doppioni se un ruolo è ripetuto
         List<String> sconosciuti = new ArrayList<>();

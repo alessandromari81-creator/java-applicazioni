@@ -7,7 +7,6 @@
 package it.palestra.api.dto;
 
 import it.palestra.model.Corso;
-import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import java.util.Comparator;
 import java.util.List;
@@ -21,12 +20,12 @@ public record UtenteResponse(Long id, String nome, String cognome, String email,
         return new UtenteResponse(
                 u.getId(), u.getNome(), u.getCognome(), u.getEmail(),
                 u.getPasswordHash() != null,
-                u.getRuoli().stream().map(Ruolo::getNome).sorted().toList(),
+                u.getRuoli().stream().map(ruolo -> ruolo.getNome()).sorted().toList(),
                 sintesi(u.getCorsi()),
                 sintesi(u.getCorsiInsegnati()));
     }
 
     private static List<CorsoSintesi> sintesi(java.util.Collection<Corso> corsi) {
-        return corsi.stream().sorted(Comparator.comparing(Corso::getNome)).map(CorsoSintesi::da).toList();
+        return corsi.stream().sorted(Comparator.comparing(corso -> corso.getNome())).map(CorsoSintesi::da).toList();
     }
 }

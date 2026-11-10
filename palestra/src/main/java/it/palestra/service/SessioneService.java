@@ -7,7 +7,6 @@
 package it.palestra.service;
 
 import it.palestra.exception.RefreshTokenNonValidoException;
-import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import it.palestra.repository.UtenteRepository;
 import java.util.List;
@@ -64,7 +63,7 @@ public class SessioneService {
 
     // Emette access token (con i ruoli dell'utente) e refresh token.
     private Sessione emettiPer(Utente utente) {
-        List<String> ruoli = utente.getRuoli().stream().map(Ruolo::getNome).sorted().toList();
+        List<String> ruoli = utente.getRuoli().stream().map(ruolo -> ruolo.getNome()).sorted().toList();
         JwtService.TokenEmesso access = jwt.emetti(utente.getEmail(), ruoli);
         RefreshTokenService.Emesso refresh = refreshTokens.emetti(utente);
         return new Sessione(access.token(), access.scadeTraSecondi(), refresh.token(), refresh.scadeTraSecondi());

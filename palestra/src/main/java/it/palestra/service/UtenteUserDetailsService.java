@@ -6,7 +6,6 @@
  */
 package it.palestra.service;
 
-import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import it.palestra.repository.UtenteRepository;
 import org.springframework.security.core.userdetails.User;
@@ -40,7 +39,7 @@ public class UtenteUserDetailsService implements UserDetailsService {
 
         // I nomi dei ruoli diventano le "autorità" di Spring Security: roles("ADMIN") produce ROLE_ADMIN,
         // quella che SecurityConfig controlla con hasRole("ADMIN").
-        String[] ruoli = u.getRuoli().stream().map(Ruolo::getNome).toArray(String[]::new);
+        String[] ruoli = u.getRuoli().stream().map(ruolo -> ruolo.getNome()).toArray(String[]::new);
         return User.withUsername(u.getEmail())
                 .password(u.getPasswordHash())   // l'hash letto dal database
                 .roles(ruoli)

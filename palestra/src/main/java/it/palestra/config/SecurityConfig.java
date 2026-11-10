@@ -33,8 +33,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
@@ -63,7 +61,7 @@ public class SecurityConfig {
             .securityMatcher("/api/**")
             // Niente CSRF: quella protezione serve quando il browser invia da solo i cookie di sessione. Qui non ci
             // sono cookie: il token va aggiunto a mano a ogni richiesta, quindi un altro sito non può "usare" il tuo.
-            .csrf(AbstractHttpConfigurer::disable)
+            .csrf(csrf -> csrf.disable())
             // STATELESS: il server non crea né usa sessioni. Ogni richiesta porta con sé tutto ciò che serve (il token).
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a

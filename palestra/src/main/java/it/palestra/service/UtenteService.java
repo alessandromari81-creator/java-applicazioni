@@ -79,7 +79,7 @@ public class UtenteService {
     @Transactional(readOnly = true)
     public Set<Long> idCorsiInsegnati(Long utenteId) {
         if (utenteId == null) return Set.of();
-        return trova(utenteId).getCorsiInsegnati().stream().map(Corso::getId).collect(Collectors.toSet());
+        return trova(utenteId).getCorsiInsegnati().stream().map(corso -> corso.getId()).collect(Collectors.toSet());
     }
 
     // true se l'email è già usata da UN ALTRO utente. idDaIgnorare = id dell'utente che stiamo modificando
@@ -122,7 +122,7 @@ public class UtenteService {
         if (id == null) return Optional.empty();
         String conflitti = trova(id).getCorsiInsegnati().stream()
                 .filter(c -> f.getCorsiIds().contains(c.getId()))
-                .map(Corso::getNome)
+                .map(corso -> corso.getNome())
                 .sorted()
                 .collect(Collectors.joining(", "));
         if (conflitti.isEmpty()) return Optional.empty();

@@ -115,7 +115,7 @@ class IstruttoriTest extends BaseWebTest {
         // Lato Utente la relazione si legge come lista dei corsi tenuti: "corsiInsegnati".
         ricarica();
         Utente dopo = utenti.findWithRelazioniById(gino.getId()).orElseThrow();
-        assertThat(dopo.getCorsiInsegnati()).extracting(Corso::getNome).containsExactlyInAnyOrder("Yoga", "Pilates");
+        assertThat(dopo.getCorsiInsegnati()).extracting(corso -> corso.getNome()).containsExactlyInAnyOrder("Yoga", "Pilates");
     }
 
     @Test
@@ -156,7 +156,7 @@ class IstruttoriTest extends BaseWebTest {
                 .andExpect(status().isOk())
                 .andReturn().getModelAndView().getModel().get("istruttori");
 
-        assertThat(istruttori).extracting(Utente::getEmail).containsExactly("gino@example.com");
+        assertThat(istruttori).extracting(utente -> utente.getEmail()).containsExactly("gino@example.com");
     }
 
     // ------------------------------- UN ISTRUTTORE NON PUÒ ESSERE ISCRITTO AL CORSO CHE TIENE
@@ -217,8 +217,8 @@ class IstruttoriTest extends BaseWebTest {
 
         ricarica();
         Utente dopo = utenti.findWithRelazioniById(gino.getId()).orElseThrow();
-        assertThat(dopo.getCorsi()).extracting(Corso::getNome).containsExactly("Pilates");
-        assertThat(dopo.getCorsiInsegnati()).extracting(Corso::getNome).containsExactly("Yoga");
+        assertThat(dopo.getCorsi()).extracting(corso -> corso.getNome()).containsExactly("Pilates");
+        assertThat(dopo.getCorsiInsegnati()).extracting(corso -> corso.getNome()).containsExactly("Yoga");
     }
 
     @Test

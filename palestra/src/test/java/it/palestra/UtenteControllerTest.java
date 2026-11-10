@@ -64,7 +64,7 @@ class UtenteControllerTest extends BaseWebTest {
         ricarica();
         Utente salvato = utenti.findByEmailIgnoreCase("gino@example.com").orElseThrow();
         assertThat(salvato.getNome()).isEqualTo("Gino");
-        assertThat(salvato.getRuoli()).extracting(Ruolo::getNome).containsExactly("ISCRITTO");
+        assertThat(salvato.getRuoli()).extracting(ruolo -> ruolo.getNome()).containsExactly("ISCRITTO");
         assertThat(salvato.getPasswordHash()).isNull();   // un iscritto non ha password
     }
 
@@ -281,6 +281,6 @@ class UtenteControllerTest extends BaseWebTest {
         ricarica();
         Utente gino = utenti.findWithRelazioniById(
                 utenti.findByEmailIgnoreCase("gino@example.com").orElseThrow().getId()).orElseThrow();
-        assertThat(gino.getCorsi()).extracting(Corso::getNome).containsExactlyInAnyOrder("Yoga", "Spinning");
+        assertThat(gino.getCorsi()).extracting(corso -> corso.getNome()).containsExactlyInAnyOrder("Yoga", "Spinning");
     }
 }

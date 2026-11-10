@@ -59,7 +59,7 @@ class AbbonamentiUtenteTest extends BaseWebTest {
                 .andExpect(content().string(not(containsString("Bianchi"))))      // niente dati di Laura
                 .andReturn().getModelAndView().getModel().get("abbonamenti");
 
-        assertThat(mostrati).extracting(Abbonamento::getId).containsExactly(recente.getId(), vecchio.getId());
+        assertThat(mostrati).extracting(abbonamento -> abbonamento.getId()).containsExactly(recente.getId(), vecchio.getId());
     }
 
     @Test
