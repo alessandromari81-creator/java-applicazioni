@@ -29,8 +29,11 @@
       <strong>non ancora iniziati</strong>; quelli attivi e scaduti restano nello storico.
     </p>
 
+    <!--/* RICERCA e controlli di pagina: pezzi riusabili in fragments/paginazione.html (logica in NavigazionePagine). */-->
+    <th:block th:replace="~{fragments/paginazione :: ricerca(${nav}, 'Cerca un iscritto per nome, cognome o email')}"></th:block>
+
     <table>
-      <thead><tr><th>Iscritto</th><th>Tipo</th><th>Dal</th><th>Al</th><th>Prezzo</th><th>Stato</th><th></th></tr></thead>
+      <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'iscritto', 'Iscritto')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'tipo', 'Tipo')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataInizio', 'Dal')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataFine', 'Al')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'prezzo', 'Prezzo')}"></th:block><th>Stato</th><th></th></tr></thead>
       <tbody>
         <!--/* th:each = @foreach. th:with definisce una variabile locale: "stato" è lo stato di QUESTO abbonamento
                rispetto a oggi (a.stato(oggi) chiama il metodo di Abbonamento; non è salvato nel database). */-->
@@ -54,7 +57,8 @@
                      la regola (AbbonamentoService.elimina): nascondere il pulsante è solo un aiuto visivo. */-->
               <form th:if="${stato.name() == 'FUTURO'}" th:action="@{/abbonamenti/{id}/elimina(id=${a.id})}" method="post"
                     onsubmit="return confirm('Eliminare questo abbonamento?')">
-                <button type="submit" class="btn-danger">Elimina</button>
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+              <button type="submit" class="btn-danger">Elimina</button>
               </form>
             </div>
           </td>
@@ -62,6 +66,7 @@
         <tr th:if="${abbonamenti.isEmpty()}"><td colspan="7">Nessun abbonamento.</td></tr>
       </tbody>
     </table>
+    <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
   </div>
 </main>
 

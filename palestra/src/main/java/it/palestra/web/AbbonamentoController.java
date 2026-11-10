@@ -8,11 +8,17 @@
 package it.palestra.web;
 
 import it.palestra.exception.RegolaViolataException;
+import it.palestra.model.Abbonamento;
 import it.palestra.model.TipoAbbonamento;
+import it.palestra.pagina.NavigazionePagine;
+import it.palestra.pagina.OrdinamentiListe;
+import it.palestra.pagina.RichiestaPagina;
+import it.palestra.pagina.StatoLista;
 import it.palestra.service.AbbonamentoService;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.format.DateTimeFormatter;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -31,10 +37,18 @@ public class AbbonamentoController {
         this.service = service;
     }
 
-    // GET /abbonamenti -> elenco. "oggi" serve al template per calcolare lo stato di ogni abbonamento.
+    // GET /abbonamenti -> elenco PAGINATO. "oggi" serve al template per calcolare lo stato di ogni abbonamento.
+    // I parametri ?page=&size=&sort=&q= (q cerca nome, cognome o email dell'iscritto) riempiono "lista" e vengono validati.
     @GetMapping
-    public String lista(Model model, Principal admin) {
-        model.addAttribute("abbonamenti", service.elenco());
+    public String lista(@ModelAttribute("lista") StatoLista lista, Model model, RedirectAttributes flash, Principal admin) {
+        RichiestaPagina richiesta = lista.richiesta(OrdinamentiListe.ABBONAMENTI);
+        Page<Abbonamento> pagina = service.elenco(richiesta);
+        if (NavigazionePagine.oltreLUltima(pagina, richiesta)) {
+            SupportoListe.riportaMessaggi(model, flash);
+            return "redirect:/abbonamenti" + lista.queryPagina(OrdinamentiListe.ABBONAMENTI, pagina.getTotalPages() - 1);
+        }
+        model.addAttribute("abbonamenti", pagina.getContent());
+        model.addAttribute("nav", new NavigazionePagine("/abbonamenti", pagina, richiesta));
         model.addAttribute("oggi", service.oggi());
         model.addAttribute("admin", admin.getName());
         return "abbonamenti/lista";
@@ -44,12 +58,14 @@ public class AbbonamentoController {
     // ancora iniziati e il form per aggiungerne uno (o rinnovare), già con la data di inizio proposta.
     // Ci si arriva dal link nella colonna "Abbonamento" della lista utenti.
     @GetMapping("/utente/{utenteId}")
-    public String perUtente(@PathVariable Long utenteId, Model model, Principal admin) {
+    // Anche lo storico è PAGINATO (?page=&size=&sort=); la ricerca q qui non si applica.
+    public String perUtente(@PathVariable Long utenteId, @ModelAttribute("lista") StatoLista lista, Model model,
+                            RedirectAttributes flash, Principal admin) {
         AbbonamentoForm form = new AbbonamentoForm();
         form.setUtenteId(utenteId);
         form.setDataInizio(service.primoGiornoLibero(utenteId));   // oggi, oppure il giorno dopo la scadenza
         model.addAttribute("abbonamentoForm", form);
-        return paginaUtente(utenteId, model, admin);
+        return paginaUtente(utenteId, lista, model, flash, admin);
     }
 
     // POST /abbonamenti/utente/5 -> aggiunge un abbonamento a QUELL'utente. Stesse regole del form generale (vedi
@@ -57,10 +73,11 @@ public class AbbonamentoController {
     // inviasse un utenteId diverso nei dati, viene sovrascritto con quello della pagina.
     @PostMapping("/utente/{utenteId}")
     public String creaPerUtente(@PathVariable Long utenteId, @Valid @ModelAttribute AbbonamentoForm abbonamentoForm,
-                                BindingResult errori, Model model, RedirectAttributes flash, Principal admin) {
+                                BindingResult errori, @ModelAttribute("lista") StatoLista lista, Model model,
+                                RedirectAttributes flash, Principal admin) {
         abbonamentoForm.setUtenteId(utenteId);
         controllaRegole(abbonamentoForm, errori);
-        if (errori.hasErrors()) return paginaUtente(utenteId, model, admin);   // errori: rimostra la stessa pagina
+        if (errori.hasErrors()) return paginaUtente(utenteId, lista, model, flash, admin);   // errori: rimostra la stessa pagina
 
         var creato = service.crea(abbonamentoForm);
         flash.addFlashAttribute("messaggio", messaggioCreato(creato));
@@ -101,7 +118,7 @@ public class AbbonamentoController {
     // cosiddetti "open redirect"). @RequestParam(defaultValue = "false") rende il parametro facoltativo.
     @PostMapping("/{id}/elimina")
     public String elimina(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean daUtente,
-                          RedirectAttributes flash) {
+                          @ModelAttribute("lista") StatoLista lista, RedirectAttributes flash) {
         Long utenteId = service.utenteDi(id);   // letto PRIMA di eliminare (poi l'abbonamento non esiste più); 404 se manca
         try {
             service.elimina(id);
@@ -109,7 +126,12 @@ public class AbbonamentoController {
         } catch (RegolaViolataException e) {
             flash.addFlashAttribute("errore", e.getMessage());
         }
-        return daUtente ? "redirect:/abbonamenti/utente/" + utenteId : "redirect:/abbonamenti";
+        // Si torna alla stessa vista (pagina, ordine, ricerca) da cui si è partiti. Sullo storico di un utente la ricerca non c'è.
+        if (daUtente) {
+            lista.setQ(null);
+            return "redirect:/abbonamenti/utente/" + utenteId + lista.query(OrdinamentiListe.ABBONAMENTI_DI_UTENTE);
+        }
+        return "redirect:/abbonamenti" + lista.query(OrdinamentiListe.ABBONAMENTI);
     }
 
     // Le regole di business sul form (usate sia dal form generale sia da quello nella pagina dell'utente):
@@ -130,11 +152,21 @@ public class AbbonamentoController {
                 + a.getDataInizio().format(DATA) + " al " + a.getDataFine().format(DATA);
     }
 
-    // Dati per la pagina di un utente: lui, il suo storico, la data di oggi (per gli stati) e i tipi disponibili.
-    // Il form (abbonamentoForm) lo ha già preparato il metodo che chiama questo.
-    private String paginaUtente(Long utenteId, Model model, Principal admin) {
+    // Dati per la pagina di un utente: lui, UNA PAGINA del suo storico, la data di oggi (per gli stati) e i tipi disponibili.
+    // Il form (abbonamentoForm) lo ha già preparato il metodo che chiama questo. Se la pagina dello storico chiesta non
+    // esiste più si va all'ultima.
+    private String paginaUtente(Long utenteId, StatoLista lista, Model model, RedirectAttributes flash, Principal admin) {
+        lista.setQ(null);                                          // sullo storico non c'è la ricerca
+        RichiestaPagina richiesta = lista.richiesta(OrdinamentiListe.ABBONAMENTI_DI_UTENTE);
+        Page<Abbonamento> pagina = service.abbonamentiDi(utenteId, richiesta);
+        if (NavigazionePagine.oltreLUltima(pagina, richiesta)) {
+            SupportoListe.riportaMessaggi(model, flash);
+            return "redirect:/abbonamenti/utente/" + utenteId
+                    + lista.queryPagina(OrdinamentiListe.ABBONAMENTI_DI_UTENTE, pagina.getTotalPages() - 1);
+        }
         model.addAttribute("utente", service.trovaUtente(utenteId));
-        model.addAttribute("abbonamenti", service.abbonamentiDi(utenteId));
+        model.addAttribute("abbonamenti", pagina.getContent());
+        model.addAttribute("nav", new NavigazionePagine("/abbonamenti/utente/" + utenteId, pagina, richiesta));
         model.addAttribute("oggi", service.oggi());
         model.addAttribute("tipi", TipoAbbonamento.values());
         model.addAttribute("admin", admin.getName());

@@ -8,10 +8,17 @@
 package it.palestra.web;
 
 import it.palestra.exception.RegolaViolataException;
+import it.palestra.model.Utente;
+import it.palestra.pagina.NavigazionePagine;
+import it.palestra.pagina.OrdinamentiListe;
+import it.palestra.pagina.RichiestaPagina;
+import it.palestra.pagina.StatoLista;
 import it.palestra.service.AbbonamentoService;
 import it.palestra.service.UtenteService;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -36,12 +43,23 @@ public class UtenteController {
     // GET /utenti -> lista. "Model" è il contenitore dei dati per il template (come compact()/with()).
     // "Principal" è l'utente loggato (Auth::user()): getName() restituisce la sua email.
     // return "utenti/lista" significa: usa templates/utenti/lista.html.
+    //
+    // LISTA PAGINATA: Spring riempie "lista" (uno StatoLista) con i parametri ?page=&size=&sort=&q= dell'indirizzo, che
+    // vengono validati (400 se sbagliati). Se la pagina chiesta non esiste più si va all'ultima.
     @GetMapping
-    public String lista(Model model, Principal admin) {
-        model.addAttribute("utenti", service.elenco());
-        // Per la colonna "Abbonamento": per ogni utente quello più significativo (attivo, prossimo o ultimo
+    public String lista(@ModelAttribute("lista") StatoLista lista, Model model, RedirectAttributes flash, Principal admin) {
+        RichiestaPagina richiesta = lista.richiesta(OrdinamentiListe.UTENTI);
+        Page<Utente> pagina = service.elenco(richiesta);
+        if (NavigazionePagine.oltreLUltima(pagina, richiesta)) {
+            SupportoListe.riportaMessaggi(model, flash);
+            return "redirect:/utenti" + lista.queryPagina(OrdinamentiListe.UTENTI, pagina.getTotalPages() - 1);
+        }
+        List<Utente> mostrati = pagina.getContent();
+        model.addAttribute("utenti", mostrati);
+        model.addAttribute("nav", new NavigazionePagine("/utenti", pagina, richiesta));   // controlli di pagina/ordinamento
+        // Per la colonna "Abbonamento": per ogni utente MOSTRATO quello più significativo (attivo, prossimo o ultimo
         // scaduto) e la data di oggi, con cui il template calcola lo stato.
-        model.addAttribute("abbonamenti", abbonamenti.riepilogoPerUtente());
+        model.addAttribute("abbonamenti", abbonamenti.riepilogoPerUtente(mostrati.stream().map(u -> u.getId()).toList()));
         model.addAttribute("oggi", abbonamenti.oggi());
         model.addAttribute("admin", admin.getName());
         return "utenti/lista";
@@ -49,7 +67,7 @@ public class UtenteController {
 
     // GET /utenti/nuovo -> form vuoto di creazione (create()).
     @GetMapping("/nuovo")
-    public String nuovo(Model model) {
+    public String nuovo(@ModelAttribute("lista") StatoLista lista, Model model) {
         model.addAttribute("utenteForm", new UtenteForm());
         return formView(model, null);
     }
@@ -61,20 +79,21 @@ public class UtenteController {
     // RedirectAttributes = messaggio "flash" per la pagina dopo il redirect (session()->flash()).
     @PostMapping
     public String crea(@Valid @ModelAttribute UtenteForm utenteForm, BindingResult errori,
-                       Model model, RedirectAttributes flash) {
+                       @ModelAttribute("lista") StatoLista lista, Model model, RedirectAttributes flash) {
         controllaEmail(utenteForm, null, errori);
         controllaPassword(utenteForm, null, errori);
         controllaCorsi(utenteForm, null, errori);
         if (errori.hasErrors()) return formView(model, null);   // errori: rimostra il form
         service.crea(utenteForm);
         flash.addFlashAttribute("messaggio", "Utente creato");
-        return "redirect:/utenti";   // pattern Post-Redirect-Get: evita il doppio invio al refresh
+        // Pattern Post-Redirect-Get (evita il doppio invio al refresh), tornando alla lista com'era (pagina, ordine, ricerca).
+        return "redirect:/utenti" + lista.query(OrdinamentiListe.UTENTI);
     }
 
     // GET /utenti/5/modifica -> form precompilato (edit()). {id} nel percorso arriva
     // nel parametro con @PathVariable (come il route model binding).
     @GetMapping("/{id}/modifica")
-    public String modifica(@PathVariable Long id, Model model) {
+    public String modifica(@PathVariable Long id, @ModelAttribute("lista") StatoLista lista, Model model) {
         model.addAttribute("utenteForm", UtenteForm.da(service.trova(id)));
         return formView(model, id);
     }
@@ -83,7 +102,8 @@ public class UtenteController {
     // per questo non usiamo PUT/PATCH (in Laravel servirebbe @method('PUT')).
     @PostMapping("/{id}")
     public String aggiorna(@PathVariable Long id, @Valid @ModelAttribute UtenteForm utenteForm,
-                           BindingResult errori, Model model, RedirectAttributes flash) {
+                           BindingResult errori, @ModelAttribute("lista") StatoLista lista, Model model,
+                           RedirectAttributes flash) {
         controllaEmail(utenteForm, id, errori);
         controllaPassword(utenteForm, id, errori);
         controllaCorsi(utenteForm, id, errori);
@@ -97,20 +117,20 @@ public class UtenteController {
             return formView(model, id);
         }
         flash.addFlashAttribute("messaggio", "Utente aggiornato");
-        return "redirect:/utenti";
+        return "redirect:/utenti" + lista.query(OrdinamentiListe.UTENTI);
     }
 
     // POST /utenti/5/elimina -> cancella (destroy()). Mai con GET: un link potrebbe cancellare dati solo
     // visitandolo. Se il service rifiuta (ultimo admin, o istruttore di corsi) mostriamo il suo messaggio in rosso.
     @PostMapping("/{id}/elimina")
-    public String elimina(@PathVariable Long id, RedirectAttributes flash) {
+    public String elimina(@PathVariable Long id, @ModelAttribute("lista") StatoLista lista, RedirectAttributes flash) {
         try {
             service.elimina(id);
             flash.addFlashAttribute("messaggio", "Utente eliminato");
         } catch (RegolaViolataException e) {
             flash.addFlashAttribute("errore", e.getMessage());
         }
-        return "redirect:/utenti";
+        return "redirect:/utenti" + lista.query(OrdinamentiListe.UTENTI);
     }
 
     // Prepara i dati comuni a creazione e modifica (corsi e ruoli per le checkbox, id dell'utente: null

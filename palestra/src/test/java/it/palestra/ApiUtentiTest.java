@@ -53,8 +53,8 @@ class ApiUtentiTest extends BaseApiTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("passwordHash"))))
                 .andExpect(content().string(not(containsString("$2a$"))))           // né l'hash bcrypt
-                .andExpect(jsonPath("$[?(@.email=='" + EMAIL_ADMIN + "')].haPassword").value(true))
-                .andExpect(jsonPath("$[?(@.email=='mario@example.com')].haPassword").value(false));
+                .andExpect(jsonPath("$.content[?(@.email=='" + EMAIL_ADMIN + "')].haPassword").value(true))
+                .andExpect(jsonPath("$.content[?(@.email=='mario@example.com')].haPassword").value(false));
     }
 
     @Test

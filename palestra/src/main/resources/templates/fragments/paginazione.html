@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: fragments/paginazione.html
+  A COSA SERVE: i pezzi di pagina riutilizzati da TUTTE le liste (utenti, corsi, abbonamenti): la casella di ricerca, la barra
+  con "Risultati X-Y di N", i numeri di pagina e la scelta di quanti elementi mostrare, le intestazioni di colonna cliccabili
+  per ordinare, e i campi nascosti che ricordano lo stato della lista nei form.
+  PARAGONE LARAVEL: componenti Blade / partial riusabili (@include('partials.paginazione', [...])).
+  COME SI USANO (nelle pagine):  <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
+  "nav" è un oggetto NavigazionePagine preparato dal controller: contiene tutta la logica (numeri, link, frecce), qui si
+  disegna soltanto. I link sono già costruiti dal server e già codificati.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/* RICERCA: un piccolo form che invia "q" con il metodo GET (la ricerca finisce nell'indirizzo, quindi si può ricaricare,
+       salvare tra i preferiti e funziona con il tasto Indietro). Ripropone dimensione e ordinamento già scelti con campi
+       nascosti e riparte dalla prima pagina (non c'è "page"). "Azzera" appare solo se c'è una ricerca attiva. */-->
+<form th:fragment="ricerca(nav, segnaposto)" class="ricerca" th:action="@{${nav.urlBase}}" method="get">
+  <input type="search" name="q" th:value="${nav.q}" th:placeholder="${segnaposto}" maxlength="100" aria-label="Cerca">
+  <input type="hidden" name="size" th:value="${nav.size}">
+  <input type="hidden" name="sort" th:if="${nav.sortEsplicito != null}" th:value="${nav.sortEsplicito}">
+  <button type="submit">Cerca</button>
+  <a class="btn btn-sec" th:if="${nav.q != null}" th:href="@{${nav.urlAzzeraRicerca}}">Azzera</a>
+</form>
+
+<!--/* BARRA: riga riassuntiva, numeri di pagina e scelta della dimensione. I numeri e i link li prepara NavigazionePagine
+       (prima, ultima, la corrente con le vicine e "…" nei salti). La pagina corrente non è un link. */-->
+<div th:fragment="barra(nav)" class="paginazione">
+  <span class="riepilogo" th:if="${!nav.vuota}"
+        th:text="${'Risultati ' + nav.da + '–' + nav.a + ' di ' + nav.totale}"></span>
+  <span class="riepilogo" th:if="${nav.vuota}">Nessun risultato</span>
+
+  <nav class="pagine" th:if="${nav.haPagine}" aria-label="Pagine">
+    <a th:if="${nav.haPrecedente}" th:href="@{${nav.urlPrecedente}}" rel="prev">‹ Precedente</a>
+    <th:block th:each="v : ${nav.numeri}">
+      <span class="puntini" th:if="${v.puntini()}">…</span>
+      <span class="corrente" th:if="${!v.puntini() and v.corrente()}" aria-current="page" th:text="${v.numeroVisibile()}"></span>
+      <a th:if="${!v.puntini() and !v.corrente()}" th:href="@{${nav.urlPagina(v.numero())}}" th:text="${v.numeroVisibile()}"></a>
+    </th:block>
+    <a th:if="${nav.haSuccessiva}" th:href="@{${nav.urlSuccessiva}}" rel="next">Successiva ›</a>
+  </nav>
+
+  <!--/* Scelta di quanti elementi mostrare: cambiando il valore il form si invia da solo (onchange). Senza JavaScript compare
+         il pulsante "Vai". Si mantengono ricerca e ordinamento, e si riparte dalla prima pagina. */-->
+  <form class="dimensione" th:action="@{${nav.urlBase}}" method="get">
+    <label>Per pagina
+      <select name="size" onchange="this.form.submit()">
+        <option th:each="d : ${nav.dimensioni}" th:value="${d}" th:text="${d}" th:selected="${d == nav.size}"></option>
+      </select>
+    </label>
+    <input type="hidden" name="sort" th:if="${nav.sortEsplicito != null}" th:value="${nav.sortEsplicito}">
+    <input type="hidden" name="q" th:if="${nav.q != null}" th:value="${nav.q}">
+    <noscript><button type="submit">Vai</button></noscript>
+  </form>
+</div>
+
+<!--/* INTESTAZIONE ORDINABILE: una cella <th> con il nome della colonna come link. Il primo clic ordina in modo crescente, il
+       secondo inverte; la freccia (▲/▼) compare sulla colonna ordinata. "campo" è il nome ammesso in OrdinamentiListe. */-->
+<th th:fragment="intestazione(nav, campo, etichetta)">
+  <a class="ordina" th:classappend="${nav.ordinatoPer(campo)} ? 'attiva'" th:href="@{${nav.urlOrdina(campo)}}">
+    <span th:text="${etichetta}"></span>
+    <span class="freccia" th:text="${nav.freccia(campo)}"></span>
+  </a>
+</th>
+
+<!--/* STATO NASCOSTO: campi nascosti per i form di Modifica/Elimina/Nuovo: portano con sé pagina, dimensione, ordinamento e
+       ricerca della lista da cui si è partiti, così dopo l'operazione si torna alla stessa vista. Il server li ricontrolla
+       (non si fida di nessun indirizzo scritto dal client). "lista" è lo StatoLista del controller. */-->
+<th:block th:fragment="statoNascosto(lista)">
+  <input type="hidden" name="page" th:if="${lista.page != null}" th:value="${lista.page}">
+  <input type="hidden" name="size" th:if="${lista.size != null}" th:value="${lista.size}">
+  <input type="hidden" name="sort" th:if="${lista.sort != null and !#strings.isEmpty(lista.sort)}" th:value="${lista.sort}">
+  <input type="hidden" name="q" th:if="${lista.q != null and !#strings.isEmpty(lista.q)}" th:value="${lista.q}">
+</th:block>
+
+</body>
+</html>

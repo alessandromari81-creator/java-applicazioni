@@ -36,8 +36,9 @@
     </p>
 
     <h2>Storico</h2>
+    <!--/* Anche lo storico è paginato e ordinabile (intestazioni cliccabili); la ricerca qui non serve. */-->
     <table>
-      <thead><tr><th>Tipo</th><th>Dal</th><th>Al</th><th>Prezzo</th><th>Stato</th><th></th></tr></thead>
+      <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'tipo', 'Tipo')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataInizio', 'Dal')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataFine', 'Al')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'prezzo', 'Prezzo')}"></th:block><th>Stato</th><th></th></tr></thead>
       <tbody>
         <tr th:each="a : ${abbonamenti}" th:with="stato=${a.stato(oggi)}">
           <td th:text="${a.tipo.etichetta}"></td>
@@ -52,7 +53,8 @@
               <form th:if="${stato.name() == 'FUTURO'}" th:action="@{/abbonamenti/{id}/elimina(id=${a.id})}" method="post"
                     onsubmit="return confirm('Eliminare questo abbonamento?')">
                 <input type="hidden" name="daUtente" value="true">
-                <button type="submit" class="btn-danger">Elimina</button>
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+              <button type="submit" class="btn-danger">Elimina</button>
               </form>
             </div>
           </td>
@@ -60,6 +62,7 @@
         <tr th:if="${abbonamenti.isEmpty()}"><td colspan="6">Nessun abbonamento registrato.</td></tr>
       </tbody>
     </table>
+    <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
 
     <!--/* Il form di creazione/rinnovo solo per gli iscritti. th:object lega il form a AbbonamentoForm. L'utente NON
            è un campo scelto dall'utente: il server lo ricava dall'indirizzo della pagina (/abbonamenti/utente/{id}) e

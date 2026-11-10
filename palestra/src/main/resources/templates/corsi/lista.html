@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--/*
   FILE: corsi/lista.html
-  A COSA SERVE: elenco dei corsi con i pulsanti Modifica / Elimina / Nuovo corso.
+  A COSA SERVE: elenco PAGINATO dei corsi (con ricerca e ordinamento) con i pulsanti Modifica / Elimina / Nuovo corso.
   Mostrata da CorsoController.lista(). Riceve: "corsi" (lista), "admin" (nome loggato),
   "messaggio" e "errore" (flash, opzionali: li mostra il layout). Usa il layout layout/base.html.
   Ogni corso mostra il suo istruttore (c.istruttore, che può mancare: corso non ancora assegnato).
@@ -18,7 +18,7 @@
   <div class="card">
     <div class="top">
       <h1>Corsi</h1>
-      <a class="btn" th:href="@{/corsi/nuovo}">+ Nuovo corso</a>
+      <a class="btn" th:href="@{${'/corsi/nuovo' + lista.querystring}}">+ Nuovo corso</a>
     </div>
 
     <!--/* Spiegazione visibile della relazione corso-istruttore e delle sue regole. */-->
@@ -27,8 +27,11 @@
       un istruttore può tenere più corsi. Un istruttore non può essere iscritto come allievo al corso che tiene.
     </p>
 
+    <!--/* RICERCA e controlli di pagina: pezzi riusabili in fragments/paginazione.html (logica in NavigazionePagine). */-->
+    <th:block th:replace="~{fragments/paginazione :: ricerca(${nav}, 'Cerca per nome del corso')}"></th:block>
+
     <table>
-      <thead><tr><th>Nome</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th>Istruttore</th><th></th></tr></thead>
+      <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'nome', 'Nome')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'livello', 'Livello')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'durataMinuti', 'Durata')}"></th:block><th>Descrizione</th><th>Istruttore</th><th></th></tr></thead>
       <tbody>
         <tr th:each="c : ${corsi}">
           <td th:text="${c.nome}"></td>
@@ -42,10 +45,11 @@
             <!--/* I pulsanti stanno in un <div class="azioni"> DENTRO la cella: la classe .azioni usa display:flex,
                    e applicata direttamente a un <td> la romperebbe come cella di tabella (le colonne sbordavano). */-->
             <div class="azioni">
-              <a class="btn btn-sec" th:href="@{/corsi/{id}/modifica(id=${c.id})}">Modifica</a>
+              <a class="btn btn-sec" th:href="@{${'/corsi/' + c.id + '/modifica' + lista.querystring}}">Modifica</a>
               <form th:action="@{/corsi/{id}/elimina(id=${c.id})}" method="post"
                     onsubmit="return confirm('Eliminare questo corso?')">
-                <button type="submit" class="btn-danger">Elimina</button>
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+              <button type="submit" class="btn-danger">Elimina</button>
               </form>
             </div>
           </td>
@@ -53,6 +57,7 @@
         <tr th:if="${corsi.isEmpty()}"><td colspan="6">Nessun corso.</td></tr>
       </tbody>
     </table>
+    <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
   </div>
 </main>
 

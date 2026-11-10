@@ -40,7 +40,7 @@ class ApiCorsiTest extends BaseApiTest {
     // ------------------------------------------------------------------------ LETTURA
 
     @Test
-    @DisplayName("GET /api/corsi: elenco in JSON, in ordine alfabetico")
+    @DisplayName("GET /api/corsi: una PAGINA di corsi in JSON, in ordine alfabetico, con i dati per navigare")
     void elenco() throws Exception {
         creaCorso("Yoga");
         creaCorso("Pilates");
@@ -48,9 +48,12 @@ class ApiCorsiTest extends BaseApiTest {
         mockMvc.perform(get("/api/corsi").with(comeAdminApi()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].nome").value("Pilates"))     // ordine alfabetico: Pilates prima di Yoga
-                .andExpect(jsonPath("$[1].nome").value("Yoga"));
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.totalElements").value(2))             // metadati della pagina
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.content[0].nome").value("Pilates"))     // ordine alfabetico: Pilates prima di Yoga
+                .andExpect(jsonPath("$.content[1].nome").value("Yoga"));
     }
 
     @Test

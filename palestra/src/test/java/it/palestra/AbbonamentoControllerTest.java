@@ -383,7 +383,9 @@ class AbbonamentoControllerTest extends BaseWebTest {
         Abbonamento ultimoScaduto = creaAbbonamento(soloScaduti, TipoAbbonamento.MENSILE, oggi.minusDays(100));
 
         ricarica();
-        Map<Long, Abbonamento> riepilogo = service.riepilogoPerUtente();
+        // Il riepilogo si calcola solo per gli utenti indicati (quelli mostrati in una pagina della lista), non per tutti.
+        Map<Long, Abbonamento> riepilogo = service.riepilogoPerUtente(
+                java.util.List.of(conAttivo.getId(), conFuturo.getId(), soloScaduti.getId()));
 
         assertThat(riepilogo.get(conAttivo.getId()).getId()).isEqualTo(attivo.getId());        // l'attivo vince su tutto
         assertThat(riepilogo.get(conFuturo.getId()).getId()).isEqualTo(prossimo.getId());      // il futuro PIÙ VICINO

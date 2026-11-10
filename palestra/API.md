@@ -88,22 +88,44 @@ La sostituzione riporta la collection a come è nel file: eventuali modifiche fa
 | POST | `/api/auth/login` | 200 / 400 / 401 | pubblico; restituisce `access_token` e `refresh_token` |
 | POST | `/api/auth/refresh` | 200 / 400 / 401 | pubblico; `{"refresh_token":...}` -> nuova coppia (il vecchio refresh token non vale più) |
 | POST | `/api/auth/logout` | 204 / 400 | pubblico; `{"refresh_token":...}` -> lo revoca (204 anche se non esiste) |
-| GET | `/api/corsi` | 200 | elenco |
+| GET | `/api/corsi` | 200 / 400 | elenco **paginato** (vedi sotto); ricerca `q` sul nome |
 | GET | `/api/corsi/{id}` | 200 / 404 | |
 | POST | `/api/corsi` | 201 / 400 | `Location` con l'indirizzo del nuovo corso |
 | PUT | `/api/corsi/{id}` | 200 / 400 / 404 | **sostituisce** tutti i campi |
 | DELETE | `/api/corsi/{id}` | 204 / 404 / 409 | 409 se ha iscritti |
-| GET | `/api/utenti` | 200 | ruoli, corsi frequentati e corsi tenuti |
+| GET | `/api/utenti` | 200 / 400 | **paginato**; ruoli, corsi frequentati e corsi tenuti; ricerca `q` su nome, cognome, email |
 | GET | `/api/utenti/{id}` | 200 / 404 | |
 | POST | `/api/utenti` | 201 / 400 | |
 | PUT | `/api/utenti/{id}` | 200 / 400 / 404 / 409 | **sostituisce** ruoli e corsi; password omessa = invariata |
 | DELETE | `/api/utenti/{id}` | 204 / 404 / 409 | 409: ultimo admin, istruttore di corsi, ha abbonamenti |
-| GET | `/api/abbonamenti` | 200 | tutti |
+| GET | `/api/abbonamenti` | 200 / 400 | **paginato**; ricerca `q` sull'iscritto (nome, cognome, email) |
 | GET | `/api/abbonamenti/{id}` | 200 / 404 | |
 | DELETE | `/api/abbonamenti/{id}` | 204 / 404 / 409 | solo quelli non ancora iniziati |
-| GET | `/api/utenti/{id}/abbonamenti` | 200 / 404 | storico dell'utente, dal più recente |
+| GET | `/api/utenti/{id}/abbonamenti` | 200 / 400 / 404 | storico **paginato** dell'utente, dal più recente (senza `q`) |
 | GET | `/api/utenti/{id}/abbonamenti/primo-giorno-libero` | 200 | `{"data":"aaaa-mm-gg"}` per un rinnovo |
 | POST | `/api/utenti/{id}/abbonamenti` | 201 / 400 / 404 | |
+
+### Liste paginate (corsi, utenti, abbonamenti, storico)
+
+Le liste non restituiscono più un array ma una **pagina**. Parametri (tutti facoltativi):
+
+| Parametro | Significato | Default / limiti |
+|---|---|---|
+| `page` | numero di pagina, parte da **0** | 0; negativo = 400 |
+| `size` | elementi per pagina | 20; da 1 a **100**, altrimenti 400 (non viene corretto in silenzio) |
+| `sort` | `campo` oppure `campo,asc` / `campo,desc` | ordinamento di partenza della lista; solo i campi ammessi (l'errore 400 li elenca) |
+| `q` | testo da cercare (parziale, senza maiuscole, max 100 caratteri) | nessuna ricerca; `%` e `_` valgono come caratteri normali |
+
+Campi di `sort`: utenti `cognome` (default), `nome`, `email` · corsi `nome` (default), `livello`, `durataMinuti` · abbonamenti `dataFine,desc` (default), `dataInizio`, `prezzo`, `tipo`, `iscritto` · storico `dataInizio,desc` (default), `dataFine`, `prezzo`, `tipo`.
+A parità di valore si ordina sempre anche per `id`: scorrendo le pagine nessuna riga si ripete o sparisce.
+
+```json
+{ "content": [ ... ], "number": 0, "size": 20, "totalElements": 46, "totalPages": 3,
+  "first": true, "last": false, "sort": "cognome,asc", "q": "ross" }
+```
+
+`q` compare solo se hai cercato. Una pagina oltre l'ultima risponde **200 con `content` vuoto** (e i totali giusti). Esempio:
+`GET /api/utenti?q=ross&size=10&page=1&sort=email,desc`. Parametri sbagliati: 400 con `campi` (es. `{"campi":{"size":["Deve essere compresa tra 1 e 100"]}}`).
 
 ## 3. Esempi di corpo (JSON)
 

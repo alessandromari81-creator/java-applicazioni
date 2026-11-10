@@ -8,8 +8,11 @@ package it.palestra.repository;
 
 import it.palestra.model.Abbonamento;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,10 +20,24 @@ import org.springframework.data.repository.query.Param;
 
 public interface AbbonamentoRepository extends JpaRepository<Abbonamento, Long> {
 
-    // Tutti gli abbonamenti, i più recenti per fine in alto (a parità, l'ultimo inserito). @EntityGraph carica
-    // l'utente nella stessa query (JOIN), così la lista non fa una query per riga (problema "N+1").
+    // LISTA PAGINATA di tutti gli abbonamenti. L'utente (relazione "a uno") si carica con una JOIN nella stessa query.
+    @Override
     @EntityGraph(attributePaths = "utente")
-    List<Abbonamento> findAllByOrderByDataFineDescIdDesc();
+    Page<Abbonamento> findAll(Pageable pageable);
+
+    // Come sopra, con la ricerca: nome, cognome o email dell'ISCRITTO contengono il testo (senza distinguere maiuscole).
+    // "UtenteNome" significa: il campo "nome" della relazione "utente".
+    @EntityGraph(attributePaths = "utente")
+    Page<Abbonamento> findByUtenteNomeContainingIgnoreCaseOrUtenteCognomeContainingIgnoreCaseOrUtenteEmailContainingIgnoreCase(
+            String nome, String cognome, String email, Pageable pageable);
+
+    // Lo storico di UN utente, PAGINATO (usato dalla sua pagina e dalla API).
+    @EntityGraph(attributePaths = "utente")
+    Page<Abbonamento> findByUtenteId(Long utenteId, Pageable pageable);
+
+    // Gli abbonamenti di un gruppo di utenti (quelli di UNA pagina della lista utenti): serve al riepilogo "attivo /
+    // prossimo / scaduto" della colonna Abbonamento, che così guarda solo le persone mostrate e non tutta la tabella.
+    List<Abbonamento> findByUtenteIdIn(Collection<Long> utenteIds);
 
     // Lo storico di UN utente, dal più recente (per data di inizio) al più vecchio: serve alla sua pagina e alla API.
     // @EntityGraph carica anche l'utente: la API lo mostra in ogni abbonamento e, fuori da una transazione, non si

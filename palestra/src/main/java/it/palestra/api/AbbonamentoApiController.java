@@ -5,10 +5,10 @@
  * regole (solo ISCRITTO, niente passato, niente sovrapposizioni, si eliminano solo i non ancora iniziati).
  *
  * ENDPOINT:
- *   GET    /api/abbonamenti                                   200  tutti gli abbonamenti
+ *   GET    /api/abbonamenti                                   200  UNA PAGINA di abbonamenti (?page&size&sort&q: q cerca l'iscritto)
  *   GET    /api/abbonamenti/{id}                              200  uno                    | 404
  *   DELETE /api/abbonamenti/{id}                              204  elimina (solo futuri)   | 404 | 409
- *   GET    /api/utenti/{id}/abbonamenti                       200  lo storico di un utente | 404
+ *   GET    /api/utenti/{id}/abbonamenti                       200  UNA PAGINA dello storico di un utente | 404
  *   GET    /api/utenti/{id}/abbonamenti/primo-giorno-libero   200  { "data": ... } per un rinnovo
  *   POST   /api/utenti/{id}/abbonamenti                       201  crea (con Location)    | 400 | 404
  */
@@ -17,12 +17,15 @@ package it.palestra.api;
 import it.palestra.api.dto.AbbonamentoRequest;
 import it.palestra.api.dto.AbbonamentoResponse;
 import it.palestra.api.dto.DataResponse;
+import it.palestra.api.dto.PaginaResponse;
 import it.palestra.model.Abbonamento;
+import it.palestra.pagina.OrdinamentiListe;
+import it.palestra.pagina.RichiestaPagina;
 import it.palestra.service.AbbonamentoService;
 import it.palestra.web.AbbonamentoForm;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,9 +42,17 @@ public class AbbonamentoApiController {
         this.service = service;
     }
 
+    // GET /api/abbonamenti -> UNA PAGINA di abbonamenti. Parametri facoltativi: page (da 0), size (1-100, predefinito 20),
+    // sort (dataFine, dataInizio, prezzo, tipo, iscritto; di partenza dataFine,desc), q (testo cercato in nome, cognome o
+    // email dell'iscritto). Vedi PaginaResponse.
     @GetMapping("/abbonamenti")
-    public List<AbbonamentoResponse> elenco() {
-        return come(service.elenco());
+    public PaginaResponse<AbbonamentoResponse> elenco(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String q) {
+        RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, q, OrdinamentiListe.ABBONAMENTI);
+        return pagina(service.elenco(richiesta), richiesta);
     }
 
     @GetMapping("/abbonamenti/{id}")
@@ -56,11 +67,17 @@ public class AbbonamentoApiController {
         service.elimina(id);   // lancia già il 404 se non esiste
     }
 
-    // Lo storico di UN utente, dal più recente. Se l'utente non esiste: 404 (trovaUtente).
+    // UNA PAGINA dello storico di UN utente (di partenza dal più recente). Se l'utente non esiste: 404 (trovaUtente).
+    // Parametri: page, size, sort (dataInizio, dataFine, prezzo, tipo). La ricerca q non si applica allo storico.
     @GetMapping("/utenti/{utenteId}/abbonamenti")
-    public List<AbbonamentoResponse> storicoDiUtente(@PathVariable Long utenteId) {
+    public PaginaResponse<AbbonamentoResponse> storicoDiUtente(
+            @PathVariable Long utenteId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort) {
         service.trovaUtente(utenteId);
-        return come(service.abbonamentiDi(utenteId));
+        RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, null, OrdinamentiListe.ABBONAMENTI_DI_UTENTE);
+        return pagina(service.abbonamentiDi(utenteId, richiesta), richiesta);
     }
 
     // La data da cui l'utente può iniziare un nuovo abbonamento senza sovrapposizioni (oggi, oppure il giorno dopo la
@@ -96,9 +113,9 @@ public class AbbonamentoApiController {
                 .body(AbbonamentoResponse.da(service.trova(creato.getId()), service.oggi()));
     }
 
-    // Trasforma una lista di entità in una lista di risposte, calcolando lo stato con la data di oggi.
-    private List<AbbonamentoResponse> come(List<Abbonamento> abbonamenti) {
+    // Trasforma una pagina di entità in una pagina di risposte, calcolando lo stato con la data di oggi.
+    private PaginaResponse<AbbonamentoResponse> pagina(Page<Abbonamento> pagina, RichiestaPagina richiesta) {
         var oggi = service.oggi();
-        return abbonamenti.stream().map(a -> AbbonamentoResponse.da(a, oggi)).toList();
+        return PaginaResponse.da(pagina, abbonamento -> AbbonamentoResponse.da(abbonamento, oggi), richiesta);
     }
 }

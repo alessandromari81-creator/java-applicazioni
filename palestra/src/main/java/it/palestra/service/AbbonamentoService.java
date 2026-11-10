@@ -19,14 +19,17 @@ import it.palestra.model.Utente;
 import it.palestra.model.Ruolo;
 import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.pagina.RichiestaPagina;
 import it.palestra.web.AbbonamentoForm;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,10 +57,15 @@ public class AbbonamentoService {
         return LocalDate.now(clock);
     }
 
-    // Tutti gli abbonamenti, i più recenti in alto, con l'utente già caricato.
+    // UNA PAGINA di abbonamenti (con l'utente già caricato), eventualmente filtrata dalla ricerca sull'ISCRITTO
+    // (nome, cognome o email).
     @Transactional(readOnly = true)
-    public List<Abbonamento> elenco() {
-        return abbonamenti.findAllByOrderByDataFineDescIdDesc();
+    public Page<Abbonamento> elenco(RichiestaPagina richiesta) {
+        String q = richiesta.q();
+        return q == null
+                ? abbonamenti.findAll(richiesta.pageable())
+                : abbonamenti.findByUtenteNomeContainingIgnoreCaseOrUtenteCognomeContainingIgnoreCaseOrUtenteEmailContainingIgnoreCase(
+                        q, q, q, richiesta.pageable());
     }
 
     // Un abbonamento per id, oppure 404 se non esiste.
@@ -75,10 +83,10 @@ public class AbbonamentoService {
                 .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + utenteId + " non trovato"));
     }
 
-    // Lo storico degli abbonamenti di un utente, dal più recente al più vecchio.
+    // UNA PAGINA dello storico degli abbonamenti di un utente (di partenza, dal più recente).
     @Transactional(readOnly = true)
-    public List<Abbonamento> abbonamentiDi(Long utenteId) {
-        return abbonamenti.findByUtenteIdOrderByDataInizioDesc(utenteId);
+    public Page<Abbonamento> abbonamentiDi(Long utenteId, RichiestaPagina richiesta) {
+        return abbonamenti.findByUtenteId(utenteId, richiesta.pageable());
     }
 
     // L'id dell'utente proprietario di un abbonamento (404 se l'abbonamento non esiste). Serve al controller per
@@ -107,14 +115,17 @@ public class AbbonamentoService {
         return (ultimaFine == null || ultimaFine.isBefore(oggi)) ? oggi : ultimaFine.plusDays(1);
     }
 
-    // Per ogni utente, l'abbonamento "più significativo" da mostrare in una riga di riepilogo:
+    // Per ognuno degli utenti indicati, l'abbonamento "più significativo" da mostrare in una riga di riepilogo:
     //   1) quello ATTIVO oggi; altrimenti 2) il PROSSIMO che inizierà; altrimenti 3) l'ultimo scaduto.
     // Restituisce una mappa id utente -> abbonamento (gli utenti senza abbonamenti non compaiono).
+    // Si passano gli id degli utenti MOSTRATI (quelli della pagina) e si leggono solo i loro abbonamenti: con la
+    // paginazione non ha senso caricare tutti gli abbonamenti della tabella per mostrarne venti.
     @Transactional(readOnly = true)
-    public Map<Long, Abbonamento> riepilogoPerUtente() {
+    public Map<Long, Abbonamento> riepilogoPerUtente(Collection<Long> utenteIds) {
         LocalDate oggi = oggi();
         Map<Long, Abbonamento> riepilogo = new HashMap<>();
-        for (Abbonamento a : abbonamenti.findAll()) {
+        if (utenteIds.isEmpty()) return riepilogo;
+        for (Abbonamento a : abbonamenti.findByUtenteIdIn(utenteIds)) {
             // getId() sull'utente "segnaposto" non richiede di rileggere il database.
             riepilogo.merge(a.getUtente().getId(), a, (primo, secondo) -> piuSignificativo(primo, secondo, oggi));
         }

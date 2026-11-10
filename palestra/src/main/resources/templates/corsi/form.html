@@ -61,8 +61,10 @@
       <div class="campo-err" th:errors="*{istruttoreId}"></div>
 
       <p>
+        <!--/* Stato della lista di provenienza (pagina, dimensione, ordinamento, ricerca): dopo il salvataggio si torna lì. */-->
+        <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
         <button type="submit">Salva</button>
-        <a class="btn btn-sec" th:href="@{/corsi}">Annulla</a>
+        <a class="btn btn-sec" th:href="@{${'/corsi' + lista.querystring}}">Annulla</a>
       </p>
     </form>
   </div>

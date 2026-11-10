@@ -264,16 +264,42 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/corsi",
+              "raw": "{{base}}/api/corsi?page=0&size=20",
               "host": [
                 "{{base}}"
               ],
               "path": [
                 "api",
                 "corsi"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Numero di pagina, parte da 0",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Elementi per pagina: da 1 a 100",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "Esempio: cognome,desc (campi ammessi nell'errore 400 se sbagli)",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Testo da cercare (parziale, senza maiuscole)",
+                  "disabled": true
+                }
               ]
             },
-            "description": "",
+            "description": "Lista PAGINATA: risposta {content, number, size, totalElements, totalPages, first, last, sort[, q]}. Parametri page, size, sort, q (quelli grigi sono disattivati: spuntali per usarli).",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -452,16 +478,42 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/utenti",
+              "raw": "{{base}}/api/utenti?page=0&size=20",
               "host": [
                 "{{base}}"
               ],
               "path": [
                 "api",
                 "utenti"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Numero di pagina, parte da 0",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Elementi per pagina: da 1 a 100",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "Esempio: cognome,desc (campi ammessi nell'errore 400 se sbagli)",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Testo da cercare (parziale, senza maiuscole)",
+                  "disabled": true
+                }
               ]
             },
-            "description": "",
+            "description": "Lista PAGINATA: risposta {content, number, size, totalElements, totalPages, first, last, sort[, q]}. Parametri page, size, sort, q (quelli grigi sono disattivati: spuntali per usarli).",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -640,16 +692,42 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/abbonamenti",
+              "raw": "{{base}}/api/abbonamenti?page=0&size=20",
               "host": [
                 "{{base}}"
               ],
               "path": [
                 "api",
                 "abbonamenti"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Numero di pagina, parte da 0",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Elementi per pagina: da 1 a 100",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "Esempio: cognome,desc (campi ammessi nell'errore 400 se sbagli)",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "Testo da cercare (parziale, senza maiuscole)",
+                  "disabled": true
+                }
               ]
             },
-            "description": "",
+            "description": "Lista PAGINATA: risposta {content, number, size, totalElements, totalPages, first, last, sort[, q]}. Parametri page, size, sort, q (quelli grigi sono disattivati: spuntali per usarli).",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -668,7 +746,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base}}/api/utenti/{{utenteId}}/abbonamenti",
+              "raw": "{{base}}/api/utenti/{{utenteId}}/abbonamenti?page=0&size=20",
               "host": [
                 "{{base}}"
               ],
@@ -677,9 +755,29 @@
                 "utenti",
                 "{{utenteId}}",
                 "abbonamenti"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Numero di pagina, parte da 0",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Elementi per pagina: da 1 a 100",
+                  "disabled": false
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "description": "Esempio: cognome,desc (campi ammessi nell'errore 400 se sbagli)",
+                  "disabled": true
+                }
               ]
             },
-            "description": "",
+            "description": "Lista PAGINATA: risposta {content, number, size, totalElements, totalPages, first, last, sort[, q]}. Parametri page, size, sort (quelli grigi sono disattivati: spuntali per usarli).",
             "auth": {
               "type": "bearer",
               "bearer": [

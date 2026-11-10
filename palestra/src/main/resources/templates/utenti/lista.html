@@ -2,7 +2,8 @@
 <!--/*
   FILE: utenti/lista.html
   A COSA SERVE: il pannello di controllo: tabella di tutti gli utenti con i loro corsi e i
-  pulsanti Modifica / Elimina / Nuovo utente. Mostrata da UtenteController.lista(), che
+  pulsanti Modifica / Elimina / Nuovo utente. È una lista PAGINATA con ricerca e ordinamento dalle intestazioni.
+  Mostrata da UtenteController.lista(), che
   restituisce il nome "utenti/lista" (= questo file).
   Riceve dal controller: "utenti" (lista), "admin" (nome loggato), "messaggio" (flash, opzionale: lo mostra il layout).
   Per ogni utente mostra: ruoli, corsi che FREQUENTA come iscritto (u.corsi) e corsi che TIENE come istruttore
@@ -27,7 +28,7 @@
     <div class="top">
       <h1>Utenti</h1>
       <!--/* @{/utenti/nuovo} = url('/utenti/nuovo') di Laravel: genera l'indirizzo corretto */-->
-      <a class="btn" th:href="@{/utenti/nuovo}">+ Nuovo utente</a>
+      <a class="btn" th:href="@{${'/utenti/nuovo' + lista.querystring}}">+ Nuovo utente</a>
     </div>
 
     <!--/* Spiegazione visibile delle due colonne sui corsi e della regola che le lega. */-->
@@ -39,8 +40,11 @@
       Cliccandoci si apre la pagina degli abbonamenti di quell'utente, dove si vede lo storico e se ne aggiunge uno nuovo o un rinnovo.
     </p>
 
+    <!--/* RICERCA e controlli di pagina: pezzi riusabili in fragments/paginazione.html (logica in NavigazionePagine). */-->
+    <th:block th:replace="~{fragments/paginazione :: ricerca(${nav}, 'Cerca per nome, cognome o email')}"></th:block>
+
     <table>
-      <thead><tr><th>Cognome e nome</th><th>Email</th><th>Ruoli</th><th>Corsi (iscritto)</th><th>Insegna</th><th>Abbonamento</th><th></th></tr></thead>
+      <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'cognome', 'Cognome e nome')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'email', 'Email')}"></th:block><th>Ruoli</th><th>Corsi (iscritto)</th><th>Insegna</th><th>Abbonamento</th><th></th></tr></thead>
       <tbody>
         <!--/* th:each = @foreach: ripete la riga per ogni utente della lista. */-->
         <tr th:each="u : ${utenti}">
@@ -84,11 +88,12 @@
                    e applicata direttamente a un <td> la romperebbe come cella di tabella (le colonne sbordavano). */-->
             <div class="azioni">
               <!--/* Link di modifica: l'id viene inserito nel percorso /utenti/{id}/modifica. */-->
-              <a class="btn btn-sec" th:href="@{/utenti/{id}/modifica(id=${u.id})}">Modifica</a>
+              <a class="btn btn-sec" th:href="@{${'/utenti/' + u.id + '/modifica' + lista.querystring}}">Modifica</a>
               <!--/* Eliminazione con POST; confirm() del browser chiede conferma prima dell'invio. */-->
               <form th:action="@{/utenti/{id}/elimina(id=${u.id})}" method="post"
                     onsubmit="return confirm('Eliminare questo utente?')">
-                <button type="submit" class="btn-danger">Elimina</button>
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+              <button type="submit" class="btn-danger">Elimina</button>
               </form>
             </div>
           </td>
@@ -97,6 +102,7 @@
         <tr th:if="${utenti.isEmpty()}"><td colspan="7">Nessun utente.</td></tr>
       </tbody>
     </table>
+    <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
   </div>
 </main>
 

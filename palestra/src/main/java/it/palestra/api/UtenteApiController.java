@@ -4,7 +4,8 @@
  * stessi service delle pagine, quindi valgono le stesse regole: ultimo admin protetto, istruttori, abbonamenti, password.
  *
  * ENDPOINT:
- *   GET    /api/utenti        200  elenco (con ruoli, corsi frequentati e corsi tenuti)
+ *   GET    /api/utenti        200  UNA PAGINA di utenti (con ruoli, corsi frequentati e corsi tenuti)
+ *                                   ?page=0&size=20&sort=cognome,asc&q=testo (cerca in nome, cognome, email)
  *   GET    /api/utenti/{id}   200  un utente                 | 404
  *   POST   /api/utenti        201  crea                      | 400 dati non validi
  *   PUT    /api/utenti/{id}   200  modifica (sostituisce)    | 400 | 404 | 409 (regole su ruoli)
@@ -13,9 +14,12 @@
  */
 package it.palestra.api;
 
+import it.palestra.api.dto.PaginaResponse;
 import it.palestra.api.dto.UtenteRequest;
 import it.palestra.api.dto.UtenteResponse;
 import it.palestra.model.Utente;
+import it.palestra.pagina.OrdinamentiListe;
+import it.palestra.pagina.RichiestaPagina;
 import it.palestra.service.UtenteService;
 import it.palestra.web.UtenteForm;
 import jakarta.validation.Valid;
@@ -40,9 +44,16 @@ public class UtenteApiController {
         this.service = service;
     }
 
+    // GET /api/utenti -> UNA PAGINA di utenti. Parametri facoltativi: page (da 0), size (1-100, predefinito 20), sort
+    // (cognome, nome, email; es. "email,desc"), q (testo cercato in nome, cognome o email). Vedi PaginaResponse.
     @GetMapping
-    public List<UtenteResponse> elenco() {
-        return service.elenco().stream().map(UtenteResponse::da).toList();
+    public PaginaResponse<UtenteResponse> elenco(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String q) {
+        RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, q, OrdinamentiListe.UTENTI);
+        return PaginaResponse.da(service.elenco(richiesta), utente -> UtenteResponse.da(utente), richiesta);
     }
 
     @GetMapping("/{id}")

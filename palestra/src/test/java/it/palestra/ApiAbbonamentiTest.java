@@ -51,11 +51,11 @@ class ApiAbbonamentiTest extends BaseApiTest {
 
         mockMvc.perform(get("/api/abbonamenti").with(comeAdminApi()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].utente.cognome").value("Rossi"))
-                .andExpect(jsonPath("$[0].tipo").value("MENSILE"))
-                .andExpect(jsonPath("$[0].prezzo").value(40.0))
-                .andExpect(jsonPath("$[0].stato").value("ATTIVO"));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].utente.cognome").value("Rossi"))
+                .andExpect(jsonPath("$.content[0].tipo").value("MENSILE"))
+                .andExpect(jsonPath("$.content[0].prezzo").value(40.0))
+                .andExpect(jsonPath("$.content[0].stato").value("ATTIVO"));
     }
 
     @Test
@@ -89,10 +89,10 @@ class ApiAbbonamentiTest extends BaseApiTest {
 
         mockMvc.perform(get(urlUtente(mario)).with(comeAdminApi()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))                         // solo i due di Mario
-                .andExpect(jsonPath("$[0].tipo").value("ANNUALE"))           // il più recente per primo
-                .andExpect(jsonPath("$[1].tipo").value("MENSILE"))
-                .andExpect(jsonPath("$[0].utente.id").value(mario.getId()));
+                .andExpect(jsonPath("$.content", hasSize(2)))                         // solo i due di Mario
+                .andExpect(jsonPath("$.content[0].tipo").value("ANNUALE"))           // il più recente per primo
+                .andExpect(jsonPath("$.content[1].tipo").value("MENSILE"))
+                .andExpect(jsonPath("$.content[0].utente.id").value(mario.getId()));
     }
 
     @Test
@@ -101,7 +101,7 @@ class ApiAbbonamentiTest extends BaseApiTest {
         Utente laura = creaIscritto("Laura", "Bianchi", "laura@example.com");
 
         mockMvc.perform(get(urlUtente(laura)).with(comeAdminApi()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content", hasSize(0)));
         mockMvc.perform(get("/api/utenti/999999/abbonamenti").with(comeAdminApi()))
                 .andExpect(status().isNotFound());
     }

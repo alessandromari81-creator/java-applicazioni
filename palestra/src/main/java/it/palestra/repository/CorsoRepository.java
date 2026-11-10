@@ -10,6 +10,8 @@ package it.palestra.repository;
 import it.palestra.model.Corso;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -24,6 +26,17 @@ public interface CorsoRepository extends JpaRepository<Corso, Long> {
     // senza, partirebbe una query per ogni corso (problema "N+1"). In Eloquent: Corso::with('istruttore').
     @EntityGraph(attributePaths = "istruttore")
     List<Corso> findAllByOrderByNomeAsc();
+
+    // LISTA PAGINATA dei corsi. L'istruttore (relazione "a uno") si carica con una JOIN nella stessa query: con la
+    // paginazione va bene perché ogni corso ha al massimo UN istruttore, quindi le righe restano una per corso.
+    // @Override: ridefinisce findAll(Pageable) di JpaRepository per aggiungergli @EntityGraph.
+    @Override
+    @EntityGraph(attributePaths = "istruttore")
+    Page<Corso> findAll(Pageable pageable);
+
+    // Come sopra, con la ricerca: il nome del corso CONTIENE il testo (senza distinguere maiuscole).
+    @EntityGraph(attributePaths = "istruttore")
+    Page<Corso> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
 
     // Un corso per id con l'istruttore già caricato (serve al form di modifica).
     @EntityGraph(attributePaths = "istruttore")

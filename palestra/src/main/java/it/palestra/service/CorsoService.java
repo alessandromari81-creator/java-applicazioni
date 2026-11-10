@@ -13,9 +13,11 @@ import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.pagina.RichiestaPagina;
 import it.palestra.web.CorsoForm;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,10 +35,12 @@ public class CorsoService {
         this.utenti = utenti;
     }
 
-    // Tutti i corsi ordinati per nome (come ->orderBy('nome')), con l'istruttore già caricato.
+    // UNA PAGINA di corsi (con l'istruttore già caricato), eventualmente filtrata dalla ricerca sul nome.
     @Transactional(readOnly = true)
-    public List<Corso> elenco() {
-        return corsi.findAllByOrderByNomeAsc();
+    public Page<Corso> elenco(RichiestaPagina richiesta) {
+        return richiesta.q() == null
+                ? corsi.findAll(richiesta.pageable())
+                : corsi.findByNomeContainingIgnoreCase(richiesta.q(), richiesta.pageable());
     }
 
     // Un corso per id (con l'istruttore), o 404 se non esiste (come findOrFail()).

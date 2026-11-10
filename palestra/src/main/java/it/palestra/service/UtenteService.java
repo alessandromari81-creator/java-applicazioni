@@ -16,13 +16,17 @@ import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.pagina.RichiestaPagina;
 import it.palestra.web.UtenteForm;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,10 +54,27 @@ public class UtenteService {
         this.encoder = encoder;
     }
 
-    // Tutti gli utenti per la lista (con corsi frequentati, ruoli e corsi tenuti). readOnly = solo lettura.
+    // UNA PAGINA di utenti (con corsi frequentati, ruoli e corsi tenuti), eventualmente filtrata dalla ricerca.
+    // "QUERY IN DUE PASSI": 1) si chiede al database solo la pagina di utenti (LIMIT/OFFSET veri, senza collezioni);
+    // 2) si caricano quegli utenti, e solo quelli, con le loro relazioni. Se si caricasse tutto in una query con le JOIN,
+    // ogni utente avrebbe più righe (ruolo x corso) e il database non saprebbe tagliare "20 utenti": Hibernate leggerebbe
+    // TUTTA la tabella e paginerebbe in memoria. In Laravel ->paginate()->with() fa già due query: qui è esplicito.
     @Transactional(readOnly = true)
-    public List<Utente> elenco() {
-        return utenti.findAllByOrderByCognomeAscNomeAsc();
+    public Page<Utente> elenco(RichiestaPagina richiesta) {
+        String q = richiesta.q();
+        Page<Utente> pagina = q == null
+                ? utenti.findAll(richiesta.pageable())
+                : utenti.findByNomeContainingIgnoreCaseOrCognomeContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                        q, q, q, richiesta.pageable());
+
+        List<Long> ids = pagina.getContent().stream().map(u -> u.getId()).toList();
+        if (ids.isEmpty()) return pagina;                                   // pagina vuota: niente passo 2
+
+        // Passo 2. La query non garantisce l'ordine: si rimette nell'ordine della pagina (quello del passo 1).
+        Map<Long, Utente> caricati = utenti.findConRelazioniByIdIn(ids).stream()
+                .collect(Collectors.toMap(u -> u.getId(), u -> u));
+        List<Utente> nellOrdineGiusto = ids.stream().map(id -> caricati.get(id)).toList();
+        return new PageImpl<>(nellOrdineGiusto, richiesta.pageable(), pagina.getTotalElements());
     }
 
     // Un utente per id (con corsi, ruoli e corsi tenuti), oppure 404 se non esiste (come findOrFail()).

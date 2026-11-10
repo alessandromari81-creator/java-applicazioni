@@ -5,7 +5,7 @@
  * solo come si ricevono i dati (JSON) e come si risponde (JSON + codice HTTP).
  *
  * ENDPOINT:
- *   GET    /api/corsi        200  elenco dei corsi
+ *   GET    /api/corsi        200  UNA PAGINA di corsi (?page=0&size=20&sort=nome,asc&q=testo)
  *   GET    /api/corsi/{id}   200  un corso            | 404 se non esiste
  *   POST   /api/corsi        201  crea (con Location) | 400 dati non validi
  *   PUT    /api/corsi/{id}   200  modifica            | 400 dati non validi | 404
@@ -15,10 +15,12 @@ package it.palestra.api;
 
 import it.palestra.api.dto.CorsoRequest;
 import it.palestra.api.dto.CorsoResponse;
+import it.palestra.api.dto.PaginaResponse;
 import it.palestra.model.Corso;
+import it.palestra.pagina.OrdinamentiListe;
+import it.palestra.pagina.RichiestaPagina;
 import it.palestra.service.CorsoService;
 import java.net.URI;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,10 +37,18 @@ public class CorsoApiController {
         this.service = service;
     }
 
-    // GET /api/corsi -> elenco in JSON. Ogni Corso diventa un CorsoResponse (il DTO).
+    // GET /api/corsi -> UNA PAGINA di corsi in JSON (non tutti): vedi PaginaResponse per la forma della risposta.
+    // Parametri facoltativi: page (da 0), size (1-100, predefinito 20), sort (nome, livello, durataMinuti; es. "nome,desc"),
+    // q (testo da cercare nel nome). Valori non validi: 400 con l'elenco dei parametri sbagliati.
+    // Ogni Corso diventa un CorsoResponse (il DTO).
     @GetMapping
-    public List<CorsoResponse> elenco() {
-        return service.elenco().stream().map(CorsoResponse::da).toList();
+    public PaginaResponse<CorsoResponse> elenco(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String q) {
+        RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, q, OrdinamentiListe.CORSI);
+        return PaginaResponse.da(service.elenco(richiesta), corso -> CorsoResponse.da(corso), richiesta);
     }
 
     // GET /api/corsi/5 -> un corso. Se non esiste il service lancia RisorsaNonTrovataException -> 404 in JSON.

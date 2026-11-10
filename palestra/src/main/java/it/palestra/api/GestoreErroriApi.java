@@ -19,6 +19,7 @@ import it.palestra.api.dto.ErroreApi;
 import it.palestra.exception.RefreshTokenNonValidoException;
 import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
+import it.palestra.pagina.ParametriPaginaNonValidiException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +54,13 @@ public class GestoreErroriApi {
     @ExceptionHandler(ErroreSuCampoException.class)
     ResponseEntity<ErroreApi> erroreSuCampi(ErroreSuCampoException e) {
         return risposta(HttpStatus.BAD_REQUEST, "Dati non validi", "Alcuni campi non sono validi", e.getCampi());
+    }
+
+    // 400: parametri di una lista (page, size, sort, q) con valori non ammessi. I messaggi dicono quali e perché.
+    @ExceptionHandler(ParametriPaginaNonValidiException.class)
+    ResponseEntity<ErroreApi> parametriDiLista(ParametriPaginaNonValidiException e) {
+        return risposta(HttpStatus.BAD_REQUEST, "Parametri non validi",
+                "Alcuni parametri della richiesta non sono validi", e.getCampi());
     }
 
     // 400: la validazione automatica (@Valid sul corpo della richiesta) ha trovato dei campi sbagliati.
