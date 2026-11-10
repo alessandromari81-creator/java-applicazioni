@@ -48,6 +48,8 @@ public final class Ordinamenti {
     // Costruisce l'ordinamento per il database: il campo scelto (con la sua direzione) + lo spareggio sull'id.
     public Sort sort(String nome, Sort.Direction direzione) {
         List<Sort.Order> ordini = campi.get(nome).stream().map(proprieta -> new Sort.Order(direzione, proprieta)).toList();
-        return Sort.by(ordini).and(Sort.by(direzione, "id"));
+        // Se si ordina già per id lo spareggio non serve (e non lo si ripete: "order by id, id" sarebbe inutile).
+        boolean giaPerId = ordini.stream().anyMatch(o -> "id".equals(o.getProperty()));
+        return giaPerId ? Sort.by(ordini) : Sort.by(ordini).and(Sort.by(direzione, "id"));
     }
 }

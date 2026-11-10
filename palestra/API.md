@@ -116,7 +116,7 @@ Le liste non restituiscono più un array ma una **pagina**. Parametri (tutti fac
 | `sort` | `campo` oppure `campo,asc` / `campo,desc` | ordinamento di partenza della lista; solo i campi ammessi (l'errore 400 li elenca) |
 | `q` | testo da cercare (parziale, senza maiuscole, max 100 caratteri) | nessuna ricerca; `%` e `_` valgono come caratteri normali |
 
-Campi di `sort`: utenti `cognome` (default), `nome`, `email` · corsi `nome` (default), `livello`, `durataMinuti` · abbonamenti `dataFine,desc` (default), `dataInizio`, `prezzo`, `tipo`, `iscritto` · storico `dataInizio,desc` (default), `dataFine`, `prezzo`, `tipo`.
+Campi di `sort`: utenti `cognome` (default), `nome`, `email` · corsi `nome` (default), `id`, `livello`, `durataMinuti` · abbonamenti `dataFine,desc` (default), `dataInizio`, `prezzo`, `tipo`, `iscritto` · storico `dataInizio,desc` (default), `dataFine`, `prezzo`, `tipo`.
 A parità di valore si ordina sempre anche per `id`: scorrendo le pagine nessuna riga si ripete o sparisce.
 
 ```json

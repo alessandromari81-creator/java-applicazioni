@@ -327,6 +327,22 @@ class ApiPaginazioneTest extends BaseApiTest {
                 .containsExactly("Yoga Serale", "Corso24");
     }
 
+    @Test
+    @DisplayName("Corsi ordinabili anche per id, crescente e decrescente")
+    void corsiOrdinatiPerId() throws Exception {
+        Corso primo = creaCorso("Zumba");               // creati in quest'ordine: id crescenti, ma il nome è in ordine inverso
+        Corso secondo = creaCorso("Yoga");
+        Corso terzo = creaCorso("Aerobica");
+        ricarica();
+
+        List<Number> asc = campi(json("/api/corsi", "sort", "id"), "id");
+        List<Number> desc = campi(json("/api/corsi", "sort", "id,desc"), "id");
+
+        assertThat(asc).extracting(n -> n.longValue()).containsSubsequence(primo.getId(), secondo.getId(), terzo.getId());
+        assertThat(desc).extracting(n -> n.longValue()).containsSubsequence(terzo.getId(), secondo.getId(), primo.getId());
+        assertThat(JsonPath.<String>read(json("/api/corsi", "sort", "id,desc"), "$.sort")).isEqualTo("id,desc");
+    }
+
     // ------------------------------------------------------------------ ABBONAMENTI
 
     @Test

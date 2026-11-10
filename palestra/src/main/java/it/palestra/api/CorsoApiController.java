@@ -45,7 +45,7 @@ public class CorsoApiController {
     }
 
     // GET /api/corsi -> UNA PAGINA di corsi in JSON (non tutti): vedi PaginaResponse per la forma della risposta.
-    // Parametri facoltativi: page (da 0), size (1-100, predefinito 20), sort (nome, livello, durataMinuti; es. "nome,desc"),
+    // Parametri facoltativi: page (da 0), size (1-100, predefinito 20), sort (id, nome, livello, durataMinuti; es. "nome,desc"),
     // q (testo da cercare nel nome). Valori non validi: 400 con l'elenco dei parametri sbagliati.
     // Ogni Corso diventa un CorsoResponse (il DTO).
     @Operation(summary = "Elenco paginato dei corsi (ricerca q sul nome)")
@@ -53,7 +53,7 @@ public class CorsoApiController {
     public PaginaResponse<CorsoResponse> elenco(
             @Parameter(description = "Numero di pagina, parte da 0 (default 0)") @RequestParam(required = false) Integer page,
             @Parameter(description = "Elementi per pagina, da 1 a 100 (default 20)") @RequestParam(required = false) Integer size,
-            @Parameter(description = "Ordinamento: campo oppure campo,asc|desc. Campi ammessi: nome (default), livello, durataMinuti") @RequestParam(required = false) String sort,
+            @Parameter(description = "Ordinamento: campo oppure campo,asc|desc. Campi ammessi: id, nome (default), livello, durataMinuti") @RequestParam(required = false) String sort,
             @Parameter(description = "Testo da cercare (parziale, senza distinguere maiuscole, max 100 caratteri)") @RequestParam(required = false) String q) {
         RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, q, OrdinamentiListe.CORSI);
         return PaginaResponse.da(service.elenco(richiesta), corso -> CorsoResponse.da(corso), richiesta);

@@ -19,8 +19,9 @@ public final class OrdinamentiListe {
             "nome", List.of("nome", "cognome"),
             "email", List.of("email")));
 
-    // Corsi: per nome, livello o durata.
+    // Corsi: per nome, livello, durata o id (l'id è utile a chi usa la API: ordine di creazione).
     public static final Ordinamenti CORSI = Ordinamenti.di("nome", Sort.Direction.ASC, Map.of(
+            "id", List.of("id"),
             "nome", List.of("nome"),
             "livello", List.of("livello", "nome"),
             "durataMinuti", List.of("durataMinuti", "nome")));
