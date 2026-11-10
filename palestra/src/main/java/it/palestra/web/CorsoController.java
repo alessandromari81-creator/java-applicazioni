@@ -87,7 +87,7 @@ public class CorsoController {
     }
 
     // POST /corsi/5/elimina -> elimina, oppure mostra l'errore se ci sono iscritti.
-    // try/catch = come try/catch di PHP: se il service lancia RegolaViolataException
+    // try/catch: se il service lancia RegolaViolataException
     // mostriamo il suo messaggio (flash "errore") invece di una pagina di errore.
     @PostMapping("/{id}/elimina")
     public String elimina(@PathVariable Long id, @ModelAttribute("lista") StatoLista lista, RedirectAttributes flash) {

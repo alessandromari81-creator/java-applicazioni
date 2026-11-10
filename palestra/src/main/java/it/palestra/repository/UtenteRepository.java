@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,7 +30,6 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
 
     // LISTA PAGINATA, PASSO 2: carica gli utenti di cui si conoscono gli id (quelli della pagina) CON corsi, ruoli e corsi
     // tenuti, in una sola query (WHERE id IN (...)). Sono al massimo 100 utenti, quindi il carico è piccolo.
-    // In Eloquent: Utente::with(['corsi','ruoli','corsiInsegnati'])->whereIn('id', $ids)->get().
     @EntityGraph(attributePaths = {"corsi", "ruoli", "corsiInsegnati"})
     @Query("select distinct u from Utente u where u.id in :ids")
     List<Utente> findConRelazioniByIdIn(@Param("ids") Collection<Long> ids);
@@ -60,4 +60,15 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
 
     // Quanti utenti hanno un dato ruolo, es. countByRuoliNome("ADMIN"): serve a non eliminare l'ultimo admin.
     long countByRuoliNome(String nomeRuolo);
+
+    // Versione dei token di accesso dell'utente con questa email ESATTA (quella scritta nel token: l'indice unico sull'email la trova
+    // subito). Optional vuoto = l'utente non esiste più. Serve al controllo di revoca che si fa a ogni richiesta alla API.
+    @Query("select u.versioneToken from Utente u where u.email = :email")
+    Optional<Integer> trovaVersioneToken(@Param("email") String email);
+
+    // Revoca i token di accesso di un utente con un UPDATE diretto (+1 atomico), quando non c'è un'entità gestita da modificare
+    // (es. il rilevamento del riuso di un refresh token).
+    @Modifying
+    @Query("update Utente u set u.versioneToken = u.versioneToken + 1 where u.id = :id")
+    int incrementaVersioneToken(@Param("id") Long id);
 }

@@ -1,7 +1,6 @@
 # FILE: compose.yaml
 # A COSA SERVE: descrive i servizi esterni di cui l'app ha bisogno, qui solo il database PostgreSQL.
 # Si avvia con `docker compose up -d` (nella cartella palestra/) e si ferma con `docker compose stop`.
-# PARAGONE LARAVEL: è il docker-compose.yml di Laravel Sail (che avvia MySQL/Redis...).
 services:
   db:
     image: postgres:17            # immagine ufficiale di PostgreSQL, versione 17

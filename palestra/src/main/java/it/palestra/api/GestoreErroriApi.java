@@ -2,7 +2,6 @@
  * FILE: GestoreErroriApi.java
  * A COSA SERVE: trasforma le eccezioni dei controller della API in risposte JSON con il codice HTTP giusto. È il
  * corrispondente "REST" di GestoreErrori (che invece risponde con pagine HTML per i controller delle pagine).
- * PARAGONE LARAVEL: il metodo render() di Handler.php per le richieste che vogliono JSON.
  *
  * I CODICI USATI (la regola è sempre la stessa, così la API è prevedibile):
  *   400 Bad Request  = i DATI inviati sono sbagliati: formato, campi obbligatori, regole sui campi (email già usata,
@@ -19,11 +18,13 @@ import it.palestra.api.dto.ErroreApi;
 import it.palestra.exception.RefreshTokenNonValidoException;
 import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
+import it.palestra.exception.TroppiTentativiException;
 import it.palestra.pagina.ParametriPaginaNonValidiException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -87,6 +88,16 @@ public class GestoreErroriApi {
     ResponseEntity<ErroreApi> parametroNonValido(MethodArgumentTypeMismatchException e) {
         return risposta(HttpStatus.BAD_REQUEST, "Richiesta non valida",
                 "Il parametro '" + e.getName() + "' non ha un valore valido", null);
+    }
+
+    // 429: troppi login falliti (lanciata dall'AuthApiController tramite LimiteTentativiLogin). L'intestazione Retry-After dice
+    // quanti secondi aspettare. Il messaggio non rivela nulla sull'esistenza dell'email.
+    @ExceptionHandler(TroppiTentativiException.class)
+    ResponseEntity<ErroreApi> troppiTentativi(TroppiTentativiException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.getSecondiAttesa()))
+                .body(new ErroreApi(429, "Troppi tentativi",
+                        "Troppi tentativi di accesso falliti: riprova tra " + e.getSecondiAttesa() + " secondi", null));
     }
 
     // 401: credenziali sbagliate al login (lanciata da AutenticazioneService). Messaggio uguale per email inesistente e

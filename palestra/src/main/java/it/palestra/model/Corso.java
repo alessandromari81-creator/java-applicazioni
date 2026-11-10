@@ -2,8 +2,7 @@
  * FILE: Corso.java
  * A COSA SERVE: rappresenta un corso della palestra (Yoga, Spinning...) ed è mappato
  * sulla tabella "corso" del database.
- * PARAGONE LARAVEL: è il Model Eloquent `Corso`, ma con le colonne dichiarate come campi
- * (Eloquent le deduce dal DB; JPA/Hibernate invece parte dalla classe e CREA la tabella).
+ * Le colonne della tabella sono dichiarate come campi della classe (JPA/Hibernate parte dalla classe e la collega alla tabella).
  *
  * RELAZIONI DEL CORSO CON GLI UTENTI (sono due, diverse, e non vanno confuse):
  *  - ISTRUTTORE (questa classe, campo "istruttore"): chi TIENE il corso. Uno solo, facoltativo.
@@ -18,8 +17,7 @@ import jakarta.persistence.*;
 @Entity
 public class Corso {
 
-    // @Id = chiave primaria. IDENTITY = auto-increment gestito dal database
-    // (come $table->id() nelle migration).
+    // @Id = chiave primaria. IDENTITY = auto-increment gestito dal database.
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,7 +38,6 @@ public class Corso {
 
     // ISTRUTTORE del corso: un utente con ruolo ISTRUTTORE. Relazione MOLTI-A-UNO: molti corsi possono avere lo
     // stesso istruttore (e lato Utente diventa "uno-a-molti": un istruttore tiene più corsi).
-    // PARAGONE LARAVEL: $this->belongsTo(Utente::class, 'istruttore_id') nel model Corso.
     // @JoinColumn = la colonna istruttore_id della tabella corso (chiave esterna verso utente).
     // LAZY = l'istruttore si legge dal database solo quando serve (per questo alcuni repository lo caricano
     // subito con @EntityGraph). Può essere null: corso senza istruttore.
@@ -54,13 +51,13 @@ public class Corso {
 
     // Costruttore "normale" che usiamo noi per creare un corso (es. in CorsoService.crea).
     public Corso(String nome, String descrizione, int durataMinuti, Livello livello) {
-        this.nome = nome;               // this = $this in PHP
+        this.nome = nome;               // this = l'oggetto che si sta creando
         this.descrizione = descrizione;
         this.durataMinuti = durataMinuti;
         this.livello = livello;
     }
 
-    // Getter: metodi per LEGGERE i campi privati (in PHP useresti proprietà pubbliche o __get).
+    // Getter: metodi per LEGGERE i campi privati.
     // Thymeleaf li usa nei template: ${c.nome} chiama getNome().
     public Long getId() { return id; }
     public String getNome() { return nome; }

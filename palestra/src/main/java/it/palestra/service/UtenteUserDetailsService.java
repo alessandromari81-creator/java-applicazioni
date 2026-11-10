@@ -2,7 +2,6 @@
  * FILE: UtenteUserDetailsService.java
  * A COSA SERVE: dice a Spring Security COME TROVARE chi fa login. Spring riceve l'email dal form, chiama
  * loadUserByUsername() qui, e confronta da solo la password scritta con l'hash restituito.
- * PARAGONE LARAVEL: l'"user provider" di config/auth.php (provider eloquent, model User).
  */
 package it.palestra.service;
 

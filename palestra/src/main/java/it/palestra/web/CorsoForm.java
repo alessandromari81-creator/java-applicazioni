@@ -1,7 +1,7 @@
 /*
  * FILE: CorsoForm.java
- * A COSA SERVE: dati che arrivano dal form di un corso e regole di validazione (come una
- * FormRequest di Laravel). Non è un'entità: non finisce nel database.
+ * A COSA SERVE: dati che arrivano dal form di un corso e regole di validazione.
+ * Non è un'entità: non finisce nel database.
  */
 package it.palestra.web;
 
@@ -19,7 +19,7 @@ public class CorsoForm {
     @Size(max = 255, message = "Massimo 255 caratteri")
     private String nome;
 
-    // Facoltativa (niente @NotBlank = 'nullable' di Laravel), ma con il limite di lunghezza.
+    // Facoltativa (niente @NotBlank), ma con il limite di lunghezza.
     @Size(max = 255, message = "Massimo 255 caratteri")
     private String descrizione;
 

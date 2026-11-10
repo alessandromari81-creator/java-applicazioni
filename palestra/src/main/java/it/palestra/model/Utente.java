@@ -28,12 +28,17 @@ public class Utente {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // Hash bcrypt della password (come Hash::make()), mai la password in chiaro. Può essere null: chi non
+    // Hash bcrypt della password, mai la password in chiaro. Può essere null: chi non
     // deve accedere al pannello (iscritti, istruttori) non ha password e quindi non può fare login.
     @Column
     private String passwordHash;
 
-    // Relazione molti-a-molti con i corsi: tabella pivot "utente_corso" (come belongsToMany in Laravel).
+    // Numero di "versione" dei token di accesso (colonna versione_token, migration V8). Ogni JWT emesso contiene il valore che questo
+    // campo aveva in quel momento; aumentandolo (revocaTokenAccesso) tutti i JWT già emessi per questo utente smettono di valere.
+    @Column(nullable = false)
+    private int versioneToken;
+
+    // Relazione molti-a-molti con i corsi: tabella pivot "utente_corso".
     // Utente è il lato "proprietario": per iscrivere/disiscrivere si modifica questo Set.
     // Set = collezione senza duplicati.
     @ManyToMany
@@ -52,7 +57,7 @@ public class Utente {
     // CORSI CHE L'UTENTE TIENE COME ISTRUTTORE (relazione UNO-A-MOLTI: un istruttore tiene più corsi).
     // mappedBy = "istruttore": la colonna vera (istruttore_id) sta nella tabella corso ed è gestita dal campo
     // "istruttore" della classe Corso; qui è solo il lato "di lettura" della stessa relazione.
-    // PARAGONE LARAVEL: $this->hasMany(Corso::class, 'istruttore_id'). Per assegnare un istruttore si imposta
+    // Per assegnare un istruttore si imposta
     // corso.setIstruttore(utente), NON si aggiunge a questo Set. Resta vuoto per chi non è istruttore.
     @OneToMany(mappedBy = "istruttore")
     private Set<Corso> corsiInsegnati = new HashSet<>();
@@ -69,6 +74,12 @@ public class Utente {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public Set<Corso> getCorsi() { return corsi; }
     public void setCorsi(Set<Corso> corsi) { this.corsi = corsi; }
+    public int getVersioneToken() { return versioneToken; }
+
+    // Revoca in un colpo solo tutti i token di accesso (JWT) già emessi per questo utente: da usare su un'entità GESTITA da
+    // Hibernate (dentro una transazione), così l'UPDATE parte da solo a fine transazione.
+    public void revocaTokenAccesso() { this.versioneToken++; }
+
     public Set<Ruolo> getRuoli() { return ruoli; }
     public void setRuoli(Set<Ruolo> ruoli) { this.ruoli = ruoli; }
     public Set<Corso> getCorsiInsegnati() { return corsiInsegnati; }

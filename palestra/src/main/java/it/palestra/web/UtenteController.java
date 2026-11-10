@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 // @Controller = questa classe risponde a richieste web e restituisce NOMI di template.
-// @RequestMapping("/utenti") = prefisso comune a tutte le rotte (come Route::prefix('utenti')).
+// @RequestMapping("/utenti") = prefisso comune a tutte le rotte.
 @Controller
 @RequestMapping("/utenti")
 public class UtenteController {
@@ -40,8 +40,8 @@ public class UtenteController {
         this.abbonamenti = abbonamenti;
     }
 
-    // GET /utenti -> lista. "Model" è il contenitore dei dati per il template (come compact()/with()).
-    // "Principal" è l'utente loggato (Auth::user()): getName() restituisce la sua email.
+    // GET /utenti -> lista. "Model" è il contenitore dei dati per il template.
+    // "Principal" è l'utente loggato: getName() restituisce la sua email.
     // return "utenti/lista" significa: usa templates/utenti/lista.html.
     //
     // LISTA PAGINATA: Spring riempie "lista" (uno StatoLista) con i parametri ?page=&size=&sort=&q= dell'indirizzo, che
@@ -74,9 +74,9 @@ public class UtenteController {
 
     // POST /utenti -> salva il nuovo utente (store()).
     // @Valid = esegui la validazione di UtenteForm. @ModelAttribute = riempi l'oggetto con i campi del form.
-    // BindingResult = contiene gli errori di validazione (in Laravel il redirect con $errors è automatico;
-    // qui, se ci sono errori, riproponiamo il form).
-    // RedirectAttributes = messaggio "flash" per la pagina dopo il redirect (session()->flash()).
+    // BindingResult = contiene gli errori di validazione
+    // (se ci sono errori, riproponiamo il form).
+    // RedirectAttributes = messaggio "flash" per la pagina dopo il redirect.
     @PostMapping
     public String crea(@Valid @ModelAttribute UtenteForm utenteForm, BindingResult errori,
                        @ModelAttribute("lista") StatoLista lista, Model model, RedirectAttributes flash) {
@@ -99,7 +99,7 @@ public class UtenteController {
     }
 
     // POST /utenti/5 -> salva le modifiche (update()). I form HTML supportano solo GET e POST,
-    // per questo non usiamo PUT/PATCH (in Laravel servirebbe @method('PUT')).
+    // per questo non usiamo PUT/PATCH.
     @PostMapping("/{id}")
     public String aggiorna(@PathVariable Long id, @Valid @ModelAttribute UtenteForm utenteForm,
                            BindingResult errori, @ModelAttribute("lista") StatoLista lista, Model model,

@@ -4,11 +4,8 @@
   A COSA SERVE: è il LAYOUT di base: contiene UNA SOLA VOLTA doctype, <html>, <head>, <body>,
   la barra in alto. Le pagine non ripetono questi tag: dichiarano "uso questo layout" e
   riempiono solo i "buchi" (i layout:fragment).
-  PARAGONE LARAVEL: resources/views/layouts/app.blade.php. Corrispondenze:
-      Blade                              Thymeleaf Layout Dialect
-      @extends('layouts.app')            layout:decorate="~{layout/base}"   (sul tag <html> della pagina)
-      @yield('contenuto') nel layout     layout:fragment="contenuto"        (nel layout: il buco)
-      @section('contenuto') nella pagina layout:fragment="contenuto"        (nella pagina: il riempimento)
+  COME SI USA: la pagina dichiara il layout con layout:decorate="~{layout/base}" sul proprio tag <html>. Nel layout un buco si
+  scrive layout:fragment="contenuto"; la pagina lo riempie con un elemento che ha lo stesso layout:fragment="contenuto".
   Il nome dopo layout:fragment è quello che collega il buco del layout al contenuto della pagina.
   I commenti con questa sintassi (asterisco-slash) sono rimossi e non arrivano al browser.
 */-->
@@ -27,7 +24,7 @@
 <!--/* BUCO "barra": la barra scura in alto, con contenuto di DEFAULT che le pagine possono
        sostituire (la pagina di login la sovrascrive con un blocco vuoto).
        Il pulsante "Esci" appare solo se la pagina ha passato "admin" (nome dell'utente loggato).
-       Il logout è un POST: th:action aggiunge da solo il token CSRF (come @csrf in Blade). */-->
+       Il logout è un POST: th:action aggiunge da solo il token CSRF */-->
 <header layout:fragment="barra">
   <strong>Palestra · Pannello di controllo</strong>
   <!--/* Menu di navigazione: presente in tutte le pagine che usano la barra di default. */-->
@@ -46,8 +43,7 @@
 
 <!--/* MESSAGGI GLOBALI: mostrati in OGNI pagina che usa il layout, sotto la barra e sopra il
        contenuto. Arrivano dai controller con flash.addFlashAttribute("messaggio", ...) o
-       ("errore", ...) prima di un redirect (valgono solo per la pagina successiva, poi spariscono:
-       come ->with('messaggio', ...) in Laravel). th:if mostra il blocco solo se il valore esiste,
+       ("errore", ...) prima di un redirect (valgono solo per la pagina successiva, poi spariscono). th:if mostra il blocco solo se il valore esiste,
        th:text ne scrive il testo (con escape dei caratteri speciali).
        Per aggiungere un nuovo tipo di messaggio basta una riga qui e una classe nel CSS. */-->
 <div class="messaggi">

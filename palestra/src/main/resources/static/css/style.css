@@ -1,7 +1,7 @@
 /*
  * FILE: style.css
  * A COSA SERVE: stile grafico delle pagine. I file in "static/" sono serviti così come sono
- * dal server, all'indirizzo /css/style.css (come la cartella public/ di Laravel).
+ * dal server, all'indirizzo /css/style.css.
  */
 
 /* Il padding non allarga più gli elementi oltre la loro larghezza (calcolo più intuitivo). */

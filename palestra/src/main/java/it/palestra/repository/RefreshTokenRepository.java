@@ -28,4 +28,18 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update RefreshToken r set r.revocatoIl = :ora where r.utente.id = :utenteId and r.revocatoIl is null")
     int revocaTuttiDi(@Param("utenteId") Long utenteId, @Param("ora") Instant ora);
+
+    // Cancella dal database i refresh token GIÀ SCADUTI (scade_il precedente al limite), sia quelli mai usati sia quelli usati o
+    // revocati: dopo la scadenza non servono più a nessuno (un token scaduto è rifiutato comunque). Restituisce quanti ne ha cancellati.
+    // Quelli non ancora scaduti restano anche se revocati: servono a riconoscere il RIUSO di un token già usato (sospetto furto).
+    @Modifying
+    @Query("delete from RefreshToken r where r.scadeIl < :limite")
+    int eliminaScadutiPrima(@Param("limite") Instant limite);
+
+    // Come revocaTuttiDi ma SENZA svuotare la memoria di Hibernate (nessun clearAutomatically): si usa dentro un servizio che ha
+    // altre entità in corso di modifica (es. cambio password), che altrimenti andrebbero perse. Prima di eseguirla scrive su database
+    // le modifiche in sospeso (flushAutomatically).
+    @Modifying(flushAutomatically = true)
+    @Query("update RefreshToken r set r.revocatoIl = :ora where r.utente.id = :utenteId and r.revocatoIl is null")
+    int revocaTuttiPerUtente(@Param("utenteId") Long utenteId, @Param("ora") Instant ora);
 }

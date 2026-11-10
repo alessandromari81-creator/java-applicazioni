@@ -5,7 +5,6 @@
  * tabella; un nome non previsto viene rifiutato.
  * PERCHÉ UNA LISTA DI CAMPI AMMESSI: se si accettasse qualunque testo, chi invia la richiesta potrebbe ordinare per
  * colonne che non deve poter vedere (es. passwordHash) o far fallire la query con un nome inesistente (errore 500).
- * PARAGONE LARAVEL: l'elenco di colonne "sortable" che si controlla a mano prima di fare orderBy($request->sort).
  * Aggiunge sempre lo "spareggio" sull'id: se due righe hanno lo stesso valore (es. due utenti con lo stesso cognome)
  * senza uno spareggio il database può metterle in ordine diverso da una richiesta all'altra, e passando da una pagina
  * alla successiva alcune righe comparirebbero due volte e altre mai.

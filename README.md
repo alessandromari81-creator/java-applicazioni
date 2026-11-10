@@ -116,12 +116,14 @@ Client API ─► api/ (JSON, JWT stateless)      ─┘
 
 - **Due catene di sicurezza** (`config/SecurityConfig`): `/api/**` è stateless, senza CSRF, con JWT; tutto il resto è il pannello con sessione e CSRF.
 - **Token API:** `POST /api/auth/login` restituisce `access_token` (JWT, 60 minuti) e `refresh_token` (stringa casuale, 7 giorni, nel database solo l'hash). Ogni rinnovo ruota il refresh token; il riuso di uno già usato revoca tutte le sessioni dell'utente.
+  Gli access token si possono **revocare prima della scadenza** (logout, cambio di password o ruoli, sospetto furto): ognuno porta la «versione» dei token dell'utente e a ogni richiesta si confronta con quella nel database. Ogni notte si cancellano i refresh token scaduti.
+- **Limite ai tentativi di login** (API e pannello): 5 errori per coppia indirizzo+email e 20 per indirizzo in 15 minuti, poi `429` con `Retry-After` (o `/login?bloccato` nel pannello).
 - **DTO:** la API non espone mai le entità, ma record dedicati (`api/dto`).
 - **Errori:** `400` dati o parametri non validi (con il dettaglio per campo), `401`/`403` autenticazione e ruolo, `404` risorsa inesistente, `409` regola di business violata. Il motivo di un `401`/`403` si legge nel log dell'app, non nella risposta.
 - **Liste paginate** (pagine e API): parametri `page` (da 0), `size` (1–100, default 20), `sort` (`campo,asc|desc`, solo campi ammessi) e `q` (ricerca testuale). Parametri sbagliati danno `400`. Le risposte JSON hanno la forma `{content, number, size, totalElements, totalPages, first, last, sort, q}`.
 - **Orologio:** la data di oggi viene da un `Clock` iniettato, mai da `LocalDate.now()`, così i test possono fissarla.
 - **Cache:** una sola, per l'elenco dei ruoli (Caffeine in memoria).
-- **Database:** schema gestito da Flyway; Hibernate lo controlla soltanto (`ddl-auto=validate`).
+- **Database:** schema gestito da Flyway; Hibernate lo controlla soltanto (`ddl-auto=validate`). La ricerca di testo sugli utenti usa indici trigram (PostgreSQL `pg_trgm`): con 100.000 utenti risponde in pochi millisecondi.
 
 ### Note di lavoro
 

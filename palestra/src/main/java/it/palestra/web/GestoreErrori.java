@@ -3,7 +3,6 @@
  * A COSA SERVE: gestione centralizzata delle eccezioni dei controller. Quando un controller (o un
  * service chiamato da lui) lancia l'eccezione indicata, Spring la passa qui invece di mostrare una
  * pagina di errore 500. Si scrive UNA volta e vale per tutti i controller.
- * PARAGONE LARAVEL: il metodo render()/register() di app/Exceptions/Handler.php.
  *
  * Le eccezioni NON gestite qui (URL inesistente, errori imprevisti) le gestisce Spring Boot con le
  * pagine in templates/error/ e templates/error.html.

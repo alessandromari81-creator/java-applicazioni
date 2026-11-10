@@ -5,7 +5,7 @@
  * logica che dipende solo dai suoi dati di ingresso. Si danno date FISSE (LocalDate.of(...)), non "oggi", così il
  * risultato è sempre lo stesso, domani come tra un anno.
  * DIFFERENZA CON GLI ALTRI TEST: quelli (MockMvc) simulano una richiesta HTTP attraverso tutta l'applicazione;
- * questi chiamano direttamente un metodo e guardano il risultato. Come i test "Unit" rispetto ai "Feature" in Laravel.
+ * questi chiamano direttamente un metodo e guardano il risultato.
  */
 package it.palestra;
 

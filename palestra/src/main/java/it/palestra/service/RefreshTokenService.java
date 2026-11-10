@@ -5,7 +5,6 @@
  *   - nel database si salva solo il suo hash SHA-256;
  *   - ROTAZIONE: ogni volta che un token viene usato diventa non più valido e se ne emette uno nuovo;
  *   - RIUSO = sospetto furto: se si presenta un token già usato/revocato, si revocano TUTTI i token di quell'utente.
- * PARAGONE LARAVEL: la logica che Sanctum/Passport applicano ai refresh token.
  */
 package it.palestra.service;
 
@@ -13,6 +12,7 @@ import it.palestra.exception.RefreshTokenNonValidoException;
 import it.palestra.model.RefreshToken;
 import it.palestra.model.Utente;
 import it.palestra.repository.RefreshTokenRepository;
+import it.palestra.repository.UtenteRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,12 +40,14 @@ public class RefreshTokenService {
     private static final SecureRandom CASUALE = new SecureRandom();
 
     private final RefreshTokenRepository repository;
+    private final UtenteRepository utenti;
     private final Clock clock;
     private final Duration durata;
 
-    public RefreshTokenService(RefreshTokenRepository repository, Clock clock,
+    public RefreshTokenService(RefreshTokenRepository repository, UtenteRepository utenti, Clock clock,
                                @Value("${app.jwt.refresh-durata-giorni}") long durataGiorni) {
         this.repository = repository;
+        this.utenti = utenti;
         this.clock = clock;
         this.durata = Duration.ofDays(durataGiorni);
     }
@@ -80,9 +83,11 @@ public class RefreshTokenService {
             // Già usato o revocato e qualcuno lo ripresenta: o è un errore del client, o il token è stato rubato (il ladro
             // e il proprietario ne hanno una copia ciascuno e uno dei due arriva per secondo). Per prudenza chiudiamo
             // TUTTE le sessioni dell'utente: dovrà rifare il login.
-            int revocati = repository.revocaTuttiDi(salvato.getUtente().getId(), ora);
+            Long utenteId = salvato.getUtente().getId();
+            int revocati = repository.revocaTuttiDi(utenteId, ora);
+            utenti.incrementaVersioneToken(utenteId);       // revoca anche gli access token già emessi (vedi ValidatoreRevocaToken)
             throw rifiuta("token già usato o revocato (possibile riuso): revocati tutti i token attivi dell'utente ("
-                    + revocati + ")");
+                    + revocati + ") e i suoi access token");
         }
         if (!ora.isBefore(salvato.getScadeIl())) {
             throw rifiuta("token scaduto");
@@ -94,10 +99,28 @@ public class RefreshTokenService {
 
     // Revoca un refresh token (logout). Silenziosa: se il token non esiste o è già revocato non fa nulla e non segnala
     // errori, così chi chiama non può usarla per scoprire quali token esistono.
-    public void revoca(String token) {
-        repository.findByTokenHash(hash(token)).ifPresent(t -> {
-            if (t.getRevocatoIl() == null) t.revoca(clock.instant());
-        });
+    // Restituisce l'utente SOLO se il token era ancora attivo e l'ha revocato adesso: in quel caso il chiamante revoca anche gli
+    // access token dell'utente. Se il token era già usato non si tocca niente (chi ha un vecchio token rubato non deve poter
+    // far uscire l'utente dalle sue sessioni).
+    public Optional<Utente> revoca(String token) {
+        Optional<RefreshToken> trovato = repository.findByTokenHash(hash(token));
+        if (trovato.isEmpty() || trovato.get().getRevocatoIl() != null) {
+            return Optional.empty();
+        }
+        trovato.get().revoca(clock.instant());
+        return Optional.of(trovato.get().getUtente());
+    }
+
+    // Revoca TUTTI i refresh token ancora attivi di un utente: serve quando cambia la sua password (chi avesse rubato un refresh
+    // token non deve poter continuare a rinnovare l'accesso). Non svuota la memoria di Hibernate, così si può chiamare in mezzo
+    // ad altre modifiche.
+    public int revocaTuttiDi(Long utenteId) {
+        return repository.revocaTuttiPerUtente(utenteId, clock.instant());
+    }
+
+    // PULIZIA: cancella i refresh token scaduti (vedi PuliziaProgrammata, che la esegue ogni notte). Restituisce quanti ne ha cancellati.
+    public int eliminaScaduti() {
+        return repository.eliminaScadutiPrima(clock.instant());
     }
 
     // Costruisce l'eccezione e scrive il MOTIVO nel log del server (mai nella risposta al client).

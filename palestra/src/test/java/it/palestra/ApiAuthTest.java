@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import it.palestra.model.Utente;
 import it.palestra.service.JwtService;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -223,7 +224,8 @@ class ApiAuthTest extends BaseApiTest {
     @Test
     @DisplayName("Un token valido ma SENZA il ruolo ADMIN riceve 403 (autenticato, non autorizzato)")
     void tokenSenzaRuoloAdmin(CapturedOutput log) throws Exception {
-        String comeIscritto = jwtService.emetti("mario@example.com", List.of("ISCRITTO")).token();
+        Utente mario = creaUtente("Mario", "Rossi", "mario@example.com", ruolo("ISCRITTO"));   // il token è valido solo se l'utente esiste
+        String comeIscritto = jwtService.emetti(mario.getEmail(), List.of("ISCRITTO"), mario.getVersioneToken()).token();
 
         chiediCorsiCon(comeIscritto)
                 .andExpect(status().isForbidden())

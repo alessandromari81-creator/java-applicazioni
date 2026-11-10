@@ -3,7 +3,6 @@
  * A COSA SERVE: un "refresh token" emesso a un utente (tabella "refresh_token"). Serve a ottenere un nuovo access token
  * quando quello vecchio scade, senza rifare il login. Si salva solo l'HASH del token (mai il token), con le date di
  * creazione, scadenza ed eventuale revoca.
- * PARAGONE LARAVEL: una riga di personal_access_tokens (Sanctum).
  */
 package it.palestra.model;
 

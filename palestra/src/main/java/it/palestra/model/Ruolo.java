@@ -3,7 +3,6 @@
  * A COSA SERVE: un ruolo che un utente può avere (ADMIN, ISTRUTTORE, ISCRITTO), tabella "ruolo".
  * I ruoli stanno nel database (e non in un enum Java) perché un utente può averne più d'uno e si possono
  * aggiungerne altri con una migration, senza ricompilare.
- * PARAGONE LARAVEL: il model Role di spatie/laravel-permission.
  */
 package it.palestra.model;
 

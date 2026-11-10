@@ -10,11 +10,11 @@
  * Il server NON ricorda i token emessi (niente sessione): a ogni richiesta ricalcola la firma e controlla la scadenza.
  * ATTENZIONE: il contenuto è solo codificato, NON cifrato: chiunque può leggerlo (provalo su jwt.io). Per questo
  * dentro non si mette mai nulla di segreto (niente password).
- * PARAGONE LARAVEL: Laravel Sanctum/Passport (token) o tymon/jwt-auth.
  */
 package it.palestra.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import it.palestra.repository.UtenteRepository;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,7 +22,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
@@ -49,9 +51,13 @@ public class JwtConfig {
     }
 
     // Il decodificatore: a ogni richiesta alla API verifica la firma (con la stessa chiave) e la scadenza. Un token
-    // modificato, firmato con un'altra chiave o scaduto viene rifiutato (risposta 401).
+    // modificato, firmato con un'altra chiave, scaduto o REVOCATO (vedi ValidatoreRevocaToken) viene rifiutato (risposta 401).
     @Bean
-    JwtDecoder jwtDecoder(SecretKey chiave) {
-        return NimbusJwtDecoder.withSecretKey(chiave).macAlgorithm(MacAlgorithm.HS256).build();
+    JwtDecoder jwtDecoder(SecretKey chiave, UtenteRepository utenti) {
+        NimbusJwtDecoder decodificatore = NimbusJwtDecoder.withSecretKey(chiave).macAlgorithm(MacAlgorithm.HS256).build();
+        // Controlli sul contenuto, in ordine: quelli standard (scadenza, "non prima di") + la revoca (ValidatoreRevocaToken).
+        decodificatore.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefault(), new ValidatoreRevocaToken(utenti)));
+        return decodificatore;
     }
 }

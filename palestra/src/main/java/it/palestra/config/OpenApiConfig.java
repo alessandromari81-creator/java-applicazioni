@@ -8,7 +8,6 @@
  *   3) le risposte di errore comuni (400, 401, 403, 404, 409), tutte nella forma ErroreApi, aggiunte a ogni operazione.
  * COME SI VEDE: dopo aver fatto login nel pannello (la documentazione è riservata agli ADMIN, vedi SecurityConfig):
  *   http://localhost:8080/swagger-ui.html   (pagina interattiva)   e   http://localhost:8080/v3/api-docs   (JSON OpenAPI, importabile in Postman).
- * PARAGONE LARAVEL: i pacchetti Scribe / Scramble / L5-Swagger fanno la stessa cosa leggendo rotte e FormRequest.
  */
 package it.palestra.config;
 
@@ -79,6 +78,7 @@ public class OpenApiConfig {
                     aggiungi(operazione, "401", "Token assente, scaduto o non valido", riferimento);
                     aggiungi(operazione, "403", "Il token non ha il ruolo ADMIN", riferimento);
                 }
+                if ("/api/auth/login".equals(percorso)) aggiungi(operazione, "429", "Troppi tentativi di login falliti: riprova dopo i secondi indicati in Retry-After", riferimento);
                 if (percorso.contains("{")) aggiungi(operazione, "404", "Risorsa inesistente", riferimento);
                 if (scrittura && !pubblica) aggiungi(operazione, "409", "Regola di business violata", riferimento);
             }));

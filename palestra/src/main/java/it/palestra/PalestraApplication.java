@@ -10,23 +10,23 @@
  *  - "chi vede il login" lo decide SecurityConfig (config/).
  * Percorso di una visita a http://localhost:8080/ :
  *  1. Il browser chiede GET /.
- *  2. Spring Security (filtro, come un middleware) controlla: sei loggato? No ->
+ *  2. Spring Security (un filtro che si mette davanti ai controller) controlla: sei loggato? No ->
  *     redirect a /login (regola in SecurityConfig: anyRequest().authenticated() + loginPage("/login")).
  *  3. GET /login arriva a HomeController.login(), che restituisce "login" -> templates/login.html.
  *  4. Dopo il login corretto vai a /utenti (UtenteController.lista() -> templates/utenti/lista.html).
  */
 
-// "package" = il namespace di PHP. Deve coincidere con le cartelle: it/palestra/
+// "package" = il namespace della classe. Deve coincidere con le cartelle: it/palestra/
 package it.palestra;
 
-// "import" = "use" di PHP: porta dentro le classi che usiamo qui sotto.
+// "import" = porta dentro le classi che usiamo qui sotto.
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-// @SpringBootApplication è un'annotazione (simile agli attributi PHP 8 #[...]).
+// @SpringBootApplication è un'annotazione (un'etichetta che dà alla classe un significato speciale).
 // Dice a Spring: "cerca tutte le mie classi (@Controller, @Service, @Configuration...)
 // in questo package e nei sotto-package, crea gli oggetti e collegali tra loro"
-// (questo si chiama "dependency injection", come il service container di Laravel).
+// (questo si chiama "dependency injection").
 @SpringBootApplication
 public class PalestraApplication {
 

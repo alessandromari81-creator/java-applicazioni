@@ -8,7 +8,6 @@
  * PERCHÉ NON IllegalStateException: quella è generica e la lanciano anche le librerie di Java per veri errori di
  * programmazione. Se la API trasformasse ogni IllegalStateException in un 409, nasconderebbe dei bug dietro un
  * "conflitto". Con un'eccezione NOSTRA si sa con certezza che è una regola violata, non un malfunzionamento.
- * PARAGONE LARAVEL: un'eccezione personalizzata che poi Handler.php trasforma in una risposta 409.
  */
 package it.palestra.exception;
 

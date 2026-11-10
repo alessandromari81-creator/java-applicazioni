@@ -4,7 +4,7 @@
   A COSA SERVE: pagina di login. Mostrata da HomeController.login() (GET /login restituisce
   "login" -> questo file). Spring Security ci rimanda chi non è loggato.
   È un template Thymeleaf: HTML normale con attributi th:* elaborati dal server.
-  COME USA IL LAYOUT: layout:decorate sul tag <html> equivale a @extends('layouts.app').
+  COME USA IL LAYOUT: layout:decorate sul tag <html> dichiara il layout da usare (layout/base.html).
   Il <head> e il <body> di base arrivano da layout/base.html: qui scriviamo solo ciò che cambia.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
@@ -17,18 +17,20 @@
 <body>
 
 <!--/* Nel login NON vogliamo la barra: riempiamo il buco "barra" con un blocco vuoto
-       (come @section('barra') vuoto per sovrascrivere il default). */-->
+       (così sovrascrive quello di default). */-->
 <th:block layout:fragment="barra"></th:block>
 
-<!--/* Riempie il buco "contenuto" del layout (come @section('contenuto')). */-->
+<!--/* Riempie il buco "contenuto" del layout. */-->
 <div layout:fragment="contenuto" class="card login">
   <h1>Accedi</h1>
   <!--/* Spring Security rimanda a /login?error se le credenziali sono sbagliate e a
          /login?logout dopo l'uscita: ${param.error} legge questi parametri dell'URL. */-->
   <div class="err" th:if="${param.error}">Credenziali non valide</div>
+  <!--/* /login?bloccato: troppi tentativi falliti da questo indirizzo (vedi FiltroLimiteLogin). Il blocco dura qualche minuto. */-->
+  <div class="err" th:if="${param.bloccato}">Troppi tentativi di accesso falliti: riprova tra qualche minuto</div>
   <div class="ok" th:if="${param.logout}">Sei uscito correttamente</div>
 
-  <!--/* th:action aggiunge automaticamente il token CSRF nascosto (come @csrf in Blade).
+  <!--/* th:action aggiunge automaticamente il token CSRF nascosto.
          Il form invia POST /login: lo elabora Spring Security, non un nostro controller.
          I nomi "username" e "password" sono quelli che Spring Security si aspetta. */-->
   <form th:action="@{/login}" method="post">

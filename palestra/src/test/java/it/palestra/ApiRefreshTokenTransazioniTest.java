@@ -67,4 +67,31 @@ class ApiRefreshTokenTransazioniTest {
         // Controllo in una richiesta SEPARATA: r2, che era valido, ora deve essere stato revocato.
         postJson("/api/auth/refresh", corpo(r2), 401);
     }
+
+    @Test
+    @DisplayName("Il riuso di un refresh token revoca DAVVERO anche gli access token già emessi (e resta salvato dopo il 401)")
+    void ilRiusoRevocaGliAccessToken() throws Exception {
+        // Login e un rinnovo regolare: a1 è l'access token del login, a2 quello emesso dal rinnovo; r1 è già usato.
+        String sessione = postJson("/api/auth/login", "{\"email\":\"" + BaseWebTest.EMAIL_ADMIN + "\",\"password\":\"admin\"}", 200);
+        String a1 = JsonPath.read(sessione, "$.access_token");
+        String r1 = JsonPath.read(sessione, "$.refresh_token");
+        String a2 = JsonPath.read(postJson("/api/auth/refresh", corpo(r1), 200), "$.access_token");
+        chiediCorsi(a1, 200);
+        chiediCorsi(a2, 200);
+
+        postJson("/api/auth/refresh", corpo(r1), 401);               // il riuso di r1: sospetto furto
+
+        // Richieste SEPARATE (ognuna con il proprio commit): entrambi gli access token sono ora revocati...
+        chiediCorsi(a1, 401);
+        chiediCorsi(a2, 401);
+        // ...ma un nuovo login funziona e dà un token valido.
+        String nuova = postJson("/api/auth/login", "{\"email\":\"" + BaseWebTest.EMAIL_ADMIN + "\",\"password\":\"admin\"}", 200);
+        chiediCorsi(JsonPath.read(nuova, "$.access_token"), 200);
+    }
+
+    private void chiediCorsi(String accessToken, int statoAtteso) throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/corsi")
+                        .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().is(statoAtteso));
+    }
 }

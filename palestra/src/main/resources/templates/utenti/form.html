@@ -6,7 +6,7 @@
   checkbox), "utenteId" (null se nuovo, l'id se in modifica) e "corsiInsegnatiIds" (gli id dei corsi che
   questo utente TIENE come istruttore: le loro checkbox sono disattivate perché un istruttore non può iscriversi
   ai corsi che tiene).
-  Usa il layout layout/base.html (come @extends). Qui "admin" non è passato, quindi la barra
+  Usa il layout layout/base.html. Qui "admin" non è passato, quindi la barra
   di default non mostra il pulsante "Esci".
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
@@ -35,8 +35,8 @@
       <div class="err" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
 
       <!--/* th:field genera name="nome", id e value (rimette il valore già scritto se c'è un
-             errore, come old('nome') in Blade). th:errors mostra gli errori di validazione del
-             campo (come @error('nome')), ed è vuoto se non ce ne sono. */-->
+             errore). th:errors mostra gli errori di validazione del
+             campo, ed è vuoto se non ce ne sono. */-->
       <label for="nome">Nome</label>
       <input type="text" id="nome" th:field="*{nome}">
       <div class="campo-err" th:errors="*{nome}"></div>

@@ -7,7 +7,6 @@
  *   - sort   "campo" oppure "campo,asc" / "campo,desc". Solo i campi ammessi per quella lista (vedi Ordinamenti).
  *   - q      testo da cercare (massimo 100 caratteri); vuoto = nessuna ricerca.
  * Valori non validi NON vengono corretti in silenzio: si lancia un errore (400) che dice quali parametri sono sbagliati.
- * PARAGONE LARAVEL: i controlli sulla request prima di chiamare ->paginate($perPage).
  * È un "record": una classe di soli dati, immutabile.
  */
 package it.palestra.pagina;

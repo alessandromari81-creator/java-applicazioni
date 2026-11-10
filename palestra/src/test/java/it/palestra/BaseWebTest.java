@@ -6,7 +6,7 @@
  *
  * COSA FA MOCKMVC: simula le richieste HTTP dentro la stessa JVM, senza avviare Tomcat e senza browser. La
  * richiesta attraversa DAVVERO i filtri di sicurezza, il controller, il service, il database e Thymeleaf; poi si
- * controlla la risposta (codice, redirect, vista usata, dati nel model). È come $this->get('/utenti')->assertOk().
+ * controlla la risposta (codice, redirect, vista usata, dati nel model).
  */
 package it.palestra;
 
@@ -22,6 +22,7 @@ import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.service.LimiteTentativiLogin;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -42,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 // @AutoConfigureMockMvc: prepara l'oggetto MockMvc da usare nei test.
 // @ActiveProfiles("test"): carica application-test.properties, cioè H2 in memoria e niente Flyway/Docker.
 // @Transactional: ogni test gira in una transazione che alla fine viene ANNULLATA (rollback): i dati creati in un
-// test spariscono e non disturbano gli altri (come il trait RefreshDatabase / DatabaseTransactions di Laravel).
+// test spariscono e non disturbano gli altri.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -59,10 +60,11 @@ abstract class BaseWebTest {
     @Autowired protected RuoloRepository ruoli;
     @Autowired protected AbbonamentoRepository abbonamenti;
     @Autowired protected PasswordEncoder encoder;
+    @Autowired protected LimiteTentativiLogin limiteLogin;   // contatori dei login falliti: vanno azzerati tra un test e l'altro
     @Autowired protected CacheManager cacheManager;   // per svuotare le cache prima di ogni test
     @Autowired protected EntityManager em;   // serve a "svuotare" la cache di Hibernate (vedi ricarica())
 
-    // Simula una richiesta fatta da un amministratore già loggato (come actingAs($admin) in Laravel).
+    // Simula una richiesta fatta da un amministratore già loggato.
     // Non passa dal form di login: dichiara solo "chi sono" e quale ruolo ho, per provare il resto.
     protected RequestPostProcessor comeAdmin() {
         return user(EMAIL_ADMIN).roles("ADMIN");
@@ -103,9 +105,9 @@ abstract class BaseWebTest {
 
     // Prima di OGNI test si svuotano le cache. PERCHÉ: i test girano in transazioni annullate (rollback), ma la cache vive fuori
     // dalla transazione: senza questo, i ruoli letti da un test resterebbero in cache anche se il database li ha già "dimenticati".
-    // È come Cache::flush() nel setUp() di un test Laravel.
     @BeforeEach
     void svuotaLeCache() {
+        limiteLogin.azzera();         // anche i contatori dei login falliti vivono in memoria, fuori dalla transazione
         for (String nome : cacheManager.getCacheNames()) {
             Cache cache = cacheManager.getCache(nome);
             if (cache != null) cache.clear();
@@ -116,7 +118,7 @@ abstract class BaseWebTest {
     // PERCHÉ SERVE: Hibernate tiene in memoria (nella "sessione") gli oggetti già caricati. Dopo che il controller ha
     // salvato qualcosa, se rileggessimo subito dal repository potremmo ricevere la copia vecchia in memoria invece
     // del dato vero. flush() manda al database tutte le modifiche in sospeso; clear() svuota la memoria, così la
-    // lettura successiva fa una vera SELECT. È come $model->refresh() in Eloquent.
+    // lettura successiva fa una vera SELECT.
     protected void ricarica() {
         em.flush();
         em.clear();

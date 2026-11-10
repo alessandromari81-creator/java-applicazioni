@@ -35,7 +35,7 @@
     <table>
       <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'iscritto', 'Iscritto')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'tipo', 'Tipo')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataInizio', 'Dal')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'dataFine', 'Al')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'prezzo', 'Prezzo')}"></th:block><th>Stato</th><th></th></tr></thead>
       <tbody>
-        <!--/* th:each = @foreach. th:with definisce una variabile locale: "stato" è lo stato di QUESTO abbonamento
+        <!--/* th:each ripete la riga per ogni abbonamento. th:with definisce una variabile locale: "stato" è lo stato di QUESTO abbonamento
                rispetto a oggi (a.stato(oggi) chiama il metodo di Abbonamento; non è salvato nel database). */-->
         <tr th:each="a : ${abbonamenti}" th:with="stato=${a.stato(oggi)}">
           <!--/* Il nome è un link alla pagina degli abbonamenti di quell'utente (storico, rinnovo, eliminazione). */-->

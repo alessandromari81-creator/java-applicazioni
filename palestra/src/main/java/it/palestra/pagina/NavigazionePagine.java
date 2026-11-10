@@ -4,7 +4,6 @@
  * (con i "..." quando sono tante), i link precedente/successiva, le intestazioni cliccabili per ordinare (con la freccia),
  * "Risultati 21–40 di 57" e il link per azzerare la ricerca. Tiene la logica in Java, dove si può provare con i test,
  * invece che dentro il template.
- * PARAGONE LARAVEL: la vista del paginatore ($users->links()), con in più l'ordinamento.
  * Tutti i link nascono da RichiestaPagina.query(), quindi mantengono ricerca, dimensione e ordinamento già scelti.
  */
 package it.palestra.pagina;

@@ -90,6 +90,10 @@ class OpenApiTest extends BaseWebTest {
                 .contains("400", "401", "403").doesNotContain("404", "409");
         assertThat(JsonPath.<Map<String, Object>>read(json, "$.paths['/api/auth/login'].post.responses").keySet())
                 .contains("400").doesNotContain("401", "403");
+        assertThat(JsonPath.<Map<String, Object>>read(json, "$.paths['/api/auth/login'].post.responses").keySet())
+                .contains("429");                                                  // troppi tentativi di login
+        assertThat(JsonPath.<Map<String, Object>>read(json, "$.paths['/api/auth/refresh'].post.responses").keySet())
+                .doesNotContain("429");
         assertThat(JsonPath.<String>read(json, "$.paths['/api/corsi'].get.responses['401'].content['application/json'].schema['$ref']"))
                 .isEqualTo("#/components/schemas/ErroreApi");
         assertThat(JsonPath.<Map<String, Object>>read(json, "$.components.schemas.ErroreApi.properties").keySet())

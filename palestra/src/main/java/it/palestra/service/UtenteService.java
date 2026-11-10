@@ -44,22 +44,25 @@ public class UtenteService {
     private final RuoloRepository ruoli;
     private final AbbonamentoRepository abbonamenti;
     private final PasswordEncoder encoder;
+    private final RefreshTokenService refreshTokens;
 
     // Dependency injection: Spring vede i parametri del costruttore e passa gli oggetti giusti.
     public UtenteService(UtenteRepository utenti, CorsoRepository corsi, RuoloRepository ruoli,
-                         AbbonamentoRepository abbonamenti, PasswordEncoder encoder) {
+                         AbbonamentoRepository abbonamenti, PasswordEncoder encoder,
+                         RefreshTokenService refreshTokens) {
         this.utenti = utenti;
         this.corsi = corsi;
         this.ruoli = ruoli;
         this.abbonamenti = abbonamenti;
         this.encoder = encoder;
+        this.refreshTokens = refreshTokens;
     }
 
     // UNA PAGINA di utenti (con corsi frequentati, ruoli e corsi tenuti), eventualmente filtrata dalla ricerca.
     // "QUERY IN DUE PASSI": 1) si chiede al database solo la pagina di utenti (LIMIT/OFFSET veri, senza collezioni);
     // 2) si caricano quegli utenti, e solo quelli, con le loro relazioni. Se si caricasse tutto in una query con le JOIN,
     // ogni utente avrebbe più righe (ruolo x corso) e il database non saprebbe tagliare "20 utenti": Hibernate leggerebbe
-    // TUTTA la tabella e paginerebbe in memoria. In Laravel ->paginate()->with() fa già due query: qui è esplicito.
+    // TUTTA la tabella e paginerebbe in memoria.
     @Transactional(readOnly = true)
     public Page<Utente> elenco(RichiestaPagina richiesta) {
         String q = richiesta.q();
@@ -92,7 +95,7 @@ public class UtenteService {
     }
 
     // CACHE: @Cacheable("ruoli") = "la prima volta esegui il metodo e salva il risultato nella cache chiamata ruoli; le volte
-    // dopo restituisci quello salvato SENZA entrare nel metodo (quindi senza query)". È come Cache::remember('ruoli', 3600, fn).
+    // dopo restituisci quello salvato SENZA entrare nel metodo (quindi senza query)".
     // Perché proprio qui: i ruoli sono 3, si leggono ad ogni apertura del form utente e ad ogni richiesta API che li mappa, e
     // cambiano solo con una migration. La chiave è unica (metodo senza parametri). Gli oggetti Ruolo sono immutabili (nessun setter),
     // quindi condividerli tra richieste è sicuro. Non c'è @CacheEvict perché nell'app nessuna funzione modifica i ruoli: se un
@@ -112,7 +115,7 @@ public class UtenteService {
     }
 
     // true se l'email è già usata da UN ALTRO utente. idDaIgnorare = id dell'utente che stiamo modificando
-    // (null in creazione): tenere la propria email non è un duplicato (come Rule::unique()->ignore($id)).
+    // (null in creazione): tenere la propria email non è un duplicato.
     @Transactional(readOnly = true)
     public boolean emailInUso(String email, Long idDaIgnorare) {
         return utenti.findByEmailIgnoreCase(email)
@@ -168,6 +171,8 @@ public class UtenteService {
     //  1) non si toglie ADMIN all'ultimo amministratore (nessuno potrebbe più entrare nel pannello);
     //  2) non si toglie ISTRUTTORE a chi tiene ancora dei corsi: resterebbero con un "istruttore" che non lo è più;
     //  3) non si toglie ISCRITTO a chi ha abbonamenti registrati: solo gli iscritti possono averne.
+    // Se cambiano la password o i ruoli, i token di accesso già emessi dall'utente vengono revocati; se cambia la password anche i suoi
+    // refresh token.
     public Utente modifica(Long id, UtenteForm form) {
         Utente u = trova(id);
         if (u.isAdmin() && !contieneRuolo(form.getRuoliIds(), Ruolo.ADMIN)
@@ -183,7 +188,18 @@ public class UtenteService {
             throw new RegolaViolataException("Non puoi togliere il ruolo ISCRITTO: ha "
                     + abbonamenti.countByUtenteId(id) + " abbonamenti registrati");
         }
-        return applica(u, form);
+        Set<Ruolo> ruoliPrima = new HashSet<>(u.getRuoli());
+        boolean passwordCambiata = form.getPassword() != null && !form.getPassword().isEmpty();
+        applica(u, form);
+        // Se cambiano la password o i ruoli, i token di accesso già emessi non valgono più (es. a un admin tolto il ruolo ADMIN
+        // non deve restare l'accesso alla API fino alla scadenza del token).
+        if (passwordCambiata || !ruoliPrima.equals(u.getRuoli())) {
+            u.revocaTokenAccesso();
+        }
+        if (passwordCambiata) {
+            refreshTokens.revocaTuttiDi(u.getId());     // con una nuova password anche i refresh token vecchi smettono di valere
+        }
+        return u;
     }
 
     // Elimina l'utente (DELETE) e le sue righe nelle pivot (corsi e ruoli); i corsi e i ruoli restano.
@@ -227,6 +243,8 @@ public class UtenteService {
         Utente u = utenti.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + email + " non trovato"));
         u.setPasswordHash(encoder.encode(nuovaPassword));
+        u.revocaTokenAccesso();      // i token di accesso emessi con la vecchia password non valgono più...
+        refreshTokens.revocaTuttiDi(u.getId());    // ...e nemmeno i refresh token: nessuno può più rinnovare l'accesso con la vecchia
     }
 
     // Regola sulla lunghezza, comune al form utente e al cambio password: almeno 8 caratteri e al massimo 72

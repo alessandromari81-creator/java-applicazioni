@@ -1,7 +1,7 @@
 /*
  * FILE: SessioneService.java
  * A COSA SERVE: coordina le "sessioni" della API: login (email + password -> access token + refresh token), rinnovo (refresh
- * token -> nuova coppia di token) e logout (revoca del refresh token). Usa AutenticazioneService per le credenziali,
+ * token -> nuova coppia di token) e logout (revoca dei token). Usa AutenticazioneService per le credenziali,
  * JwtService per l'access token e RefreshTokenService per il refresh token.
  */
 package it.palestra.service;
@@ -55,16 +55,17 @@ public class SessioneService {
         return emettiPer(utente);
     }
 
-    // LOGOUT: revoca il refresh token. L'access token già emesso resta valido fino alla sua scadenza (60 minuti): è il
-    // compromesso dei token "senza stato". Per questo l'access token dura poco.
+    // LOGOUT: revoca il refresh token e, se era attivo, anche TUTTI gli access token già emessi per quell'utente (versione + 1: da quel
+    // momento il controllo di ValidatoreRevocaToken li rifiuta). Effetto: dopo il logout l'access token non vale più subito, senza
+    // aspettare i 60 minuti. Gli altri dispositivi dello stesso utente ricevono un 401 e si rinnovano col proprio refresh token.
     public void logout(String refreshToken) {
-        refreshTokens.revoca(refreshToken);
+        refreshTokens.revoca(refreshToken).ifPresent(utente -> utente.revocaTokenAccesso());
     }
 
     // Emette access token (con i ruoli dell'utente) e refresh token.
     private Sessione emettiPer(Utente utente) {
         List<String> ruoli = utente.getRuoli().stream().map(ruolo -> ruolo.getNome()).sorted().toList();
-        JwtService.TokenEmesso access = jwt.emetti(utente.getEmail(), ruoli);
+        JwtService.TokenEmesso access = jwt.emetti(utente.getEmail(), ruoli, utente.getVersioneToken());
         RefreshTokenService.Emesso refresh = refreshTokens.emetti(utente);
         return new Sessione(access.token(), access.scadeTraSecondi(), refresh.token(), refresh.scadeTraSecondi());
     }

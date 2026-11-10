@@ -24,6 +24,36 @@
       "name": "app.admin.password",
       "type": "java.lang.String",
       "description": "Password del primo amministratore (viene cifrata con bcrypt prima di salvarla). Solo sviluppo."
+    },
+    {
+      "name": "app.pulizia.attiva",
+      "type": "java.lang.Boolean",
+      "description": "Interruttore dei compiti programmati (pulizia dei refresh token scaduti).",
+      "defaultValue": true
+    },
+    {
+      "name": "app.pulizia.cron",
+      "type": "java.lang.String",
+      "description": "Quando gira la pulizia dei refresh token scaduti (cron: secondi minuti ore giorno mese giornoSettimana).",
+      "defaultValue": "0 30 3 * * *"
+    },
+    {
+      "name": "app.sicurezza.login-max-tentativi",
+      "type": "java.lang.Integer",
+      "description": "Login falliti ammessi per coppia IP+email nella finestra, poi 429 / blocco.",
+      "defaultValue": 5
+    },
+    {
+      "name": "app.sicurezza.login-max-tentativi-per-ip",
+      "type": "java.lang.Integer",
+      "description": "Login falliti ammessi per solo IP (qualsiasi email) nella finestra.",
+      "defaultValue": 20
+    },
+    {
+      "name": "app.sicurezza.login-finestra-minuti",
+      "type": "java.lang.Long",
+      "description": "Durata in minuti della finestra di conteggio dei login falliti (dal primo fallimento).",
+      "defaultValue": 15
     }
   ]
 }

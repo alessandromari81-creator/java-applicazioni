@@ -2,8 +2,7 @@
  * FILE: Abbonamento.java
  * A COSA SERVE: un abbonamento sottoscritto da un iscritto (tabella "abbonamento"): quale tipo, da quando a
  * quando, a che prezzo. Un utente ne ha molti nel tempo (rinnovi).
- * PARAGONE LARAVEL: un model Eloquent con belongsTo(Utente). Qui però il "calcolo" (data di fine, prezzo, stato)
- * sta DENTRO la classe, vicino ai dati: è la differenza tra un "modello ricco" e uno che contiene solo colonne.
+ * Il "calcolo" (data di fine, prezzo, stato) sta DENTRO la classe, vicino ai dati: è un "modello ricco", non solo colonne.
  */
 package it.palestra.model;
 
@@ -18,7 +17,7 @@ public class Abbonamento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // L'iscritto a cui appartiene. MOLTI abbonamenti -> UN utente (come belongsTo in Laravel).
+    // L'iscritto a cui appartiene. MOLTI abbonamenti -> UN utente.
     // LAZY = l'utente si legge dal database solo quando serve (la lista lo carica subito con @EntityGraph).
     // optional = false: un abbonamento senza utente non esiste (la colonna utente_id è NOT NULL).
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -30,7 +29,7 @@ public class Abbonamento {
     @Column(nullable = false, length = 20)
     private TipoAbbonamento tipo;
 
-    // LocalDate = una data senza ora (come Carbon::today()); nel database una colonna DATE.
+    // LocalDate = una data senza ora; nel database una colonna DATE.
     // Nomi colonna: data_inizio e data_fine (camelCase -> snake_case automatico).
     @Column(nullable = false)
     private LocalDate dataInizio;

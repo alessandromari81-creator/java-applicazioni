@@ -8,7 +8,7 @@
 package it.palestra.exception;
 
 // RuntimeException = eccezione "non controllata": non obbliga a scrivere try/catch o "throws"
-// in ogni metodo che la attraversa (come le eccezioni normali di PHP).
+// in ogni metodo che la attraversa.
 public class RisorsaNonTrovataException extends RuntimeException {
 
     public RisorsaNonTrovataException(String messaggio) {

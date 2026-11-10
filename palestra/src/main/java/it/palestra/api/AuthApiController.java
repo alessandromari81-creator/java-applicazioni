@@ -5,7 +5,6 @@
  *   POST /api/auth/refresh  refresh_token               -> NUOVA coppia di token (il refresh usato viene invalidato)
  *   POST /api/auth/logout   refresh_token               -> 204; il refresh token non vale più
  * Poi il client invia l'access token in ogni richiesta: "Authorization: Bearer <access_token>".
- * PARAGONE LARAVEL: gli endpoint login/refresh/logout di Sanctum o Passport.
  *
  * FLUSSO TIPICO:
  *   login -> access_token (60 min) + refresh_token (7 giorni)
@@ -20,7 +19,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import it.palestra.api.dto.LoginRequest;
 import it.palestra.api.dto.RefreshRequest;
 import it.palestra.api.dto.TokenResponse;
+import it.palestra.service.LimiteTentativiLogin;
 import it.palestra.service.SessioneService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.AuthenticationException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,22 +38,32 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthApiController {
 
     private final SessioneService sessioni;
+    private final LimiteTentativiLogin limite;
 
-    public AuthApiController(SessioneService sessioni) {
+    public AuthApiController(SessioneService sessioni, LimiteTentativiLogin limite) {
         this.sessioni = sessioni;
+        this.limite = limite;
     }
 
     // @RequestBody = "il corpo della richiesta è un JSON: trasformalo in un oggetto LoginRequest". @Valid esegue le
     // regole di validazione (campi obbligatori); se falliscono parte da sola la risposta 400 (GestoreErroriApi).
     // Credenziali sbagliate -> BadCredentialsException -> 401 (messaggio uguale per email inesistente e password errata).
-    @Operation(summary = "Login con email e password")
+    @Operation(summary = "Login con email e password (dopo troppi tentativi falliti: 429 con Retry-After)")
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest richiesta) {
-        return TokenResponse.da(sessioni.login(richiesta.email().trim(), richiesta.password()));
+    public TokenResponse login(@Valid @RequestBody LoginRequest richiesta, HttpServletRequest richiestaHttp) {
+        String ip = richiestaHttp.getRemoteAddr();
+        String email = richiesta.email().trim();
+        limite.verifica(ip, email);                               // troppi tentativi falliti? -> 429 senza guardare la password
+        try {
+            TokenResponse risposta = TokenResponse.da(sessioni.login(email, richiesta.password()));
+            limite.registraSuccesso(ip, email);                   // login riuscito: il contatore di questa coppia riparte da zero
+            return risposta;
+        } catch (AuthenticationException e) {
+            limite.registraFallimento(ip, email);                 // credenziali sbagliate: conta come tentativo fallito
+            throw e;                                              // e la risposta resta il 401 di sempre
+        }
     }
 
-    // Rinnovo: il refresh token viene USATO (e invalidato) e si riceve una coppia nuova. Se il token è sconosciuto, scaduto o
-    // già usato -> 401. Il motivo preciso lo scrive solo il log del server.
     @Operation(summary = "Rinnova l'accesso con il refresh token")
     @PostMapping("/refresh")
     public TokenResponse rinnova(@RequestBody RefreshRequest richiesta) {

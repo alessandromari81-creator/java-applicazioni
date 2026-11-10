@@ -2,7 +2,7 @@
  * FILE: CorsoRequest.java
  * A COSA SERVE: il JSON che si invia per creare o modificare un corso. Contiene SOLO i campi modificabili: anche se il
  * client aggiungesse "id" o altri campi, vengono ignorati (così non si può modificare per sbaglio, o per attacco, ciò che
- * non deve: protezione dal "mass assignment", come $fillable di Laravel).
+ * non deve: protezione dal "mass assignment").
  *   { "nome": "Zumba", "descrizione": "Danza", "durataMinuti": 55, "livello": "INTERMEDIO", "istruttoreId": 3 }
  * Le regole di validazione sono le stesse del form delle pagine (CorsoForm).
  */

@@ -3,7 +3,7 @@
  * A COSA SERVE: mette a disposizione di tutta l'applicazione l'"orologio" (java.time.Clock). Il codice che ha
  * bisogno della data di oggi lo chiede qui invece di chiamare LocalDate.now() direttamente.
  * PERCHÉ: così nei test si può sostituire con un orologio finto fermo a una data precisa, e provare cosa succede
- * "domani" o "tra un anno" senza aspettare. PARAGONE LARAVEL: Carbon::setTestNow(...).
+ * "domani" o "tra un anno" senza aspettare.
  */
 package it.palestra.config;
 

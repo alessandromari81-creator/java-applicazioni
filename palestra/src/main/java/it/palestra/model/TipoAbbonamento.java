@@ -1,7 +1,7 @@
 /*
  * FILE: TipoAbbonamento.java
  * A COSA SERVE: i tipi di abbonamento venduti dalla palestra, ognuno con la sua durata in mesi e il suo prezzo
- * di LISTINO. È un enum Java (come un enum di PHP 8.1) che oltre ai valori contiene dati e un piccolo calcolo.
+ * di LISTINO. È un enum Java che oltre ai valori contiene dati e un piccolo calcolo.
  * Per cambiare i prezzi di listino si modificano i numeri qui sotto (vale per i NUOVI abbonamenti: quelli già
  * creati conservano il prezzo con cui sono stati venduti).
  */

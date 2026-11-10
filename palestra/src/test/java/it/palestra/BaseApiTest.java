@@ -5,7 +5,7 @@
  *
  * COME SI SIMULA UN CLIENTE AUTENTICATO: nella maggior parte dei test non serve fare ogni volta il login e firmare un
  * token vero: jwt() di spring-security-test inserisce direttamente nella richiesta un utente già autenticato come se il
- * token fosse valido (come actingAs() in Laravel). Il flusso VERO (login, token scaduto, manomesso...) lo prova
+ * token fosse valido. Il flusso VERO (login, token scaduto, manomesso...) lo prova
  * ApiAuthTest. Nei test della API non serve mai .with(csrf()): la API non usa cookie, quindi non c'è CSRF.
  */
 package it.palestra;

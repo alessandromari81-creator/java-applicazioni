@@ -43,13 +43,13 @@
 	</properties>
 	<!-- Librerie usate dal progetto. I "starter" sono pacchetti che ne raggruppano diverse. -->
 	<dependencies>
-		<!-- JPA/Hibernate + Spring Data: entità e repository (il tuo "Eloquent"). -->
+		<!-- JPA/Hibernate + Spring Data: entità e repository. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-		<!-- Cache: @Cacheable/@CacheEvict (Spring Cache) con Caffeine come motore IN MEMORIA (come il driver "array"/APCu di
-		     Laravel, non Redis: l'app gira in una sola istanza). Oggi serve solo all'elenco dei ruoli. -->
+		<!-- Cache: @Cacheable/@CacheEvict (Spring Cache) con Caffeine come motore IN MEMORIA (non Redis:
+		     l'app gira in una sola istanza). Oggi serve solo all'elenco dei ruoli. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-cache</artifactId>
@@ -59,7 +59,7 @@
 			<artifactId>caffeine</artifactId>
 		</dependency>
 		<!-- Swagger/OpenAPI (springdoc): legge i controller /api e genera da solo la descrizione JSON (/v3/api-docs) e la pagina
-		     interattiva (/swagger-ui.html) dove si provano gli endpoint. PARAGONE LARAVEL: Scribe / L5-Swagger / Scramble. -->
+		     interattiva (/swagger-ui.html) dove si provano gli endpoint. -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -70,12 +70,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-		<!-- Thymeleaf: motore di template HTML lato server (il tuo "Blade"). -->
+		<!-- Thymeleaf: motore di template HTML lato server -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
-		<!-- Bean Validation: annotazioni @NotBlank, @Email... (le "rules" di Laravel). -->
+		<!-- Bean Validation: annotazioni @NotBlank, @Email... -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
@@ -85,13 +85,13 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
-		<!-- Driver JDBC di PostgreSQL: permette a Java di parlare col database (come l'estensione pdo_pgsql di PHP). -->
+		<!-- Driver JDBC di PostgreSQL: permette a Java di parlare col database -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<!-- Flyway: esegue le migration SQL di src/main/resources/db/migration all'avvio (come php artisan migrate). -->
+		<!-- Flyway: esegue le migration SQL di src/main/resources/db/migration all'avvio -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-flyway</artifactId>
@@ -108,7 +108,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
 		</dependency>
-		<!-- Layout Dialect: permette i layout con "buchi" da riempire (layout:decorate, layout:fragment), come @extends/@yield di Blade. -->
+		<!-- Layout Dialect: permette i layout con "buchi" da riempire (layout:decorate, layout:fragment) -->
 		<dependency>
 			<groupId>nz.net.ultraq.thymeleaf</groupId>
 			<artifactId>thymeleaf-layout-dialect</artifactId>
@@ -156,7 +156,7 @@
 			<artifactId>spring-boot-starter-validation-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- Strumenti di test per i controller (MockMvc, come i test HTTP di Laravel). -->
+		<!-- Strumenti di test per i controller (MockMvc). -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>

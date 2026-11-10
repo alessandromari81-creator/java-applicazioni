@@ -10,7 +10,7 @@
   (u.corsiInsegnati). Sono due relazioni diverse con la stessa tabella corso.
   Per gli iscritti mostra anche lo stato del loro abbonamento: la mappa "abbonamenti" (id utente -> l'abbonamento più
   significativo) e "oggi" arrivano dal controller.
-  Usa il layout layout/base.html (come @extends): barra e <head> arrivano da lì.
+  Usa il layout layout/base.html: barra e <head> arrivano da lì.
 */-->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
@@ -27,7 +27,7 @@
   <div class="card">
     <div class="top">
       <h1>Utenti</h1>
-      <!--/* @{/utenti/nuovo} = url('/utenti/nuovo') di Laravel: genera l'indirizzo corretto */-->
+      <!--/* @{/utenti/nuovo} genera l'indirizzo corretto (tiene conto di un eventuale prefisso dell'applicazione) */-->
       <a class="btn" th:href="@{${'/utenti/nuovo' + lista.querystring}}">+ Nuovo utente</a>
     </div>
 
@@ -46,7 +46,7 @@
     <table>
       <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'cognome', 'Cognome e nome')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'email', 'Email')}"></th:block><th>Ruoli</th><th>Corsi (iscritto)</th><th>Insegna</th><th>Abbonamento</th><th></th></tr></thead>
       <tbody>
-        <!--/* th:each = @foreach: ripete la riga per ogni utente della lista. */-->
+        <!--/* th:each ripete la riga per ogni utente della lista. */-->
         <tr th:each="u : ${utenti}">
           <td th:text="${u.cognome + ' ' + u.nome}"></td>
           <td th:text="${u.email}"></td>

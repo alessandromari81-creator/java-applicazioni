@@ -2,8 +2,6 @@
  * FILE: SecurityConfig.java
  * A COSA SERVE: configura la sicurezza: quali pagine sono pubbliche e quali richiedono
  * login, come funziona il login/logout, e chi è l'utente amministratore.
- * PARAGONE LARAVEL: l'insieme di middleware 'auth', config/auth.php e le rotte di login
- * di Breeze/Fortify, tutto in un file.
  *
  * CHI PUÒ FARE LOGIN: gli utenti della tabella "utente" che hanno una password (con l'email come username).
  * Il pannello è riservato a chi ha il ruolo ADMIN. Il primo admin lo crea AdminIniziale all'avvio.
@@ -24,6 +22,14 @@
 package it.palestra.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.Authentication;
+import it.palestra.service.LimiteTentativiLogin;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.ServletException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -45,7 +51,7 @@ import it.palestra.service.JwtService;
 import org.springframework.security.web.SecurityFilterChain;
 
 // @Configuration = classe di configurazione: i metodi @Bean creano oggetti che Spring
-// registra nel suo container (come i Service Provider di Laravel).
+// registra nel suo container.
 @Configuration
 public class SecurityConfig {
 
@@ -134,33 +140,54 @@ public class SecurityConfig {
 
     // CATENA 2: le pagine (tutto il resto). Provata dopo la API (@Order(2)).
     // Definisce le regole di sicurezza HTTP. Spring Security funziona con una catena
-    // di filtri, equivalente ai middleware di Laravel.
+    // di filtri.
     @Bean
     @Order(2)
-    SecurityFilterChain filtri(HttpSecurity http) throws Exception {
+    SecurityFilterChain filtri(HttpSecurity http, LimiteTentativiLogin limite) throws Exception {
+        // Dopo un login riuscito si va sempre al pannello (/utenti); dopo uno fallito si torna a /login?error. In entrambi i casi si
+        // avvisa il limite ai tentativi (LimiteTentativiLogin): azzera il contatore o lo aumenta.
+        SimpleUrlAuthenticationSuccessHandler successo = new SimpleUrlAuthenticationSuccessHandler("/utenti") {
+            @Override
+            public void onAuthenticationSuccess(HttpServletRequest richiesta, HttpServletResponse risposta,
+                                                Authentication autenticazione) throws IOException, ServletException {
+                limite.registraSuccesso(richiesta.getRemoteAddr(), richiesta.getParameter("username"));
+                super.onAuthenticationSuccess(richiesta, risposta, autenticazione);
+            }
+        };
+        SimpleUrlAuthenticationFailureHandler fallimento = new SimpleUrlAuthenticationFailureHandler("/login?error") {
+            @Override
+            public void onAuthenticationFailure(HttpServletRequest richiesta, HttpServletResponse risposta,
+                                                AuthenticationException eccezione) throws IOException, ServletException {
+                limite.registraFallimento(richiesta.getRemoteAddr(), richiesta.getParameter("username"));
+                super.onAuthenticationFailure(richiesta, risposta, eccezione);
+            }
+        };
         http
             .authorizeHttpRequests(a -> a
                 // /login e i file CSS sono pubblici (senza questo non si vedrebbe nemmeno il login).
                 // /error è la pagina interna a cui Spring Boot passa gli errori (404, 500...):
                 // se non fosse pubblica, anche la pagina di errore chiederebbe il login.
                 .requestMatchers("/login", "/css/**", "/error").permitAll()
-                // TUTTO il resto richiede di essere loggati E di avere il ruolo ADMIN (come i middleware
-                // 'auth' e 'role:admin' di Laravel). hasRole("ADMIN") controlla l'autorità ROLE_ADMIN.
+                // TUTTO il resto richiede di essere loggati E di avere il ruolo ADMIN.
+                // hasRole("ADMIN") controlla l'autorità ROLE_ADMIN.
                 // Se non sei loggato vai al login; se sei loggato ma senza ruolo ADMIN ricevi un 403.
                 .anyRequest().hasRole("ADMIN"))
+            // Il filtro del limite ai tentativi sta PRIMA di quello che controlla la password.
+            .addFilterBefore(new FiltroLimiteLogin(limite), UsernamePasswordAuthenticationFilter.class)
             .formLogin(f -> f
                 .loginPage("/login")                    // usa la NOSTRA pagina invece di quella di default
-                .defaultSuccessUrl("/utenti", true)     // dopo il login vai sempre al pannello
+                .successHandler(successo)               // dopo il login vai sempre al pannello
+                .failureHandler(fallimento)             // login fallito: di nuovo al login con ?error
                 .permitAll())
             // Dopo il logout torna al login con ?logout (per mostrare il messaggio).
             // Il logout si fa con POST /logout (protetto da CSRF automaticamente).
             .logout(l -> l.logoutSuccessUrl("/login?logout"));
         // Il CSRF è attivo di default: i form Thymeleaf aggiungono da soli il token
-        // nascosto (come @csrf in Blade).
+        // nascosto.
         return http.build();
     }
 
-    // Cifratore di password: BCrypt, come Hash::make() di Laravel. Serve a due cose:
+    // Cifratore di password: BCrypt. Serve a due cose:
     //  - AdminIniziale lo usa per cifrare la password prima di salvarla nel database;
     //  - Spring Security lo usa al login per confrontare la password scritta con l'hash salvato.
     // Chi fa login lo trova UtenteUserDetailsService (service/), che legge dal database.

@@ -34,13 +34,15 @@ La risposta di login segue lo **standard OAuth2** (lo stesso formato di Keycloak
      -H 'Content-Type: application/json' -d '{"refresh_token":"fFUZ..."}'
    ```
    Si riceve una **nuova coppia** di token. Il refresh token usato **non vale più** (*rotazione*): si usa sempre l'ultimo ricevuto.
-4. **Logout**: `POST /api/auth/logout` con `{"refresh_token":"..."}` revoca il refresh token (risponde sempre 204).
-   L'access token già emesso resta valido fino alla sua scadenza (max 60 minuti).
+4. **Logout**: `POST /api/auth/logout` con `{"refresh_token":"..."}` revoca il refresh token (risponde sempre 204) e anche
+   **tutti gli access token già emessi** per quell'utente: da quel momento danno 401 (non si aspetta più la scadenza). Gli altri
+   dispositivi dello stesso utente ricevono un 401 e si rinnovano da soli con il proprio refresh token. Se il refresh token è
+   già usato o inesistente il logout risponde 204 ma non revoca niente.
 
 Se anche il rinnovo dà 401 (refresh token scaduto, già usato o revocato) si rifà il login.
 
 **Attenzione al riuso:** presentare due volte lo stesso refresh token è trattato come un possibile **furto** (il ladro e il
-proprietario ne hanno una copia ciascuno): vengono revocati **tutti** i refresh token di quell'utente e dovrà rifare il login.
+proprietario ne hanno una copia ciascuno): vengono revocati **tutti** i refresh token e **tutti** gli access token di quell'utente e dovrà rifare il login.
 Per questo, con il refresh, bisogna sostituire sempre il vecchio token con quello nuovo (Postman lo fa da solo).
 
 ### In Postman: collection ed Environment già pronti
@@ -175,10 +177,11 @@ Sempre JSON, con questa forma:
 | Codice | Quando |
 |---|---|
 | 400 | dati sbagliati: JSON rotto, campi obbligatori, regole sui campi (email già usata, password, data nel passato, sovrapposizione...). Se riguarda dei campi c'è `campi` |
-| 401 | access token mancante, scaduto o modificato; credenziali di login errate; refresh token non valido, scaduto o già usato |
+| 401 | access token mancante, scaduto, modificato o **revocato**; credenziali di login errate; refresh token non valido, scaduto o già usato |
 | 403 | token valido ma senza il ruolo ADMIN |
 | 404 | risorsa inesistente |
 | 409 | operazione rifiutata da una regola sullo stato attuale (ultimo admin, corso con iscritti, abbonamento già iniziato...) |
+| 429 | solo `POST /api/auth/login`: troppi tentativi falliti (vedi «Limite ai tentativi di login»). L'intestazione `Retry-After` dice quanti secondi aspettare |
 
 Nota: un indirizzo `/api/...` che non esiste risponde 404 nel formato standard di Spring Boot
 (`timestamp`, `status`, `error`, `path`), non in quello sopra.
@@ -194,6 +197,9 @@ suo **log**, cioè nel terminale di VS Code in cui gira. Cerca la riga `WARN ...
 | `Bearer token is malformed` | l'intestazione c'è ma il token è vuoto o rotto | la variabile `jwt_token` è vuota o non risolta: rifai **Auth → Login** e controlla che dia 200 |
 | `Jwt expired at ...` | access token scaduto (dura 60 minuti) | esegui **Refresh token** (o rifai il Login) |
 | `Invalid signature` | token firmato con un'altra chiave (es. emesso da un'altra installazione o con un `JWT_SECRET` diverso) | rifai il Login sull'app che stai interrogando |
+| `token revocato (logout, cambio password o ruoli, ...)` | l'access token è stato revocato prima della scadenza: logout, cambio di password o di ruoli dell'utente, sospetto furto del refresh token | esegui **Refresh token** (se il refresh è ancora valido) o rifai il Login |
+| `l'utente del token non esiste: eliminato o mai creato` | l'utente a cui appartiene il token è stato eliminato | rifai il Login con un utente esistente |
+| `il token non contiene la versione` | token emesso prima dell'introduzione della revoca | rifai il Login (o il Refresh) |
 | `negata con 403` | token valido ma senza ruolo ADMIN | usa un admin |
 
 In Postman, per vedere cosa parte davvero: **View → Show Postman Console** e rilancia la richiesta: si vede l'intestazione
@@ -211,9 +217,27 @@ Il log compare solo dopo aver **riavviato l'app** con il codice aggiornato.
 - Il token è firmato con la chiave `app.jwt.secret` (**in produzione va impostata con la variabile d'ambiente
   `JWT_SECRET`**, lunga e casuale). Chi la conosce può fabbricare token validi.
 - Il contenuto di un token è leggibile da chiunque (provalo su jwt.io): non vi si mette mai nulla di segreto.
-- L'**access token** resta valido fino alla scadenza (60 minuti) anche se l'utente viene eliminato, perde il ruolo o fa logout
-  (il server non ricorda gli access token). Per questo dura poco.
+- L'**access token** vale al massimo 60 minuti, ma si può **revocare prima**: ogni token contiene la «versione» dei token dell'utente
+  (claim `v`) e a ogni richiesta il server la confronta con quella nel database (una `SELECT` per indice, `ValidatoreRevocaToken`).
+  La versione aumenta, e quindi tutti i token già emessi smettono di valere, quando l'utente fa **logout**, **cambia password**
+  (in quel caso anche i refresh token), **cambia i suoi ruoli** (compresa la rimozione di ADMIN) o quando si sospetta il **furto**
+  di un refresh token. Un utente eliminato non passa più perché non esiste. Un login o un rinnovo danno un token con la versione nuova.
 - Il **refresh token** invece è controllato a ogni uso: è una stringa casuale (non un JWT) di cui nel database c'è solo l'hash
   SHA-256; si può revocare (logout), ruota a ogni rinnovo, il riuso chiude tutte le sessioni, sparisce se l'utente viene eliminato,
   e il rinnovo emette un access token con i ruoli **attuali** dell'utente.
-- Non ancora fatto: pulizia automatica dei refresh token scaduti dal database, limite ai tentativi di login.
+- **Pulizia:** ogni notte (03:30, `app.pulizia.cron`) l'app cancella dal database i refresh token scaduti. Quelli revocati ma non ancora
+  scaduti restano, perché servono a riconoscere il riuso.
+
+### Limite ai tentativi di login
+
+Per frenare chi prova a indovinare le password (vale per `POST /api/auth/login` e per il form del pannello, con gli stessi contatori):
+
+- **5 login falliti** (`app.sicurezza.login-max-tentativi`) dallo stesso indirizzo per la stessa email nella finestra di **15 minuti**
+  (`app.sicurezza.login-finestra-minuti`, contata dal primo errore) bloccano quella coppia: il tentativo successivo riceve **429** con
+  `Retry-After` (secondi da aspettare), **anche con la password giusta**. Nel pannello si torna a `/login?bloccato`.
+- **20 login falliti** (`app.sicurezza.login-max-tentativi-per-ip`) dallo stesso indirizzo, su qualsiasi email, bloccano quell'indirizzo.
+- Un login riuscito azzera il contatore della coppia indirizzo+email. Un altro indirizzo non è toccato dal blocco.
+- Non contano i dati non validi (400). L'email si confronta senza maiuscole né spazi.
+- **Limiti noti:** i contatori stanno in memoria (si azzerano al riavvio e non sono condivisi tra più istanze); l'indirizzo è quello visto
+  dal server: dietro un proxy sono tutti lo stesso finché non si configura `server.forward-headers-strategy`.
+- Non c'è un limite sul rinnovo (`/api/auth/refresh`): il refresh token è lungo e casuale, non indovinabile.

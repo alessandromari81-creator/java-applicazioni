@@ -3,7 +3,6 @@
  * A COSA SERVE: la pagina "Cambia password" per chi è loggato (/account/password). Chi la usa modifica la
  * PROPRIA password: l'utente su cui si agisce non arriva dall'URL ma dalla sessione (Principal), quindi nessuno
  * può cambiare la password di un altro passando un id diverso.
- * PARAGONE LARAVEL: il controller del profilo/password di Breeze (PasswordController@update).
  * La pagina è dentro il pannello, quindi serve il ruolo ADMIN (regola generale di SecurityConfig).
  */
 package it.palestra.web;

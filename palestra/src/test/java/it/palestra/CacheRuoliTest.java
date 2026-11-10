@@ -68,7 +68,7 @@ class CacheRuoliTest extends BaseWebTest {
     }
 
     @Test
-    @DisplayName("Svuotando la cache la lettura successiva torna al database (come Cache::forget)")
+    @DisplayName("Svuotando la cache la lettura successiva torna al database")
     void dopoLoSvuotamentoRileggeDalDatabase() {
         ruolo("ISCRITTO");
         service.tuttiIRuoli();                       // riempie la cache

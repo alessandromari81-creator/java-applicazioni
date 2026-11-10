@@ -24,6 +24,9 @@ public class JwtService {
     // Nome del "claim" (campo del contenuto del token) che porta i ruoli. SecurityConfig lo legge con lo stesso nome.
     public static final String CLAIM_RUOLI = "ruoli";
 
+    // Nome del claim con la "versione" dei token dell'utente (vedi Utente.versioneToken): serve alla revoca prima della scadenza.
+    public static final String CLAIM_VERSIONE = "v";
+
     // Un token appena emesso: la stringa e tra quanti secondi scade (la API li restituisce entrambi al client).
     public record TokenEmesso(String token, long scadeTraSecondi) {}
 
@@ -39,8 +42,9 @@ public class JwtService {
         this.durata = Duration.ofMinutes(durataMinuti);
     }
 
-    // Emette un token per l'utente con l'email e i ruoli indicati (nomi senza prefisso: "ADMIN", non "ROLE_ADMIN").
-    public TokenEmesso emetti(String email, Collection<String> ruoli) {
+    // Emette un token per l'utente con l'email e i ruoli indicati (nomi senza prefisso: "ADMIN", non "ROLE_ADMIN")
+    // e la versione dei token che l'utente ha ADESSO nel database (claim "v", vedi ValidatoreRevocaToken).
+    public TokenEmesso emetti(String email, Collection<String> ruoli, int versioneToken) {
         Instant ora = clock.instant();
         JwtClaimsSet contenuto = JwtClaimsSet.builder()
                 .issuer("palestra")                      // chi ha emesso il token
@@ -48,6 +52,7 @@ public class JwtService {
                 .issuedAt(ora)                           // quando è stato emesso
                 .expiresAt(ora.plus(durata))             // quando smette di valere
                 .claim(CLAIM_RUOLI, List.copyOf(ruoli))  // i ruoli, per le autorizzazioni
+                .claim(CLAIM_VERSIONE, versioneToken)    // versione dei token: se l'utente la aumenta nel database, questo token è revocato
                 .build();
         // L'intestazione dichiara l'algoritmo di firma: HS256, lo stesso del decodificatore in JwtConfig.
         JwsHeader intestazione = JwsHeader.with(MacAlgorithm.HS256).build();

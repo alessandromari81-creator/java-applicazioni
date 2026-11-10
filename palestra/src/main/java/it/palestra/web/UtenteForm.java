@@ -16,9 +16,9 @@ import java.util.List;
 
 public class UtenteForm {
 
-    // @NotBlank = obbligatorio e non solo spazi ('required' di Laravel). "message" è il testo dell'errore.
+    // @NotBlank = obbligatorio e non solo spazi. "message" è il testo dell'errore.
     // @Size(max = 255): le colonne del database sono VARCHAR(255); senza questo limite un testo più lungo
-    // farebbe fallire l'INSERT con un errore 500 (come la regola 'max:255' di Laravel).
+    // farebbe fallire l'INSERT con un errore 500.
     @NotBlank(message = "Il nome è obbligatorio")
     @Size(max = 255, message = "Massimo 255 caratteri")
     private String nome;

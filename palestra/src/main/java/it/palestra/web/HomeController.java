@@ -3,15 +3,13 @@
  * A COSA SERVE: gestisce due rotte semplici: la home "/" (che rimanda al pannello) e la
  * pagina "/login". Il login vero (controllo di username e password) lo fa Spring Security,
  * qui serve solo a mostrare la pagina.
- * PARAGONE LARAVEL: Route::get('/', fn() => redirect('/utenti')) e Route::get('/login', ...).
  *
  * COME UN CONTROLLER SI COLLEGA A UNA PAGINA (vale per tutti i controller):
  *  1. L'URL si associa al metodo con @GetMapping("/percorso") o @PostMapping(...)
- *     (in Laravel lo fai in routes/web.php: Route::get('/login', [HomeController::class, 'login'])).
  *  2. Il metodo restituisce una STRINGA: è il nome del template senza ".html", relativo a
  *     src/main/resources/templates/. Esempio: return "login" -> templates/login.html;
- *     return "utenti/lista" -> templates/utenti/lista.html (come view('utenti.lista') in Laravel).
- *  3. I dati per la pagina si passano con model.addAttribute("nome", valore) (come compact()/with()).
+ *     return "utenti/lista" -> templates/utenti/lista.html.
+ *  3. I dati per la pagina si passano con model.addAttribute("nome", valore).
  *     Nel template li leggi con ${nome}.
  *  4. Se invece restituisci "redirect:/percorso" il browser viene mandato a un altro URL.
  */

@@ -4,7 +4,6 @@
   A COSA SERVE: i pezzi di pagina riutilizzati da TUTTE le liste (utenti, corsi, abbonamenti): la casella di ricerca, la barra
   con "Risultati X-Y di N", i numeri di pagina e la scelta di quanti elementi mostrare, le intestazioni di colonna cliccabili
   per ordinare, e i campi nascosti che ricordano lo stato della lista nei form.
-  PARAGONE LARAVEL: componenti Blade / partial riusabili (@include('partials.paginazione', [...])).
   COME SI USANO (nelle pagine):  <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
   "nav" è un oggetto NavigazionePagine preparato dal controller: contiene tutta la logica (numeri, link, frecce), qui si
   disegna soltanto. I link sono già costruiti dal server e già codificati.

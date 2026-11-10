@@ -103,7 +103,7 @@ class SicurezzaTest extends BaseWebTest {
     @Test
     @DisplayName("Un POST senza token CSRF è vietato (anche da admin)")
     void unPostSenzaTokenCsrfEVietato() throws Exception {
-        // Il CSRF è la protezione che impedisce a un altro sito di inviare form al posto tuo (come @csrf in Blade).
+        // Il CSRF è la protezione che impedisce a un altro sito di inviare form al posto tuo.
         // Qui facciamo un POST da admin ma SENZA .with(csrf()): Spring lo blocca con 403.
         mockMvc.perform(post("/utenti").with(comeAdmin()))
                 .andExpect(status().isForbidden());
