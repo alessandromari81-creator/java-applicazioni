@@ -26,7 +26,10 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashSet;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,6 +59,7 @@ abstract class BaseWebTest {
     @Autowired protected RuoloRepository ruoli;
     @Autowired protected AbbonamentoRepository abbonamenti;
     @Autowired protected PasswordEncoder encoder;
+    @Autowired protected CacheManager cacheManager;   // per svuotare le cache prima di ogni test
     @Autowired protected EntityManager em;   // serve a "svuotare" la cache di Hibernate (vedi ricarica())
 
     // Simula una richiesta fatta da un amministratore già loggato (come actingAs($admin) in Laravel).
@@ -95,6 +99,17 @@ abstract class BaseWebTest {
     // L'admin creato all'avvio (l'unico ADMIN presente a inizio di ogni test).
     protected Utente adminIniziale() {
         return utenti.findByEmailIgnoreCase(EMAIL_ADMIN).orElseThrow();
+    }
+
+    // Prima di OGNI test si svuotano le cache. PERCHÉ: i test girano in transazioni annullate (rollback), ma la cache vive fuori
+    // dalla transazione: senza questo, i ruoli letti da un test resterebbero in cache anche se il database li ha già "dimenticati".
+    // È come Cache::flush() nel setUp() di un test Laravel.
+    @BeforeEach
+    void svuotaLeCache() {
+        for (String nome : cacheManager.getCacheNames()) {
+            Cache cache = cacheManager.getCache(nome);
+            if (cache != null) cache.clear();
+        }
     }
 
     // Allinea Java e database dopo una richiesta che modifica dati.

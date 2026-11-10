@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,6 +91,13 @@ public class UtenteService {
         return corsi.findAll();
     }
 
+    // CACHE: @Cacheable("ruoli") = "la prima volta esegui il metodo e salva il risultato nella cache chiamata ruoli; le volte
+    // dopo restituisci quello salvato SENZA entrare nel metodo (quindi senza query)". È come Cache::remember('ruoli', 3600, fn).
+    // Perché proprio qui: i ruoli sono 3, si leggono ad ogni apertura del form utente e ad ogni richiesta API che li mappa, e
+    // cambiano solo con una migration. La chiave è unica (metodo senza parametri). Gli oggetti Ruolo sono immutabili (nessun setter),
+    // quindi condividerli tra richieste è sicuro. Non c'è @CacheEvict perché nell'app nessuna funzione modifica i ruoli: se un
+    // giorno si aggiungesse "crea/elimina ruolo", va messo lì @CacheEvict(value = "ruoli", allEntries = true).
+    @Cacheable("ruoli")
     @Transactional(readOnly = true)
     public List<Ruolo> tuttiIRuoli() {
         return ruoli.findAllByOrderByIdAsc();
