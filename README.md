@@ -261,7 +261,3 @@ A ogni push e a ogni pull request GitHub Actions ([`.github/workflows/test.yml`]
 ### Licenza
 
 Distribuito con licenza [MIT](LICENSE): il codice si può usare, copiare e modificare liberamente.
-
-### Note di lavoro
-
-[`CLAUDE.md`](CLAUDE.md) contiene lo stato del progetto, le regole di lavoro e l'elenco dei punti ancora da fare.

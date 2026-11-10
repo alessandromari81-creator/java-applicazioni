@@ -1,8 +1,8 @@
 # API REST della Palestra
 
 La stessa applicazione che mostra le pagine HTML espone anche una API in **JSON**, sotto `/api`. Usa gli stessi
-dati e le stesse regole delle pagine (stessi *service*). Avvio: vedi `CLAUDE.md` (`docker compose up -d` e
-`./mvnw spring-boot:run`), indirizzo base `http://localhost:8080`.
+dati e le stesse regole delle pagine (stessi *service*). Avvio: vedi il [README](../README.md) (`docker compose up -d` e
+`./mvnw spring-boot:run`, oppure tutto in Docker), indirizzo base `http://localhost:8080`.
 
 ## 1. Autenticazione (JWT + refresh token)
 
