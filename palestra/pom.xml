@@ -38,6 +38,8 @@
 	<!-- Versione di Java usata per compilare. -->
 	<properties>
 		<java.version>21</java.version>
+		<!-- Versione di springdoc (Swagger/OpenAPI): non è gestita da Spring Boot, quindi la fissiamo noi. -->
+		<springdoc.version>3.2.0</springdoc.version>
 	</properties>
 	<!-- Librerie usate dal progetto. I "starter" sono pacchetti che ne raggruppano diverse. -->
 	<dependencies>
@@ -55,6 +57,13 @@
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
+		</dependency>
+		<!-- Swagger/OpenAPI (springdoc): legge i controller /api e genera da solo la descrizione JSON (/v3/api-docs) e la pagina
+		     interattiva (/swagger-ui.html) dove si provano gli endpoint. PARAGONE LARAVEL: Scribe / L5-Swagger / Scramble. -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
 		</dependency>
 		<!-- Spring Security: login, sessioni, CSRF, protezione delle rotte. -->
 		<dependency>

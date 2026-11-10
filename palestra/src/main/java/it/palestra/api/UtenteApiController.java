@@ -14,6 +14,12 @@
  */
 package it.palestra.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.Parameter;
 import it.palestra.api.dto.PaginaResponse;
 import it.palestra.api.dto.UtenteRequest;
 import it.palestra.api.dto.UtenteResponse;
@@ -35,6 +41,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Tag(name = "Utenti", description = "CRUD degli utenti: ruoli (ADMIN, ISTRUTTORE, ISCRITTO), corsi frequentati e corsi tenuti.")
 @RequestMapping("/api/utenti")
 public class UtenteApiController {
 
@@ -46,16 +53,18 @@ public class UtenteApiController {
 
     // GET /api/utenti -> UNA PAGINA di utenti. Parametri facoltativi: page (da 0), size (1-100, predefinito 20), sort
     // (cognome, nome, email; es. "email,desc"), q (testo cercato in nome, cognome o email). Vedi PaginaResponse.
+    @Operation(summary = "Elenco paginato degli utenti (ricerca q su nome, cognome, email)")
     @GetMapping
     public PaginaResponse<UtenteResponse> elenco(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String q) {
+            @Parameter(description = "Numero di pagina, parte da 0 (default 0)") @RequestParam(required = false) Integer page,
+            @Parameter(description = "Elementi per pagina, da 1 a 100 (default 20)") @RequestParam(required = false) Integer size,
+            @Parameter(description = "Ordinamento: campo oppure campo,asc|desc. Campi ammessi: cognome (default), nome, email") @RequestParam(required = false) String sort,
+            @Parameter(description = "Testo da cercare (parziale, senza distinguere maiuscole, max 100 caratteri)") @RequestParam(required = false) String q) {
         RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, q, OrdinamentiListe.UTENTI);
         return PaginaResponse.da(service.elenco(richiesta), utente -> UtenteResponse.da(utente), richiesta);
     }
 
+    @Operation(summary = "Dettaglio di un utente")
     @GetMapping("/{id}")
     public UtenteResponse dettaglio(@PathVariable Long id) {
         return UtenteResponse.da(service.trova(id));
@@ -63,6 +72,9 @@ public class UtenteApiController {
 
     // POST /api/utenti -> crea. 201 + Location + utente creato. Le regole sui dati (email già usata, password, ruoli,
     // corsi) si controllano tutte insieme, così il client riceve l'elenco completo degli errori in una sola risposta.
+    @Operation(summary = "Crea un utente")
+    @ApiResponse(responseCode = "201", description = "Creato: l'indirizzo della nuova risorsa è nell'intestazione Location",
+            content = @Content(schema = @Schema(implementation = UtenteResponse.class)))
     @PostMapping
     public ResponseEntity<UtenteResponse> crea(@Valid @RequestBody UtenteRequest richiesta) {
         UtenteForm form = comeForm(richiesta);
@@ -75,6 +87,7 @@ public class UtenteApiController {
     // PUT /api/utenti/5 -> modifica. SOSTITUISCE ruoli e corsi con quelli inviati; la password, se omessa, resta
     // invariata. 404 se non esiste, 400 per dati non validi, 409 se una regola lo impedisce (es. togliere ADMIN
     // all'ultimo admin).
+    @Operation(summary = "Modifica un utente (PUT sostituisce ruoli e corsi)")
     @PutMapping("/{id}")
     public UtenteResponse modifica(@PathVariable Long id, @Valid @RequestBody UtenteRequest richiesta) {
         service.trova(id);
@@ -85,6 +98,7 @@ public class UtenteApiController {
     }
 
     // DELETE /api/utenti/5 -> 204. Il service rifiuta (409) se è l'ultimo admin, se tiene corsi o se ha abbonamenti.
+    @Operation(summary = "Elimina un utente (409: ultimo admin, istruttore di corsi, ha abbonamenti)")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void elimina(@PathVariable Long id) {

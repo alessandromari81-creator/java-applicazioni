@@ -127,6 +127,21 @@ A parità di valore si ordina sempre anche per `id`: scorrendo le pagine nessuna
 `q` compare solo se hai cercato. Una pagina oltre l'ultima risponde **200 con `content` vuoto** (e i totali giusti). Esempio:
 `GET /api/utenti?q=ross&size=10&page=1&sort=email,desc`. Parametri sbagliati: 400 con `campi` (es. `{"campi":{"size":["Deve essere compresa tra 1 e 100"]}}`).
 
+## 2b. Swagger / OpenAPI (documentazione interattiva)
+
+La API si documenta da sola (libreria springdoc, legge i controller e i DTO): non c'è un file da aggiornare a mano.
+
+| Cosa | Indirizzo | Note |
+|---|---|---|
+| Pagina interattiva (Swagger UI) | `http://localhost:8080/swagger-ui.html` | provi gli endpoint dal browser |
+| Descrizione OpenAPI (JSON) | `http://localhost:8080/v3/api-docs` | importabile in Postman / Bruno / generatori di client |
+
+- **Accesso riservato agli ADMIN**: non sono pubbliche. Si aprono dal browser dopo aver fatto **login nel pannello** (stessa sessione delle pagine); senza login si finisce sulla pagina di login.
+- **Provare gli endpoint**: in Swagger UI fai `POST /api/auth/login` (Try it out), copia l'`access_token`, premi **Authorize** in alto e incollalo (solo il token, senza «Bearer»). Il token resta ricordato nel browser. Scade in 60 minuti: rifai il login o usa `/api/auth/refresh`.
+- Ogni operazione elenca le risposte possibili (200/201, 400, 401, 403, 404, 409) con la forma `ErroreApi`; le liste descrivono `page`, `size`, `sort` (con i campi ammessi) e `q`.
+- **Importare in Postman**: Import → Link (o File) → `http://localhost:8080/v3/api-docs`. Serve per esplorare; la collection già pronta in `postman/` (con login e salvataggio dei token) resta la più comoda per lavorare.
+- **Spegnerle** (es. in produzione): variabile d'ambiente `SPRINGDOC_ENABLED=false`.
+
 ## 3. Esempi di corpo (JSON)
 
 **Corso** (`POST`/`PUT /api/corsi`):

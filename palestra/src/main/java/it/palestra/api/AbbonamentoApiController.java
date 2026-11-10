@@ -14,6 +14,12 @@
  */
 package it.palestra.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.Parameter;
 import it.palestra.api.dto.AbbonamentoRequest;
 import it.palestra.api.dto.AbbonamentoResponse;
 import it.palestra.api.dto.DataResponse;
@@ -33,6 +39,7 @@ import org.springframework.web.bind.annotation.*;
 // Il prefisso comune è solo /api: gli indirizzi completi sono scritti sui singoli metodi, perché alcuni stanno sotto
 // /api/abbonamenti e altri sotto /api/utenti/{id}/abbonamenti.
 @RestController
+@Tag(name = "Abbonamenti", description = "Abbonamenti degli iscritti: elenco, storico per utente, creazione/rinnovo, eliminazione dei non iniziati.")
 @RequestMapping("/api")
 public class AbbonamentoApiController {
 
@@ -45,22 +52,25 @@ public class AbbonamentoApiController {
     // GET /api/abbonamenti -> UNA PAGINA di abbonamenti. Parametri facoltativi: page (da 0), size (1-100, predefinito 20),
     // sort (dataFine, dataInizio, prezzo, tipo, iscritto; di partenza dataFine,desc), q (testo cercato in nome, cognome o
     // email dell'iscritto). Vedi PaginaResponse.
+    @Operation(summary = "Elenco paginato di tutti gli abbonamenti (ricerca q sull'iscritto)")
     @GetMapping("/abbonamenti")
     public PaginaResponse<AbbonamentoResponse> elenco(
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String q) {
+            @Parameter(description = "Numero di pagina, parte da 0 (default 0)") @RequestParam(required = false) Integer page,
+            @Parameter(description = "Elementi per pagina, da 1 a 100 (default 20)") @RequestParam(required = false) Integer size,
+            @Parameter(description = "Ordinamento: campo oppure campo,asc|desc. Campi ammessi: dataFine (default, decrescente), dataInizio, prezzo, tipo, iscritto") @RequestParam(required = false) String sort,
+            @Parameter(description = "Testo da cercare (parziale, senza distinguere maiuscole, max 100 caratteri)") @RequestParam(required = false) String q) {
         RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, q, OrdinamentiListe.ABBONAMENTI);
         return pagina(service.elenco(richiesta), richiesta);
     }
 
+    @Operation(summary = "Dettaglio di un abbonamento")
     @GetMapping("/abbonamenti/{id}")
     public AbbonamentoResponse dettaglio(@PathVariable Long id) {
         return AbbonamentoResponse.da(service.trova(id), service.oggi());
     }
 
     // DELETE: solo gli abbonamenti non ancora iniziati; gli altri restano nello storico (RegolaViolata -> 409).
+    @Operation(summary = "Elimina un abbonamento non ancora iniziato")
     @DeleteMapping("/abbonamenti/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void elimina(@PathVariable Long id) {
@@ -69,12 +79,13 @@ public class AbbonamentoApiController {
 
     // UNA PAGINA dello storico di UN utente (di partenza dal più recente). Se l'utente non esiste: 404 (trovaUtente).
     // Parametri: page, size, sort (dataInizio, dataFine, prezzo, tipo). La ricerca q non si applica allo storico.
+    @Operation(summary = "Storico paginato degli abbonamenti di un utente, dal più recente")
     @GetMapping("/utenti/{utenteId}/abbonamenti")
     public PaginaResponse<AbbonamentoResponse> storicoDiUtente(
             @PathVariable Long utenteId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort) {
+            @Parameter(description = "Numero di pagina, parte da 0 (default 0)") @RequestParam(required = false) Integer page,
+            @Parameter(description = "Elementi per pagina, da 1 a 100 (default 20)") @RequestParam(required = false) Integer size,
+            @Parameter(description = "Ordinamento: campo oppure campo,asc|desc. Campi ammessi: dataInizio (default, decrescente), dataFine, prezzo, tipo") @RequestParam(required = false) String sort) {
         service.trovaUtente(utenteId);
         RichiestaPagina richiesta = RichiestaPagina.da(page, size, sort, null, OrdinamentiListe.ABBONAMENTI_DI_UTENTE);
         return pagina(service.abbonamentiDi(utenteId, richiesta), richiesta);
@@ -82,6 +93,7 @@ public class AbbonamentoApiController {
 
     // La data da cui l'utente può iniziare un nuovo abbonamento senza sovrapposizioni (oggi, oppure il giorno dopo la
     // scadenza dell'ultimo): serve a un client per proporre la data di un rinnovo.
+    @Operation(summary = "Primo giorno libero per un nuovo abbonamento/rinnovo")
     @GetMapping("/utenti/{utenteId}/abbonamenti/primo-giorno-libero")
     public DataResponse primoGiornoLibero(@PathVariable Long utenteId) {
         service.trovaUtente(utenteId);
@@ -91,6 +103,9 @@ public class AbbonamentoApiController {
     // POST: crea un abbonamento per l'utente nell'indirizzo. Il corpo ha solo tipo e data di inizio. I controlli:
     //  1) l'utente deve esistere (404) ed essere ISCRITTO (400, campo "utente");
     //  2) la data non può essere nel passato né sovrapporsi ad altri abbonamenti (400, campo "dataInizio").
+    @Operation(summary = "Crea un abbonamento (o rinnovo) per un utente")
+    @ApiResponse(responseCode = "201", description = "Creato: l'indirizzo della nuova risorsa è nell'intestazione Location",
+            content = @Content(schema = @Schema(implementation = AbbonamentoResponse.class)))
     @PostMapping("/utenti/{utenteId}/abbonamenti")
     public ResponseEntity<AbbonamentoResponse> crea(@PathVariable Long utenteId,
                                                     @Valid @RequestBody AbbonamentoRequest richiesta) {

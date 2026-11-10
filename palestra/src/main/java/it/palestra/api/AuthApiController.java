@@ -15,6 +15,8 @@
  */
 package it.palestra.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import it.palestra.api.dto.LoginRequest;
 import it.palestra.api.dto.RefreshRequest;
 import it.palestra.api.dto.TokenResponse;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 // @RestController = @Controller + @ResponseBody: ciò che i metodi restituiscono diventa JSON (niente template).
 @RestController
+@Tag(name = "Autenticazione", description = "Login, rinnovo e logout (pubblici): restituiscono/revocano access token e refresh token.")
 @RequestMapping("/api/auth")
 public class AuthApiController {
 
@@ -41,6 +44,7 @@ public class AuthApiController {
     // @RequestBody = "il corpo della richiesta è un JSON: trasformalo in un oggetto LoginRequest". @Valid esegue le
     // regole di validazione (campi obbligatori); se falliscono parte da sola la risposta 400 (GestoreErroriApi).
     // Credenziali sbagliate -> BadCredentialsException -> 401 (messaggio uguale per email inesistente e password errata).
+    @Operation(summary = "Login con email e password")
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest richiesta) {
         return TokenResponse.da(sessioni.login(richiesta.email().trim(), richiesta.password()));
@@ -48,6 +52,7 @@ public class AuthApiController {
 
     // Rinnovo: il refresh token viene USATO (e invalidato) e si riceve una coppia nuova. Se il token è sconosciuto, scaduto o
     // già usato -> 401. Il motivo preciso lo scrive solo il log del server.
+    @Operation(summary = "Rinnova l'accesso con il refresh token")
     @PostMapping("/refresh")
     public TokenResponse rinnova(@RequestBody RefreshRequest richiesta) {
         return TokenResponse.da(sessioni.rinnova(tokenDi(richiesta)));
@@ -55,6 +60,7 @@ public class AuthApiController {
 
     // Logout: revoca il refresh token. Risponde SEMPRE 204 (anche se il token non esiste o è già revocato), così non si
     // possono scoprire quali token esistono. L'access token già emesso vale fino alla scadenza (60 minuti).
+    @Operation(summary = "Logout (revoca il refresh token)")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@RequestBody RefreshRequest richiesta) {
