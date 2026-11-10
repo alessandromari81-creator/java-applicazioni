@@ -58,6 +58,9 @@
             <!--/* Un'etichetta per ogni corso dell'utente (${u.corsi} usa getCorsi()). */-->
             <span class="tag" th:each="c : ${u.corsi}" th:text="${c.nome}"></span>
             <em th:if="${u.corsi.isEmpty()}">nessuno</em>
+            <!--/* Avviso: l'iscritto ha dei corsi ma non ha un abbonamento attivo oggi (mai avuto, scaduto o non ancora iniziato). I corsi restano, ma
+                   non se ne possono aggiungere altri finché non rinnova. "abbonamenti" è la mappa id utente -> abbonamento più significativo. */-->
+            <span class="tag tag-avviso" th:if="${u.isIscritto() and !u.corsi.isEmpty() and (abbonamenti.get(u.id) == null or abbonamenti.get(u.id).stato(oggi).name() != 'ATTIVO')}">abbonamento non attivo</span>
           </td>
           <!--/* INSEGNA: i corsi tenuti come istruttore (${u.corsiInsegnati} usa getCorsiInsegnati()). Se l'utente ha
                  il ruolo ISTRUTTORE ma non tiene ancora corsi si scrive "nessun corso ancora"; se NON è istruttore

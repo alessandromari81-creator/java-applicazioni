@@ -12,6 +12,7 @@ package it.palestra.service;
 import it.palestra.exception.RisorsaNonTrovataException;
 import it.palestra.model.Abbonamento;
 import it.palestra.model.Corso;
+import it.palestra.model.StatoAbbonamento;
 import it.palestra.model.Utente;
 import it.palestra.pagina.RichiestaPagina;
 import it.palestra.repository.UtenteRepository;
@@ -33,8 +34,9 @@ public class AreaService {
     public record CorsoTenuto(String nome, String livello, int durataMinuti, List<String> iscritti) {}
 
     // Tutto ciò che mostrano la pagina iniziale e il profilo dell'area personale.
+    // "abbonamentoAttivo": ha un abbonamento attivo OGGI (serve all'avviso «abbonamento non attivo» quando ha dei corsi).
     public record Riepilogo(String nome, String cognome, String email, String indirizzo, String cap, String citta,
-                            boolean iscritto, boolean istruttore, Abbonamento abbonamento,
+                            boolean iscritto, boolean istruttore, Abbonamento abbonamento, boolean abbonamentoAttivo,
                             List<CorsoFrequentato> corsi, List<CorsoTenuto> corsiTenuti,
                             String privacyAccettata, boolean consensoMarketing) {}
 
@@ -69,8 +71,9 @@ public class AreaService {
 
         String privacy = u.getPrivacyAccettataIl() == null ? null
                 : DATA_ORA.format(u.getPrivacyAccettataIl().atZone(clock.getZone()));
+        boolean attivo = abbonamento != null && abbonamento.stato(abbonamenti.oggi()) == StatoAbbonamento.ATTIVO;
         return new Riepilogo(u.getNome(), u.getCognome(), u.getEmail(), u.getIndirizzo(), u.getCap(), u.getCitta(),
-                u.isIscritto(), u.isIstruttore(), abbonamento, frequentati, tenuti, privacy,
+                u.isIscritto(), u.isIstruttore(), abbonamento, attivo, frequentati, tenuti, privacy,
                 u.getConsensoMarketingIl() != null);
     }
 

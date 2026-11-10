@@ -19,6 +19,8 @@ import it.palestra.repository.UtenteRepository;
 import it.palestra.pagina.RichiestaPagina;
 import it.palestra.web.UtenteForm;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,17 +47,19 @@ public class UtenteService {
     private final AbbonamentoRepository abbonamenti;
     private final PasswordEncoder encoder;
     private final RefreshTokenService refreshTokens;
+    private final Clock clock;
 
     // Dependency injection: Spring vede i parametri del costruttore e passa gli oggetti giusti.
     public UtenteService(UtenteRepository utenti, CorsoRepository corsi, RuoloRepository ruoli,
                          AbbonamentoRepository abbonamenti, PasswordEncoder encoder,
-                         RefreshTokenService refreshTokens) {
+                         RefreshTokenService refreshTokens, Clock clock) {
         this.utenti = utenti;
         this.corsi = corsi;
         this.ruoli = ruoli;
         this.abbonamenti = abbonamenti;
         this.encoder = encoder;
         this.refreshTokens = refreshTokens;
+        this.clock = clock;
     }
 
     // UNA PAGINA di utenti (con corsi frequentati, ruoli e corsi tenuti), eventualmente filtrata dalla ricerca.
@@ -143,22 +147,44 @@ public class UtenteService {
         return Optional.empty();
     }
 
-    // REGOLA SUGLI ISCRITTI: un istruttore non può essere iscritto (come allievo) a un corso che tiene lui stesso.
-    // Controlla i corsi scelti nel form contro quelli che l'utente insegna e restituisce il messaggio d'errore
-    // (con i nomi dei corsi in conflitto), oppure Optional vuoto. In creazione non serve: un utente nuovo non
-    // può ancora tenere corsi (i corsi gli si assegnano dopo, dalla pagina Corsi).
-    // La checkbox è già disattivata nel form, ma il controllo qui è quello che conta: una richiesta può essere
-    // costruita a mano senza passare dalla pagina.
+    // Validazione dei corsi scelti per l'utente (restituisce il messaggio d'errore, oppure vuoto se va bene). Due regole, controllate in quest'ordine:
+    //  1) un ISTRUTTORE non può iscriversi come allievo ai corsi che tiene lui stesso;
+    //  2) per ISCRIVERE un ISCRITTO a un corso serve un abbonamento ATTIVO OGGI. La regola riguarda solo i corsi che si AGGIUNGONO: quelli a cui l'utente è già
+    //     iscritto restano anche se l'abbonamento è scaduto (si mostra solo un avviso) e togliere corsi si può sempre; ma finché non rinnova non si possono
+    //     aggiungerne altri. Un utente appena creato non ha ancora abbonamenti: prima si crea, poi si aggiunge l'abbonamento, poi si scelgono i corsi.
+    // La regola 2 vale solo per chi ha il ruolo ISCRITTO (gli altri non possono avere abbonamenti).
     @Transactional(readOnly = true)
     public Optional<String> erroreSuiCorsiScelti(UtenteForm f, Long id) {
-        if (id == null) return Optional.empty();
-        String conflitti = trova(id).getCorsiInsegnati().stream()
-                .filter(c -> f.getCorsiIds().contains(c.getId()))
-                .map(corso -> corso.getNome())
-                .sorted()
-                .collect(Collectors.joining(", "));
-        if (conflitti.isEmpty()) return Optional.empty();
-        return Optional.of("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: " + conflitti);
+        if (id != null) {
+            String conflitti = trova(id).getCorsiInsegnati().stream()
+                    .filter(c -> f.getCorsiIds().contains(c.getId()))
+                    .map(corso -> corso.getNome())
+                    .sorted()
+                    .collect(Collectors.joining(", "));
+            if (!conflitti.isEmpty()) {
+                return Optional.of("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: " + conflitti);
+            }
+        }
+        if (contieneRuolo(f.getRuoliIds(), Ruolo.ISCRITTO) && !haAbbonamentoAttivo(id)) {
+            Set<Long> giaIscritto = id == null ? Set.of()
+                    : trova(id).getCorsi().stream().map(c -> c.getId()).collect(Collectors.toSet());
+            String nuovi = corsi.findAllById(f.getCorsiIds()).stream()
+                    .filter(c -> !giaIscritto.contains(c.getId()))
+                    .map(corso -> corso.getNome())
+                    .sorted()
+                    .collect(Collectors.joining(", "));
+            if (!nuovi.isEmpty()) {
+                return Optional.of("Per iscrivere un utente a un corso serve un abbonamento attivo oggi (corsi da aggiungere: " + nuovi
+                        + "). Aggiungi o rinnova l'abbonamento dalla pagina Abbonamenti. I corsi a cui è già iscritto restano.");
+            }
+        }
+        return Optional.empty();
+    }
+
+    // true se l'utente ha un abbonamento attivo oggi (la data di oggi viene dal Clock). Un utente non ancora salvato (id null) non ne ha.
+    @Transactional(readOnly = true)
+    public boolean haAbbonamentoAttivo(Long utenteId) {
+        return utenteId != null && abbonamenti.haAbbonamentoAttivo(utenteId, LocalDate.now(clock));
     }
 
     // Crea un nuovo utente con i dati del form e lo salva (INSERT).

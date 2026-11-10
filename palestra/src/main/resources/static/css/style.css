@@ -134,3 +134,8 @@ th .freccia { font-size: 11px; color: #2563eb; }
   height: 1px;
   overflow: hidden;
 }
+
+/* Avvisi di colore ambra: l'etichetta «abbonamento non attivo» nella lista utenti e il riquadro di avviso nel form e nell'area personale. */
+.tag-avviso { background: #fef3c7; color: #92400e; }
+.aiuto-avviso { display: block; background: #fffbeb; border-left: 3px solid #f59e0b; padding: 6px 10px; color: #92400e; }
+.avviso { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 12px 0; color: #92400e; }

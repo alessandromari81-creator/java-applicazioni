@@ -89,6 +89,10 @@
         I corsi che l'utente segue come allievo. Un istruttore non può iscriversi ai corsi che tiene lui stesso:
         quelle caselle sono disattivate.
       </small>
+      <!--/* Regola sugli iscritti: per AGGIUNGERE un corso serve un abbonamento attivo oggi. I corsi già assegnati restano anche se l'abbonamento
+             è scaduto e si possono sempre togliere. Il controllo vero è nel server (UtenteService.erroreSuiCorsiScelti): questo è solo un avviso. */-->
+      <small class="aiuto aiuto-avviso" th:if="${!abbonamentoAttivo}"
+             th:text="${utenteId == null} ? 'Per iscrivere un iscritto a un corso serve un abbonamento attivo oggi: salva prima l\'utente, aggiungi l\'abbonamento dalla pagina Abbonamenti e poi scegli i corsi.' : 'Questo utente non ha un abbonamento attivo oggi: se è un iscritto puoi togliere corsi ma non aggiungerne finché non rinnova l\'abbonamento.'"></small>
       <!--/* Una checkbox per ogni corso. th:field="*{corsiIds}" + th:value fa sì che la casella
              sia già spuntata se l'id del corso è nella lista corsiIds, e che i valori spuntati
              tornino al controller come lista di id. */-->

@@ -220,6 +220,10 @@ Le regole vivono nei `service/` e valgono sia per le pagine sia per la API (una 
 - «Password dimenticata»: link valido 1 ora e monouso; scegliere la nuova password revoca i token della API. L'amministratore può **invitare** dal pannello chi non ha una password (link valido 24 ore).
 - Difese: limite alle richieste di email (per indirizzo+email e per indirizzo), campo trappola per i programmi automatici, token casuali di cui nel database c'è solo l'hash, link costruiti con l'indirizzo configurato (non con quello della richiesta), `Referrer-Policy: no-referrer` sulle pagine con il token. I link scaduti si cancellano ogni notte.
 
+**Iscrizione ai corsi e abbonamento**
+- Per **aggiungere** un corso a un iscritto serve un abbonamento **attivo oggi** (primo e ultimo giorno inclusi; uno futuro o scaduto non basta). Vale nel pannello e nella API; creare un iscritto già con dei corsi è rifiutato, perché non può avere ancora un abbonamento (prima si crea, poi si aggiunge l'abbonamento, poi si scelgono i corsi).
+- I corsi già assegnati **restano** anche se l'abbonamento scade o manca: compare solo un avviso («abbonamento non attivo») nella lista utenti, nel form e nell'area personale dell'iscritto. Togliere corsi si può sempre; per aggiungerne altri bisogna rinnovare. Chi non ha il ruolo `ISCRITTO` non è toccato dalla regola.
+
 **Corsi e istruttori**
 - Un corso ha al massimo **un** istruttore; un istruttore può tenere **più** corsi. L'istruttore deve avere il ruolo `ISTRUTTORE`.
 - L'istruttore non può essere iscritto come allievo al corso che tiene (controllo in nomina e in iscrizione).

@@ -95,18 +95,16 @@ class ApiUtentiTest extends BaseApiTest {
     // ---------------------------------------------------------------------- CREAZIONE
 
     @Test
-    @DisplayName("POST /api/utenti: crea un iscritto (201, ruoli per nome, nessuna password)")
+    @DisplayName("POST /api/utenti: crea un iscritto (201, ruoli per nome, nessuna password, nessun corso: prima serve un abbonamento)")
     void creareUnIscritto() throws Exception {
-        Corso yoga = creaCorso("Yoga");
         ruolo("ISCRITTO");
 
-        mockMvc.perform(conJson(post("/api/utenti"),
-                        utenteJson("mario@example.com", null, "[\"ISCRITTO\"]", "[" + yoga.getId() + "]")))
+        mockMvc.perform(conJson(post("/api/utenti"), utenteJson("mario@example.com", null, "[\"ISCRITTO\"]", "[]")))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("/api/utenti/\\d+")))
                 .andExpect(jsonPath("$.ruoli[0]").value("ISCRITTO"))
                 .andExpect(jsonPath("$.haPassword").value(false))
-                .andExpect(jsonPath("$.corsi[0].nome").value("Yoga"));
+                .andExpect(jsonPath("$.corsi", hasSize(0)));
     }
 
     @Test
@@ -213,6 +211,7 @@ class ApiUtentiTest extends BaseApiTest {
     @DisplayName("PUT sostituisce ruoli e corsi con quelli inviati")
     void modificare() throws Exception {
         Utente mario = creaUtente("Mario", "Rossi", "mario@example.com", ruolo("ISCRITTO"));
+        creaAbbonamento(mario, TipoAbbonamento.MENSILE, java.time.LocalDate.now());      // per aggiungere un corso serve un abbonamento attivo oggi
         Corso yoga = creaCorso("Yoga");
         ruolo("ISTRUTTORE");
 

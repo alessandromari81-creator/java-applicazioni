@@ -144,6 +144,8 @@ public class UtenteController {
         model.addAttribute("corsi", service.tuttiICorsi());
         model.addAttribute("ruoli", service.tuttiIRuoli());
         model.addAttribute("utenteId", id);
+        // Serve ad avvisare, nel form, che senza abbonamento attivo oggi si possono togliere corsi ma non aggiungerne (la regola vera è nel service).
+        model.addAttribute("abbonamentoAttivo", service.haAbbonamentoAttivo(id));
         return "utenti/form";
     }
 
@@ -161,11 +163,11 @@ public class UtenteController {
                 .ifPresent(messaggio -> errori.rejectValue("password", "non-valida", messaggio));
     }
 
-    // Validazione "a mano" dei corsi scelti: un istruttore non può iscriversi ai corsi che tiene. Il messaggio
-    // (con i nomi dei corsi) diventa un errore sul campo "corsiIds", mostrato sotto l'elenco dei corsi.
+    // Validazione "a mano" dei corsi scelti: un istruttore non può iscriversi ai corsi che tiene, e per aggiungere un corso a un iscritto serve un
+    // abbonamento attivo oggi. Il messaggio (con i nomi dei corsi) diventa un errore sul campo "corsiIds", mostrato sotto l'elenco dei corsi.
     private void controllaCorsi(UtenteForm form, Long id, BindingResult errori) {
         service.erroreSuiCorsiScelti(form, id)
-                .ifPresent(messaggio -> errori.rejectValue("corsiIds", "istruttore-del-corso", messaggio));
+                .ifPresent(messaggio -> errori.rejectValue("corsiIds", "corsi-non-validi", messaggio));
     }
 
     // POST /utenti/5/invito -> invia a un utente SENZA password l'email con il link per scegliere la password (e quindi poter accedere alla sua area).

@@ -70,4 +70,9 @@ public interface AbbonamentoRepository extends JpaRepository<Abbonamento, Long> 
     // Quanti abbonamenti ha registrato l'utente (nome del metodo -> SELECT COUNT(*) ... WHERE utente_id = ?).
     // Serve a non eliminare un utente, né togliergli il ruolo ISCRITTO, finché ha uno storico di abbonamenti.
     long countByUtenteId(Long utenteId);
+
+    // true se l'utente ha un abbonamento ATTIVO nel giorno indicato (inizio e fine inclusi). Serve alla regola «per iscriversi a un corso serve un
+    // abbonamento attivo oggi» (UtenteService.erroreSuiCorsiScelti).
+    @Query("select count(a) > 0 from Abbonamento a where a.utente.id = :utenteId and a.dataInizio <= :giorno and a.dataFine >= :giorno")
+    boolean haAbbonamentoAttivo(@Param("utenteId") Long utenteId, @Param("giorno") LocalDate giorno);
 }

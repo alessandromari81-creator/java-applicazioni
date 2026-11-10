@@ -17,6 +17,10 @@
     <h1>I miei corsi</h1>
 
     <h2>Corsi che frequento</h2>
+    <!--/* AVVISO: l'iscritto ha dei corsi ma l'abbonamento non è attivo oggi. I suoi corsi restano, ma non potrà essere iscritto ad altri finché non rinnova. */-->
+    <div class="avviso" th:if="${r.iscritto() and !r.corsi().isEmpty() and !r.abbonamentoAttivo()}">
+      Il tuo abbonamento non è attivo. I corsi a cui sei iscritto restano, ma non potrai iscriverti ad altri finché non lo rinnovi: rivolgiti alla segreteria.
+    </div>
     <p th:if="${r.corsi().isEmpty()}">Non sei iscritto a nessun corso.</p>
     <table th:unless="${r.corsi().isEmpty()}">
       <thead><tr><th>Corso</th><th>Livello</th><th>Durata</th><th>Descrizione</th><th>Istruttore</th></tr></thead>

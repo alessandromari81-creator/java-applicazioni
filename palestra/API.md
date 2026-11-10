@@ -158,7 +158,8 @@ La API si documenta da sola (libreria springdoc, legge i controller e i DTO): no
   "password": "obbligatoria-solo-per-ADMIN", "indirizzo": "Via Roma 1", "cap": "00100", "citta": "Roma",
   "ruoli": ["ISCRITTO"], "corsiIds": [1, 2] }
 ```
-Ruoli per **nome** (`ADMIN`, `ISTRUTTORE`, `ISCRITTO`). `indirizzo`, `cap` e `citta` (indirizzo di casa) sono facoltativi; `PUT` sostituisce tutti i campi,
+Ruoli per **nome** (`ADMIN`, `ISTRUTTORE`, `ISCRITTO`). `corsiIds`: per **aggiungere** un corso a un `ISCRITTO` serve un abbonamento attivo oggi, altrimenti `400` con l'errore su
+`corsiIds` (i corsi già assegnati restano e si possono sempre togliere; un iscritto appena creato non ha ancora abbonamenti, quindi si crea con `corsiIds` vuoto). `indirizzo`, `cap` e `citta` (indirizzo di casa) sono facoltativi; `PUT` sostituisce tutti i campi,
 quindi un `PUT` senza indirizzo lo svuota. La risposta non contiene mai la password: c'è solo `haPassword`. I consensi privacy non si modificano dalla API.
 
 **Abbonamento** (`POST /api/utenti/{id}/abbonamenti`):

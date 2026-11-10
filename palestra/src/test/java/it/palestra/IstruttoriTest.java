@@ -194,7 +194,7 @@ class IstruttoriTest extends BaseWebTest {
                         .param("corsiIds", yoga.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("utenti/form"))
-                .andExpect(model().attributeHasFieldErrorCode("utenteForm", "corsiIds", "istruttore-del-corso"))
+                .andExpect(model().attributeHasFieldErrorCode("utenteForm", "corsiIds", "corsi-non-validi"))
                 .andExpect(content().string(containsString("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: Yoga")));
 
         // VERIFICO: l'iscrizione non è stata salvata.
