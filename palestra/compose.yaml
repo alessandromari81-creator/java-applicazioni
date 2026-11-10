@@ -1,6 +1,14 @@
 # FILE: compose.yaml
-# A COSA SERVE: descrive i servizi esterni di cui l'app ha bisogno, qui solo il database PostgreSQL.
-# Si avvia con `docker compose up -d` (nella cartella palestra/) e si ferma con `docker compose stop`.
+# A COSA SERVE: descrive i servizi dell'applicazione. Due modi d'uso:
+#
+#   1) SVILUPPO (come sempre): `docker compose up -d` avvia solo il database PostgreSQL; l'app si avvia dall'editor
+#      o con `./mvnw spring-boot:run`. Si ferma con `docker compose stop`.
+#
+#   2) PROVA COMPLETA, senza installare Java né Maven: `docker compose --profile app up --build` costruisce l'immagine
+#      dell'app (vedi Dockerfile) e avvia database + app. Poi http://localhost:8080 (login admin@palestra.local / admin).
+#      Si ferma con `docker compose --profile app down` (con `down -v` cancella anche i dati del database).
+#      Il servizio "app" ha un "profilo": non parte con il semplice `docker compose up`, solo se si chiede --profile app.
+#      Così l'app avviata dall'editor (porta 8080) non va in conflitto con quella del container.
 services:
   db:
     image: postgres:17            # immagine ufficiale di PostgreSQL, versione 17
@@ -13,5 +21,30 @@ services:
       - "5432:5432"               # porta del Mac : porta nel container (così l'app e DBeaver si collegano a localhost:5432)
     volumes:
       - palestra-dati:/var/lib/postgresql/data   # i dati restano anche se spegni il container
+    healthcheck:                  # dice a Docker quando il database è davvero pronto ad accettare collegamenti
+      test: ["CMD-SHELL", "pg_isready -U palestra -d palestra"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    profiles: ["app"]             # parte solo con `docker compose --profile app ...`
+    build: .                      # costruisce l'immagine dal Dockerfile in questa cartella
+    depends_on:
+      db:
+        condition: service_healthy   # l'app parte solo quando il database è pronto (altrimenti all'avvio fallirebbe)
+    environment:                  # sovrascrivono le impostazioni di application.properties
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/palestra   # dentro Docker il database si chiama "db", non "localhost"
+      DB_USER: palestra
+      DB_PASSWORD: palestra
+      # Chiave con cui si firmano i token JWT: SOLO PER LA PROVA. In un uso vero imposta JWT_SECRET con una chiave lunga e casuale
+      # (almeno 32 caratteri); con ${JWT_SECRET:-...} si legge dall'ambiente e, se manca, si usa il valore di prova.
+      JWT_SECRET: ${JWT_SECRET:-chiave-solo-per-la-prova-con-docker-cambiala-0123456789}
+      # (Il primo amministratore, admin@palestra.local / admin, si crea all'avvio: si cambia dal pannello con «Cambia password».
+      # Per usare altre credenziali iniziali aggiungi qui APP_ADMIN_EMAIL e APP_ADMIN_PASSWORD.)
+    ports:
+      - "8080:8080"               # porta del Mac : porta nel container
+    restart: unless-stopped       # se l'app si ferma per un errore, Docker la riavvia
+
 volumes:
   palestra-dati:

@@ -1,0 +1,10 @@
+# FILE: .dockerignore
+# A COSA SERVE: elenca ciò che Docker NON deve copiare nella build (come .gitignore). Più la cartella inviata a Docker è piccola,
+# più la build è veloce; e così non finiscono nell'immagine file inutili o locali.
+target/
+.git/
+.vscode/
+.idea/
+HELP.md
+API.md
+postman/

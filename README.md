@@ -1,6 +1,6 @@
 # java-applicazioni
 
-Raccolta di applicazioni Java di Alessandro (monorepo privato). Oggi contiene una sola applicazione:
+Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione:
 
 | Cartella | Cosa è |
 |---|---|
@@ -15,7 +15,24 @@ Raccolta di applicazioni Java di Alessandro (monorepo privato). Oggi contiene un
 - Istruttori (uno-a-molti verso i corsi) e iscritti (molti-a-molti), con regole di business (es. un istruttore non può iscriversi al proprio corso; abbonamenti senza sovrapposizioni).
 - API REST sotto `/api` con JWT + refresh token (formato OAuth2) e documentazione Swagger.
 
-### Avvio
+### Prova rapida con Docker
+
+Serve solo **Docker** (Docker Desktop o Docker Engine con Compose): non servono né Java né Maven.
+
+```bash
+git clone <indirizzo-del-repository>
+cd java-applicazioni/palestra
+docker compose --profile app up --build
+```
+
+La prima volta Docker scarica le dipendenze e compila l'applicazione (qualche minuto); poi avvia PostgreSQL e l'app e applica da solo le migration del database, con alcuni corsi di prova.
+Quando nel terminale compare `Started PalestraApplication`, apri http://localhost:8080 e accedi con `admin@palestra.local` / `admin`.
+
+- Si ferma con `Ctrl+C`; `docker compose --profile app down` rimuove i container, `docker compose --profile app down -v` cancella anche i dati del database.
+- **Solo per provare:** la password dell'amministratore, la password del database e la chiave dei token (`JWT_SECRET`) sono valori di esempio. Per un uso vero vanno cambiati (la chiave si imposta con la variabile d'ambiente `JWT_SECRET`, lunga e casuale).
+- Se la porta 8080 o la 5432 sono già occupate, ferma ciò che le usa oppure cambia la parte a sinistra in `compose.yaml` (`"8080:8080"`, `"5432:5432"`).
+
+### Avvio per lo sviluppo
 
 Requisiti: Java 21 e Docker Desktop.
 
