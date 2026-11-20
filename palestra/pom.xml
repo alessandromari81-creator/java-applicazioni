@@ -168,6 +168,24 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Testcontainers: avvia un PostgreSQL vero in un contenitore Docker, solo per i test di concorrenza (UltimoAdminConcorrenzaTest).
+		     Le versioni le decide Spring Boot. spring-boot-testcontainers fornisce @ServiceConnection (collega da solo il database al
+		     contenitore); gli altri due sono la libreria e il suo supporto a JUnit. Servono solo se Docker è acceso: senza, quei test si saltano. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<!-- Il plugin Spring Boot permette `./mvnw spring-boot:run` e crea il .jar eseguibile. -->

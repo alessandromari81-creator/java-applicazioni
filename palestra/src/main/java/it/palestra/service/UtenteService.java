@@ -202,7 +202,7 @@ public class UtenteService {
     public Utente modifica(Long id, UtenteForm form) {
         Utente u = trova(id);
         if (u.isAdmin() && !contieneRuolo(form.getRuoliIds(), Ruolo.ADMIN)
-                && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
+                && contaAdminConBlocco() <= 1) {
             throw new RegolaViolataException("Non puoi togliere il ruolo ADMIN all'ultimo amministratore");
         }
         if (!u.getCorsiInsegnati().isEmpty() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISTRUTTORE)) {
@@ -243,7 +243,7 @@ public class UtenteService {
             throw new RegolaViolataException("Impossibile eliminare: ha " + numeroAbbonamenti
                     + " abbonamenti registrati (restano nello storico)");
         }
-        if (u.isAdmin() && utenti.countByRuoliNome(Ruolo.ADMIN) <= 1) {
+        if (u.isAdmin() && contaAdminConBlocco() <= 1) {
             throw new RegolaViolataException("Impossibile eliminare l'ultimo amministratore");
         }
         utenti.delete(u);
@@ -283,6 +283,17 @@ public class UtenteService {
     }
 
     // ----------------------------------------------------------------- METODI DI SUPPORTO
+
+    // Conta gli admin DOPO aver preso il blocco sulla riga del ruolo ADMIN. Il blocco mette in fila le operazioni che riducono gli
+    // admin: la seconda aspetta che la prima faccia commit e poi conta di nuovo, vedendo il risultato della prima. Senza il blocco due
+    // richieste insieme leggevano entrambe "ce ne sono due", ognuna toglieva il suo e non restava nessun admin. Il blocco si prende solo
+    // quando serve (utente che è admin e che sta perdendo il ruolo o viene eliminato), quindi le altre modifiche non aspettano nessuno.
+    // Nota: l'utente `u` è stato letto prima dell'attesa; se nel frattempo l'altra richiesta gli ha già tolto il ruolo, qui si rifiuta
+    // comunque (conta 1): è un rifiuto in più innocuo, mai un admin in meno.
+    private long contaAdminConBlocco() {
+        ruoli.bloccaPerNome(Ruolo.ADMIN);
+        return utenti.countByRuoliNome(Ruolo.ADMIN);
+    }
 
     // true se tra gli id dei ruoli indicati c'è quello col nome dato (es. "ADMIN", "ISTRUTTORE").
     private boolean contieneRuolo(List<Long> ruoliIds, String nomeRuolo) {

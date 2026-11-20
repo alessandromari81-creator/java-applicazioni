@@ -154,7 +154,7 @@ cd palestra
 ./mvnw test
 ```
 
-Non servono Docker né PostgreSQL: i test usano H2 in memoria (profilo `test`, Flyway spento). Un test solo: `./mvnw test -Dtest=NomeClasse#nomeMetodo`.
+Quasi tutti i test non richiedono né Docker né PostgreSQL: usano H2 in memoria (profilo `test`, Flyway spento). Fa eccezione `UltimoAdminConcorrenzaTest`, che prova la regola «non si toglie l'ultimo amministratore» con due richieste simultanee su un PostgreSQL vero avviato da Testcontainers: serve Docker acceso, altrimenti quel test viene saltato. Un test solo: `./mvnw test -Dtest=NomeClasse#nomeMetodo`.
 
 ### Configurazione
 
