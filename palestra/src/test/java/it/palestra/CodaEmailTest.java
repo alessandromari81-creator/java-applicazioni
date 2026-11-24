@@ -26,6 +26,7 @@ import it.palestra.service.SpedizioneEmailProgrammata;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -39,12 +40,18 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = "app.email.coda.attiva=true")
 class CodaEmailTest extends BaseWebTest {
 
+    // L'ora attuale senza nanosecondi: Linux (come su GitHub) dà i nanosecondi, il database ne salva solo i microsecondi e arrotonda, quindi un orario salvato
+    // può risultare DOPO quello da cui è nato e la riga «non ancora spedibile». Al millisecondo il valore salvato è identico.
+    private static Instant oraAlMillisecondo() {
+        return Instant.now().truncatedTo(ChronoUnit.MILLIS);
+    }
+
     @Autowired SpedizioneEmailProgrammata spedizione;
     @Autowired CodaEmailService coda;
     @Autowired EmailInCodaRepository repo;
     @Autowired PuliziaProgrammata pulizia;
 
-    private final Instant ora = Instant.now();
+    private final Instant ora = oraAlMillisecondo();
 
     @BeforeEach
     void preparo() {
@@ -84,7 +91,7 @@ class CodaEmailTest extends BaseWebTest {
         assertThat(righe.get(0).getStato()).isEqualTo(StatoEmail.DA_INVIARE);
 
         // ESEGUO il giro: l'email parte...
-        assertThat(spedizione.eseguiGiroAlle(Instant.now())).isEqualTo(1);
+        assertThat(spedizione.eseguiGiroAlle(oraAlMillisecondo())).isEqualTo(1);
 
         // ...con il link da aprire, e la riga (che conteneva il token) non c'è più.
         assertThat(emailFinte.per("mario@example.com")).hasSize(1);
@@ -101,7 +108,7 @@ class CodaEmailTest extends BaseWebTest {
 
         assertThat(emailFinte.tutte()).isEmpty();
         assertThat(repo.count()).isEqualTo(1);
-        spedizione.eseguiGiroAlle(Instant.now());
+        spedizione.eseguiGiroAlle(oraAlMillisecondo());
         assertThat(emailFinte.per("mario@example.com")).hasSize(1);
         assertThat(emailFinte.ultima().token()).isNotBlank();
         assertThat(repo.count()).isZero();
@@ -114,7 +121,7 @@ class CodaEmailTest extends BaseWebTest {
                 .andExpect(status().is3xxRedirection());
 
         assertThat(repo.count()).isZero();
-        assertThat(spedizione.eseguiGiroAlle(Instant.now())).isZero();
+        assertThat(spedizione.eseguiGiroAlle(oraAlMillisecondo())).isZero();
     }
 
     // ------------------------------------------------------------------ SERVER DI POSTA SPENTO: SI RIPROVA
@@ -233,7 +240,7 @@ class CodaEmailTest extends BaseWebTest {
     @Test
     @DisplayName("La pulizia notturna cancella le FALLITA vecchie (hanno il token nel testo) e lascia le recenti e le da inviare")
     void pulizia() {
-        Instant adesso = Instant.now();
+        Instant adesso = oraAlMillisecondo();
         Long vecchia = coda.accoda("vecchia@example.com", "O", "<p>h</p>", "t", adesso.minus(Duration.ofHours(30))).getId();
         coda.segnaFallita(vecchia, adesso, 1, "errore");                       // FALLITA, creata 30 ore fa
         Long recente = coda.accoda("recente@example.com", "O", "<p>h</p>", "t", adesso).getId();

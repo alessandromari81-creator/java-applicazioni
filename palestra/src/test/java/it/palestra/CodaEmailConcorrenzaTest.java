@@ -14,6 +14,7 @@ import it.palestra.service.CodaEmailService;
 import it.palestra.service.SpedizioneEmailProgrammata;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +43,12 @@ class CodaEmailConcorrenzaTest {
     private static final int GIRI = 10;
     private static final int EMAIL_PER_GIRO = 60;
 
+    // L'ora attuale senza nanosecondi: Linux (come su GitHub) dà i nanosecondi, il database ne salva solo i microsecondi e arrotonda, quindi un orario salvato
+    // può risultare DOPO quello da cui è nato e la riga «non ancora spedibile». Al millisecondo il valore salvato è identico.
+    private static Instant oraAlMillisecondo() {
+        return Instant.now().truncatedTo(ChronoUnit.MILLIS);
+    }
+
     @Container
     @ServiceConnection
     static PostgreSQLContainer db = new PostgreSQLContainer("postgres:17");
@@ -64,7 +71,7 @@ class CodaEmailConcorrenzaTest {
     void dueLavoratoriInsieme() throws Exception {
         for (int giro = 1; giro <= GIRI; giro++) {
             pulisci();
-            Instant ora = Instant.now();
+            Instant ora = oraAlMillisecondo();
             for (int i = 0; i < EMAIL_PER_GIRO; i++) {
                 coda.accoda("persona" + i + "@concorrenza.test", "Oggetto", "<p>h</p>", "t", ora);
             }
@@ -104,7 +111,7 @@ class CodaEmailConcorrenzaTest {
     @Test
     @DisplayName("Una riga IN_CORSO scaduta viene ripresa da un lavoratore e spedita una volta sola, anche con due lavoratori")
     void rigaScadutaRipresa() throws Exception {
-        Instant ora = Instant.now();
+        Instant ora = oraAlMillisecondo();
         Long id = coda.accoda("mario@concorrenza.test", "Oggetto", "<p>h</p>", "t", ora).getId();
         coda.reclama(id, ora);                                   // un'istanza l'ha presa e poi è morta
 
