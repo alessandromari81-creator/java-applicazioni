@@ -26,8 +26,8 @@ import it.palestra.api.dto.UtenteResponse;
 import it.palestra.model.Utente;
 import it.palestra.pagina.OrdinamentiListe;
 import it.palestra.pagina.RichiestaPagina;
+import it.palestra.service.DatiUtente;
 import it.palestra.service.UtenteService;
-import it.palestra.web.UtenteForm;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.ArrayList;
@@ -77,9 +77,9 @@ public class UtenteApiController {
             content = @Content(schema = @Schema(implementation = UtenteResponse.class)))
     @PostMapping
     public ResponseEntity<UtenteResponse> crea(@Valid @RequestBody UtenteRequest richiesta) {
-        UtenteForm form = comeForm(richiesta);
-        controllaRegole(form, null);
-        Utente creato = service.crea(form);
+        DatiUtente dati = comeDati(richiesta);
+        controllaRegole(dati, null);
+        Utente creato = service.crea(dati);
         return ResponseEntity.created(URI.create("/api/utenti/" + creato.getId()))
                 .body(UtenteResponse.da(service.trova(creato.getId())));
     }
@@ -91,9 +91,9 @@ public class UtenteApiController {
     @PutMapping("/{id}")
     public UtenteResponse modifica(@PathVariable Long id, @Valid @RequestBody UtenteRequest richiesta) {
         service.trova(id);
-        UtenteForm form = comeForm(richiesta);
-        controllaRegole(form, id);
-        service.modifica(id, form);
+        DatiUtente dati = comeDati(richiesta);
+        controllaRegole(dati, id);
+        service.modifica(id, dati);
         return UtenteResponse.da(service.trova(id));
     }
 
@@ -105,9 +105,9 @@ public class UtenteApiController {
         service.elimina(id);   // lancia già il 404 se l'utente non esiste
     }
 
-    // Trasforma la richiesta nel "form" che il service già conosce. I ruoli arrivano per NOME ("ADMIN") e il service li
+    // Trasforma la richiesta nei dati che il service si aspetta (DatiUtente). I ruoli arrivano per NOME ("ADMIN") e il service li
     // vuole per id: qui si traducono. Un nome sconosciuto è un errore sul campo "ruoli" (con l'elenco di quelli validi).
-    private UtenteForm comeForm(UtenteRequest r) {
+    private DatiUtente comeDati(UtenteRequest r) {
         Map<String, Long> idPerNome = service.tuttiIRuoli().stream()
                 .collect(Collectors.toMap(ruolo -> ruolo.getNome(), ruolo -> ruolo.getId()));
 
@@ -122,28 +122,19 @@ public class UtenteApiController {
                     + ". Valori ammessi: " + idPerNome.keySet().stream().sorted().toList());
         }
 
-        UtenteForm form = new UtenteForm();
-        form.setNome(r.nome());
-        form.setCognome(r.cognome());
-        form.setEmail(r.email());
-        form.setPassword(r.password());
-        form.setIndirizzo(r.indirizzo());
-        form.setCap(r.cap());
-        form.setCitta(r.citta());
-        form.setRuoliIds(new ArrayList<>(ruoliIds));
-        form.setCorsiIds(new ArrayList<>(r.corsiIdsOVuota()));
-        return form;
+        return new DatiUtente(r.nome(), r.cognome(), r.email(), r.password(), r.indirizzo(), r.cap(), r.citta(),
+                new ArrayList<>(ruoliIds), new ArrayList<>(r.corsiIdsOVuota()));
     }
 
     // Le regole sui dati che nelle pagine sono errori sui campi: email già usata, password, istruttore iscritto al
     // proprio corso. Si raccolgono tutte e, se ce ne sono, si risponde 400 con "campi".
-    private void controllaRegole(UtenteForm form, Long id) {
+    private void controllaRegole(DatiUtente dati, Long id) {
         Map<String, List<String>> campi = new LinkedHashMap<>();
-        if (service.emailInUso(form.getEmail().trim(), id)) {
+        if (service.emailInUso(dati.email().trim(), id)) {
             campi.put("email", List.of("Email già registrata"));
         }
-        service.erroreSullaPassword(form, id).ifPresent(m -> campi.put("password", List.of(m)));
-        service.erroreSuiCorsiScelti(form, id).ifPresent(m -> campi.put("corsiIds", List.of(m)));
+        service.erroreSullaPassword(dati, id).ifPresent(m -> campi.put("password", List.of(m)));
+        service.erroreSuiCorsiScelti(dati, id).ifPresent(m -> campi.put("corsiIds", List.of(m)));
         if (!campi.isEmpty()) {
             throw new ErroreSuCampoException(campi);
         }

@@ -8,6 +8,7 @@
 package it.palestra.web;
 
 import it.palestra.model.TipoAbbonamento;
+import it.palestra.service.DatiAbbonamento;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,6 +28,11 @@ public class AbbonamentoForm {
     @NotNull(message = "La data di inizio è obbligatoria")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dataInizio;
+
+    // Trasforma il modulo nei dati che AbbonamentoService si aspetta: il service non conosce questa classe (che appartiene alle pagine).
+    public DatiAbbonamento comeDati() {
+        return new DatiAbbonamento(utenteId, tipo, dataInizio);
+    }
 
     public Long getUtenteId() { return utenteId; }
     public void setUtenteId(Long utenteId) { this.utenteId = utenteId; }

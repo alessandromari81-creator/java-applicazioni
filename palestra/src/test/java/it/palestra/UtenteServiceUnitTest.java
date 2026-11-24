@@ -25,9 +25,9 @@ import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.service.DatiUtente;
 import it.palestra.service.RefreshTokenService;
 import it.palestra.service.UtenteService;
-import it.palestra.web.UtenteForm;
 import java.time.Clock;
 import java.util.HashSet;
 import java.util.List;
@@ -149,14 +149,8 @@ class UtenteServiceUnitTest {
         return u;
     }
 
-    // Un form di modifica senza nessun ruolo e senza corsi. I repository finti rispondono "lista vuota" a findAllById.
-    private UtenteForm formSenzaRuoli() {
-        UtenteForm f = new UtenteForm();
-        f.setNome("Mario");
-        f.setCognome("Rossi");
-        f.setEmail("mario@example.com");
-        f.setRuoliIds(List.of());
-        f.setCorsiIds(List.of());
-        return f;
+    // I dati di una modifica senza nessun ruolo e senza corsi. I repository finti rispondono "lista vuota" a findAllById.
+    private DatiUtente formSenzaRuoli() {
+        return new DatiUtente("Mario", "Rossi", "mario@example.com", null, null, null, null, List.of(), List.of());
     }
 }

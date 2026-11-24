@@ -20,7 +20,6 @@ import it.palestra.model.Utente;
 import it.palestra.repository.RegistrazioneInAttesaRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
-import it.palestra.web.RegistrazioneForm;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -46,7 +45,6 @@ public class RegistrazioneService {
     private final RuoloRepository ruoli;
     private final PasswordEncoder encoder;
     private final NotificheEmail notifiche;
-    private final UtenteService utenteService;
     private final Clock clock;
     private final TransactionTemplate transazione;
     private final Duration durata;
@@ -54,7 +52,7 @@ public class RegistrazioneService {
     private final String versionePrivacy;
 
     public RegistrazioneService(RegistrazioneInAttesaRepository registrazioni, UtenteRepository utenti, RuoloRepository ruoli,
-                                PasswordEncoder encoder, NotificheEmail notifiche, UtenteService utenteService, Clock clock,
+                                PasswordEncoder encoder, NotificheEmail notifiche, Clock clock,
                                 PlatformTransactionManager gestoreTransazioni,
                                 @Value("${app.token.registrazione-ore}") long durataOre,
                                 @Value("${app.token.pausa-minuti}") long pausaMinuti,
@@ -64,7 +62,6 @@ public class RegistrazioneService {
         this.ruoli = ruoli;
         this.encoder = encoder;
         this.notifiche = notifiche;
-        this.utenteService = utenteService;
         this.clock = clock;
         this.transazione = new TransactionTemplate(gestoreTransazioni);
         this.durata = Duration.ofHours(durataOre);
@@ -74,8 +71,8 @@ public class RegistrazioneService {
 
     // Primo tempo: salva (o sostituisce) la registrazione in attesa e invia l'email di conferma. Non è @Transactional: la registrazione si salva e si
     // conferma PRIMA di spedire l'email, così il link funziona subito (per questo si usa un TransactionTemplate solo per il salvataggio).
-    public void richiedi(RegistrazioneForm modulo) {
-        String email = modulo.getEmail().trim().toLowerCase(Locale.ROOT);
+    public void richiedi(DatiRegistrazione modulo) {
+        String email = modulo.email().trim().toLowerCase(Locale.ROOT);
 
         Optional<Utente> esistente = utenti.findByEmailIgnoreCase(email);
         if (esistente.isPresent() && esistente.get().isConPassword()) {
@@ -85,20 +82,20 @@ public class RegistrazioneService {
 
         String token = transazione.execute(stato -> salvaInAttesa(modulo, email));
         if (token != null) {
-            notifiche.confermaRegistrazione(email, modulo.getNome().trim(), token);
+            notifiche.confermaRegistrazione(email, modulo.nome().trim(), token);
         }
     }
 
     // Salva la registrazione in attesa e restituisce il token da mettere nel link; null se per questo indirizzo è appena partita un'altra email
     // (meno di app.token.pausa-minuti fa): in quel caso NON si rispedisce l'email e il primo link resta valido, ma i dati della registrazione si aggiornano
     // comunque a quelli dell'ultimo invio (la persona potrebbe aver rimandato il modulo per correggere un errore, ad esempio nel cognome).
-    private String salvaInAttesa(RegistrazioneForm modulo, String email) {
+    private String salvaInAttesa(DatiRegistrazione modulo, String email) {
         Instant ora = clock.instant();
         RegistrazioneInAttesa registrazione = registrazioni.findByEmail(email).orElse(null);
         if (registrazione != null && registrazione.getUltimoInvioIl().plus(pausa).isAfter(ora)) {
-            registrazione.aggiornaDati(modulo.getNome().trim(), modulo.getCognome().trim(), modulo.getIndirizzo().trim(),
-                    modulo.getCap().trim(), modulo.getCitta().trim(), ora, versionePrivacy,
-                    modulo.isConsensoMarketing() ? ora : null);
+            registrazione.aggiornaDati(modulo.nome().trim(), modulo.cognome().trim(), modulo.indirizzo().trim(),
+                    modulo.cap().trim(), modulo.citta().trim(), ora, versionePrivacy,
+                    modulo.consensoMarketing() ? ora : null);
             registrazioni.save(registrazione);
             return null;
         }
@@ -106,9 +103,9 @@ public class RegistrazioneService {
             registrazione = new RegistrazioneInAttesa(email);
         }
         String token = GeneratoreToken.nuovo();
-        registrazione.compila(modulo.getNome().trim(), modulo.getCognome().trim(), modulo.getIndirizzo().trim(),
-                modulo.getCap().trim(), modulo.getCitta().trim(), ora, versionePrivacy,
-                modulo.isConsensoMarketing() ? ora : null, GeneratoreToken.hash(token), ora, ora.plus(durata));
+        registrazione.compila(modulo.nome().trim(), modulo.cognome().trim(), modulo.indirizzo().trim(),
+                modulo.cap().trim(), modulo.citta().trim(), ora, versionePrivacy,
+                modulo.consensoMarketing() ? ora : null, GeneratoreToken.hash(token), ora, ora.plus(durata));
         registrazioni.save(registrazione);
         return token;
     }
@@ -126,7 +123,7 @@ public class RegistrazioneService {
     // Secondo tempo: l'utente ha aperto il link e scelto la password. Tutto in una transazione: o si fa tutto o niente.
     @Transactional
     public Esito conferma(String token, String password) {
-        utenteService.erroreLunghezzaPassword(password).ifPresent(messaggio -> {
+        RegolePassword.errore(password).ifPresent(messaggio -> {
             throw new RegolaViolataException(messaggio);
         });
         RegistrazioneInAttesa r = trovaValida(token).orElseThrow(TokenNonValidoException::new);

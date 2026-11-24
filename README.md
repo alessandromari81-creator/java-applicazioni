@@ -172,14 +172,16 @@ Le impostazioni stanno in `palestra/src/main/resources/application.properties`. 
 
 | Cartella | Contenuto |
 |---|---|
-| `web/` | controller delle pagine HTML |
+| `web/` | controller delle pagine HTML e relativi moduli (form) |
 | `api/` e `api/dto/` | controller REST e oggetti di richiesta/risposta JSON |
-| `service/` | logica di business (le regole stanno qui, scritte una volta sola) |
+| `service/` | logica di business (le regole stanno qui, scritte una volta sola); riceve i dati come semplici record (`Dati*`) e non conosce né le pagine né la API |
 | `repository/` | accesso al database (Spring Data JPA) |
 | `model/` | entità JPA |
 | `pagina/` | paginazione, ordinamento e ricerca delle liste |
 | `config/` | sicurezza, JWT, Swagger, cache, orologio, compiti programmati |
 | `exception/` | eccezioni di dominio |
+
+Ogni livello dipende solo da quelli più interni (`web`, `api` → `service` → `repository` → `model`): un test (`DipendenzeTraLivelliTest`) fallisce se un `service` importa classi di `web` o `api`.
 
 Le migration del database sono in `palestra/src/main/resources/db/migration` (una migration già applicata non si modifica: se ne crea una nuova).
 

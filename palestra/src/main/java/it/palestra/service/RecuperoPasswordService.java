@@ -6,7 +6,7 @@
  *   - impostaPassword(token, password): l'utente ha aperto il link e ha scelto la password.
  * richiediReset NON dice mai se l'email esiste: se esiste (e non è appena partita un'altra email) manda il link, altrimenti non fa nulla; la risposta
  * mostrata alla persona la decide il controller ed è sempre la stessa. Quando la password viene impostata si revocano access e refresh token
- * (lo fa UtenteService.cambiaPassword), così chi avesse rubato un accesso lo perde.
+ * (lo fa PasswordService.cambiaPassword), così chi avesse rubato un accesso lo perde.
  */
 package it.palestra.service;
 
@@ -25,14 +25,14 @@ public class RecuperoPasswordService {
     private final UtenteRepository utenti;
     private final TokenPasswordService tokens;
     private final NotificheEmail notifiche;
-    private final UtenteService utenteService;
+    private final PasswordService passwordService;
 
     public RecuperoPasswordService(UtenteRepository utenti, TokenPasswordService tokens, NotificheEmail notifiche,
-                                   UtenteService utenteService) {
+                                   PasswordService passwordService) {
         this.utenti = utenti;
         this.tokens = tokens;
         this.notifiche = notifiche;
-        this.utenteService = utenteService;
+        this.passwordService = passwordService;
     }
 
     // «Password dimenticata»: se esiste un utente con questa email (senza distinguere maiuscole) e non gli è appena stata spedita un'altra email,
@@ -70,10 +70,10 @@ public class RecuperoPasswordService {
     // Tutto in una transazione: o si fa tutto o niente.
     @Transactional
     public void impostaPassword(String token, String nuovaPassword) {
-        utenteService.erroreLunghezzaPassword(nuovaPassword).ifPresent(messaggio -> {
+        RegolePassword.errore(nuovaPassword).ifPresent(messaggio -> {
             throw new RegolaViolataException(messaggio);
         });
         Utente utente = tokens.consuma(token);
-        utenteService.cambiaPassword(utente.getEmail(), nuovaPassword);
+        passwordService.cambiaPassword(utente.getEmail(), nuovaPassword);
     }
 }

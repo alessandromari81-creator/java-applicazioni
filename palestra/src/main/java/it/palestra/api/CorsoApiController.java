@@ -26,12 +26,12 @@ import it.palestra.model.Corso;
 import it.palestra.pagina.OrdinamentiListe;
 import it.palestra.pagina.RichiestaPagina;
 import it.palestra.service.CorsoService;
+import it.palestra.service.DatiCorso;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import it.palestra.web.CorsoForm;
 
 @RestController
 @Tag(name = "Corsi", description = "CRUD dei corsi. Un corso ha al massimo un istruttore.")
@@ -73,9 +73,9 @@ public class CorsoApiController {
             content = @Content(schema = @Schema(implementation = CorsoResponse.class)))
     @PostMapping
     public ResponseEntity<CorsoResponse> crea(@Valid @RequestBody CorsoRequest richiesta) {
-        CorsoForm form = richiesta.comeForm();
-        controllaIstruttore(form, null);
-        Corso creato = service.crea(form);
+        DatiCorso dati = richiesta.comeDati();
+        controllaIstruttore(dati, null);
+        Corso creato = service.crea(dati);
         return ResponseEntity.created(URI.create("/api/corsi/" + creato.getId()))
                 .body(CorsoResponse.da(service.trova(creato.getId())));
     }
@@ -86,9 +86,9 @@ public class CorsoApiController {
     @PutMapping("/{id}")
     public CorsoResponse modifica(@PathVariable Long id, @Valid @RequestBody CorsoRequest richiesta) {
         service.trova(id);
-        CorsoForm form = richiesta.comeForm();
-        controllaIstruttore(form, id);
-        service.modifica(id, form);
+        DatiCorso dati = richiesta.comeDati();
+        controllaIstruttore(dati, id);
+        service.modifica(id, dati);
         return CorsoResponse.da(service.trova(id));
     }
 
@@ -104,8 +104,8 @@ public class CorsoApiController {
 
     // Regola sull'istruttore (ruolo ISTRUTTORE, non iscritto al corso): stessa del form delle pagine, qui l'errore
     // diventa un 400 con il campo "istruttoreId".
-    private void controllaIstruttore(CorsoForm form, Long corsoId) {
-        service.erroreSullIstruttore(form, corsoId).ifPresent(messaggio -> {
+    private void controllaIstruttore(DatiCorso dati, Long corsoId) {
+        service.erroreSullIstruttore(dati, corsoId).ifPresent(messaggio -> {
             throw ErroreSuCampoException.su("istruttoreId", messaggio);
         });
     }

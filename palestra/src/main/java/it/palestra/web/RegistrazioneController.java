@@ -16,7 +16,7 @@ import it.palestra.exception.TokenNonValidoException;
 import it.palestra.exception.TroppiTentativiException;
 import it.palestra.service.LimiteRichiesteEmail;
 import it.palestra.service.RegistrazioneService;
-import it.palestra.service.UtenteService;
+import it.palestra.service.RegolePassword;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -41,12 +41,10 @@ public class RegistrazioneController {
     private static final Logger LOG = LoggerFactory.getLogger(RegistrazioneController.class);
 
     private final RegistrazioneService registrazioni;
-    private final UtenteService utenti;
     private final LimiteRichiesteEmail limite;
 
-    public RegistrazioneController(RegistrazioneService registrazioni, UtenteService utenti, LimiteRichiesteEmail limite) {
+    public RegistrazioneController(RegistrazioneService registrazioni, LimiteRichiesteEmail limite) {
         this.registrazioni = registrazioni;
-        this.utenti = utenti;
         this.limite = limite;
     }
 
@@ -79,7 +77,7 @@ public class RegistrazioneController {
         try {
             limite.verifica(ip, email);
             limite.registraFallimento(ip, email);                      // ogni richiesta conta
-            registrazioni.richiedi(registrazioneForm);
+            registrazioni.richiedi(registrazioneForm.comeDati());
         } catch (TroppiTentativiException e) {
             LOG.warn("Registrazione limitata per troppe richieste da {}", ip);
         }
@@ -104,7 +102,7 @@ public class RegistrazioneController {
             return paginaNonValida(model);
         }
         if (!errori.hasFieldErrors("nuovaPassword")) {
-            utenti.erroreLunghezzaPassword(form.getNuovaPassword())
+            RegolePassword.errore(form.getNuovaPassword())
                     .ifPresent(m -> errori.rejectValue("nuovaPassword", "non-valida", m));
         }
         if (!errori.hasFieldErrors("confermaPassword") && !errori.hasFieldErrors("nuovaPassword")

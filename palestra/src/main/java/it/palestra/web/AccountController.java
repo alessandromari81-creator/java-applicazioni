@@ -7,7 +7,8 @@
  */
 package it.palestra.web;
 
-import it.palestra.service.UtenteService;
+import it.palestra.service.PasswordService;
+import it.palestra.service.RegolePassword;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -23,9 +24,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/account/password")
 public class AccountController {
 
-    private final UtenteService service;
+    private final PasswordService service;
 
-    public AccountController(UtenteService service) {
+    public AccountController(PasswordService service) {
         this.service = service;
     }
 
@@ -55,7 +56,7 @@ public class AccountController {
             errori.rejectValue("passwordAttuale", "errata", "La password attuale non è corretta");
         }
         if (!errori.hasFieldErrors("nuovaPassword")) {
-            service.erroreLunghezzaPassword(nuova)
+            RegolePassword.errore(nuova)
                     .ifPresent(m -> errori.rejectValue("nuovaPassword", "non-valida", m));
         }
         if (!errori.hasFieldErrors("nuovaPassword") && nuova.equals(attuale)) {

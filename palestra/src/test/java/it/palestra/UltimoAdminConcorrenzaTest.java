@@ -22,8 +22,8 @@ import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
+import it.palestra.service.DatiUtente;
 import it.palestra.service.UtenteService;
-import it.palestra.web.UtenteForm;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -166,13 +166,8 @@ class UltimoAdminConcorrenzaTest {
         return utenti.save(u);
     }
 
-    // Il form di modifica con gli stessi dati dell'utente ma SENZA nessun ruolo (quindi senza ADMIN).
-    private UtenteForm formSenzaRuoli(Utente u) {
-        UtenteForm f = new UtenteForm();
-        f.setNome(u.getNome());
-        f.setCognome(u.getCognome());
-        f.setEmail(u.getEmail());
-        f.setRuoliIds(List.of());
-        return f;
+    // I dati di modifica con gli stessi valori dell'utente ma SENZA nessun ruolo (quindi senza ADMIN).
+    private DatiUtente formSenzaRuoli(Utente u) {
+        return new DatiUtente(u.getNome(), u.getCognome(), u.getEmail(), null, null, null, null, List.of(), List.of());
     }
 }

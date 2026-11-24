@@ -62,7 +62,7 @@ public class CorsoController {
                        @ModelAttribute("lista") StatoLista lista, Model model, RedirectAttributes flash) {
         controllaIstruttore(corsoForm, null, errori);
         if (errori.hasErrors()) return formView(model, null);
-        service.crea(corsoForm);
+        service.crea(corsoForm.comeDati());
         flash.addFlashAttribute("messaggio", "Corso creato");
         return "redirect:/corsi" + lista.query(OrdinamentiListe.CORSI);
     }
@@ -81,7 +81,7 @@ public class CorsoController {
                            RedirectAttributes flash) {
         controllaIstruttore(corsoForm, id, errori);
         if (errori.hasErrors()) return formView(model, id);
-        service.modifica(id, corsoForm);
+        service.modifica(id, corsoForm.comeDati());
         flash.addFlashAttribute("messaggio", "Corso aggiornato");
         return "redirect:/corsi" + lista.query(OrdinamentiListe.CORSI);
     }
@@ -114,7 +114,7 @@ public class CorsoController {
     // Le regole stanno nel service; qui il messaggio diventa un errore sul campo "istruttoreId", che
     // Thymeleaf mostra sotto la tendina.
     private void controllaIstruttore(CorsoForm form, Long corsoId, BindingResult errori) {
-        service.erroreSullIstruttore(form, corsoId)
+        service.erroreSullIstruttore(form.comeDati(), corsoId)
                 .ifPresent(messaggio -> errori.rejectValue("istruttoreId", "non-valido", messaggio));
     }
 }

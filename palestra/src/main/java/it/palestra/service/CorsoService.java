@@ -14,7 +14,6 @@ import it.palestra.model.Utente;
 import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.UtenteRepository;
 import it.palestra.pagina.RichiestaPagina;
-import it.palestra.web.CorsoForm;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -66,8 +65,8 @@ public class CorsoService {
     // La tendina mostra già solo gli istruttori, ma il controllo va fatto anche qui: una richiesta può essere
     // costruita a mano (o la pagina può essere scaduta), quindi non ci si fida mai solo di ciò che mostra l'HTML.
     @Transactional(readOnly = true)
-    public Optional<String> erroreSullIstruttore(CorsoForm f, Long corsoId) {
-        Long istruttoreId = f.getIstruttoreId();
+    public Optional<String> erroreSullIstruttore(DatiCorso f, Long corsoId) {
+        Long istruttoreId = f.istruttoreId();
         if (istruttoreId == null) return Optional.empty();
 
         Optional<Utente> scelto = utenti.findWithRelazioniById(istruttoreId);
@@ -84,20 +83,20 @@ public class CorsoService {
         return Optional.empty();
     }
 
-    // Crea un corso con i dati del form (INSERT).
-    public Corso crea(CorsoForm f) {
-        Corso c = new Corso(f.getNome().trim(), pulisci(f.getDescrizione()), f.getDurataMinuti(), f.getLivello());
+    // Crea un corso con i dati ricevuti, cioè un DatiCorso (INSERT).
+    public Corso crea(DatiCorso f) {
+        Corso c = new Corso(f.nome().trim(), pulisci(f.descrizione()), f.durataMinuti(), f.livello());
         c.setIstruttore(istruttoreDa(f));
         return corsi.save(c);
     }
 
     // Modifica un corso: basta cambiare i campi, a fine transazione Hibernate fa l'UPDATE.
-    public Corso modifica(Long id, CorsoForm f) {
+    public Corso modifica(Long id, DatiCorso f) {
         Corso c = trova(id);
-        c.setNome(f.getNome().trim());
-        c.setDescrizione(pulisci(f.getDescrizione()));
-        c.setDurataMinuti(f.getDurataMinuti());
-        c.setLivello(f.getLivello());
+        c.setNome(f.nome().trim());
+        c.setDescrizione(pulisci(f.descrizione()));
+        c.setDurataMinuti(f.durataMinuti());
+        c.setLivello(f.livello());
         c.setIstruttore(istruttoreDa(f));
         return c;
     }
@@ -116,10 +115,10 @@ public class CorsoService {
         corsi.deleteById(id);
     }
 
-    // Trasforma l'id scelto nel form nell'utente istruttore (o null se nessuno). getReferenceById non fa una
+    // Trasforma l'id dell'istruttore scelto nell'utente istruttore (o null se nessuno). getReferenceById non fa una
     // SELECT: restituisce un "segnaposto" con quell'id, sufficiente per scrivere la colonna istruttore_id.
-    private Utente istruttoreDa(CorsoForm f) {
-        return f.getIstruttoreId() == null ? null : utenti.getReferenceById(f.getIstruttoreId());
+    private Utente istruttoreDa(DatiCorso f) {
+        return f.istruttoreId() == null ? null : utenti.getReferenceById(f.istruttoreId());
     }
 
     // Se la descrizione è vuota o solo spazi salva null, altrimenti il testo senza spazi ai bordi.

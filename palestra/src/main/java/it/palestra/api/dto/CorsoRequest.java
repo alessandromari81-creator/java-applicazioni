@@ -9,7 +9,7 @@
 package it.palestra.api.dto;
 
 import it.palestra.model.Livello;
-import it.palestra.web.CorsoForm;
+import it.palestra.service.DatiCorso;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,15 +29,9 @@ public record CorsoRequest(
         // Facoltativo: id dell'istruttore (un utente con ruolo ISTRUTTORE), oppure assente/null per nessun istruttore.
         Long istruttoreId) {
 
-    // Trasforma la richiesta nel "form" che il service già conosce: così la logica (e le regole) sono le STESSE delle
+    // Trasforma la richiesta nei dati che il service si aspetta (DatiCorso): così la logica (e le regole) sono le STESSE delle
     // pagine, scritte una sola volta.
-    public CorsoForm comeForm() {
-        CorsoForm form = new CorsoForm();
-        form.setNome(nome);
-        form.setDescrizione(descrizione);
-        form.setDurataMinuti(durataMinuti);
-        form.setLivello(livello);
-        form.setIstruttoreId(istruttoreId);
-        return form;
+    public DatiCorso comeDati() {
+        return new DatiCorso(nome, descrizione, durataMinuti, livello, istruttoreId);
     }
 }

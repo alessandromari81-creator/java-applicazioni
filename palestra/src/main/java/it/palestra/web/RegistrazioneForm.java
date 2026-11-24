@@ -7,6 +7,7 @@
  */
 package it.palestra.web;
 
+import it.palestra.service.DatiRegistrazione;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -49,6 +50,11 @@ public class RegistrazioneForm {
 
     // Trappola anti-programmi automatici: deve restare vuota.
     private String sito;
+
+    // Trasforma il modulo nei dati che RegistrazioneService si aspetta: il service non conosce questa classe (che appartiene alla pagina).
+    public DatiRegistrazione comeDati() {
+        return new DatiRegistrazione(nome, cognome, email, indirizzo, cap, citta, consensoMarketing);
+    }
 
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }

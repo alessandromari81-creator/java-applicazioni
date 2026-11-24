@@ -20,7 +20,6 @@ import it.palestra.model.Ruolo;
 import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.UtenteRepository;
 import it.palestra.pagina.RichiestaPagina;
-import it.palestra.web.AbbonamentoForm;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -135,9 +134,9 @@ public class AbbonamentoService {
     // Controlla che l'utente scelto esista e abbia il ruolo ISCRITTO. Restituisce il messaggio d'errore, oppure
     // Optional vuoto se va bene (o se non è stato scelto nessun utente: ci pensa già @NotNull sul form).
     @Transactional(readOnly = true)
-    public Optional<String> erroreSulUtente(AbbonamentoForm f) {
-        if (f.getUtenteId() == null) return Optional.empty();
-        Optional<Utente> scelto = utenti.findWithRelazioniById(f.getUtenteId());
+    public Optional<String> erroreSulUtente(DatiAbbonamento f) {
+        if (f.utenteId() == null) return Optional.empty();
+        Optional<Utente> scelto = utenti.findWithRelazioniById(f.utenteId());
         if (scelto.isEmpty()) return Optional.of("L'utente scelto non esiste");
         if (!scelto.get().isIscritto()) return Optional.of("Solo gli utenti con ruolo ISCRITTO possono avere un abbonamento");
         return Optional.empty();
@@ -146,22 +145,22 @@ public class AbbonamentoService {
     // Controlla le regole sulla data di inizio: non nel passato e nessuna sovrapposizione con altri abbonamenti
     // dello stesso utente. Restituisce il messaggio d'errore, oppure Optional vuoto.
     @Transactional(readOnly = true)
-    public Optional<String> erroreSullaDataDiInizio(AbbonamentoForm f) {
-        if (f.getUtenteId() == null || f.getTipo() == null || f.getDataInizio() == null) return Optional.empty();
+    public Optional<String> erroreSullaDataDiInizio(DatiAbbonamento f) {
+        if (f.utenteId() == null || f.tipo() == null || f.dataInizio() == null) return Optional.empty();
 
         LocalDate oggi = oggi();
-        if (f.getDataInizio().isBefore(oggi)) {
+        if (f.dataInizio().isBefore(oggi)) {
             return Optional.of("La data di inizio non può essere nel passato (oggi è il " + oggi.format(DATA) + ")");
         }
 
         // Il periodo che nascerebbe: dalla data scelta fino alla fine calcolata dal tipo.
-        LocalDate fine = f.getTipo().calcolaFine(f.getDataInizio());
-        List<Abbonamento> sovrapposti = abbonamenti.trovaSovrapposti(f.getUtenteId(), f.getDataInizio(), fine);
+        LocalDate fine = f.tipo().calcolaFine(f.dataInizio());
+        List<Abbonamento> sovrapposti = abbonamenti.trovaSovrapposti(f.utenteId(), f.dataInizio(), fine);
         if (!sovrapposti.isEmpty()) {
             Abbonamento a = sovrapposti.get(0);
             return Optional.of("Si sovrappone a un abbonamento già registrato (dal " + a.getDataInizio().format(DATA)
                     + " al " + a.getDataFine().format(DATA) + "). Il primo giorno libero per questo iscritto è il "
-                    + primoGiornoLibero(f.getUtenteId()).format(DATA));
+                    + primoGiornoLibero(f.utenteId()).format(DATA));
         }
         return Optional.empty();
     }
@@ -169,10 +168,10 @@ public class AbbonamentoService {
     // Crea l'abbonamento (INSERT). Data di fine e prezzo li calcola il costruttore di Abbonamento dal tipo.
     // L'utente si legge davvero dal database (e non con un "segnaposto" come getReferenceById): così l'abbonamento
     // restituito ha già nome e cognome, che la API mostra senza dover rileggere il database.
-    public Abbonamento crea(AbbonamentoForm f) {
-        Utente utente = utenti.findById(f.getUtenteId())
-                .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + f.getUtenteId() + " non trovato"));
-        return abbonamenti.save(new Abbonamento(utente, f.getTipo(), f.getDataInizio()));
+    public Abbonamento crea(DatiAbbonamento f) {
+        Utente utente = utenti.findById(f.utenteId())
+                .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + f.utenteId() + " non trovato"));
+        return abbonamenti.save(new Abbonamento(utente, f.tipo(), f.dataInizio()));
     }
 
     // Elimina un abbonamento SOLO se non è ancora iniziato (serve a correggere un errore di inserimento). Quelli

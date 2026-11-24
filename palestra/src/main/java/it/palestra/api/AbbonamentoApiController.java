@@ -28,7 +28,7 @@ import it.palestra.model.Abbonamento;
 import it.palestra.pagina.OrdinamentiListe;
 import it.palestra.pagina.RichiestaPagina;
 import it.palestra.service.AbbonamentoService;
-import it.palestra.web.AbbonamentoForm;
+import it.palestra.service.DatiAbbonamento;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.data.domain.Page;
@@ -111,19 +111,16 @@ public class AbbonamentoApiController {
                                                     @Valid @RequestBody AbbonamentoRequest richiesta) {
         service.trovaUtente(utenteId);
 
-        AbbonamentoForm form = new AbbonamentoForm();
-        form.setUtenteId(utenteId);
-        form.setTipo(richiesta.tipo());
-        form.setDataInizio(richiesta.dataInizio());
+        DatiAbbonamento dati = new DatiAbbonamento(utenteId, richiesta.tipo(), richiesta.dataInizio());
 
-        service.erroreSulUtente(form).ifPresent(m -> {
+        service.erroreSulUtente(dati).ifPresent(m -> {
             throw ErroreSuCampoException.su("utente", m);
         });
-        service.erroreSullaDataDiInizio(form).ifPresent(m -> {
+        service.erroreSullaDataDiInizio(dati).ifPresent(m -> {
             throw ErroreSuCampoException.su("dataInizio", m);
         });
 
-        Abbonamento creato = service.crea(form);
+        Abbonamento creato = service.crea(dati);
         return ResponseEntity.created(URI.create("/api/abbonamenti/" + creato.getId()))
                 .body(AbbonamentoResponse.da(service.trova(creato.getId()), service.oggi()));
     }

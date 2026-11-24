@@ -16,8 +16,8 @@ import it.palestra.exception.TokenNonValidoException;
 import it.palestra.exception.TroppiTentativiException;
 import it.palestra.service.LimiteRichiesteEmail;
 import it.palestra.service.RecuperoPasswordService;
+import it.palestra.service.RegolePassword;
 import it.palestra.service.TokenPasswordService;
-import it.palestra.service.UtenteService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -40,14 +40,12 @@ public class PasswordController {
 
     private final RecuperoPasswordService recupero;
     private final TokenPasswordService tokens;
-    private final UtenteService utenti;
     private final LimiteRichiesteEmail limite;
 
-    public PasswordController(RecuperoPasswordService recupero, TokenPasswordService tokens, UtenteService utenti,
+    public PasswordController(RecuperoPasswordService recupero, TokenPasswordService tokens,
                               LimiteRichiesteEmail limite) {
         this.recupero = recupero;
         this.tokens = tokens;
-        this.utenti = utenti;
         this.limite = limite;
     }
 
@@ -104,7 +102,7 @@ public class PasswordController {
             return paginaNonValida(model);
         }
         if (!errori.hasFieldErrors("nuovaPassword")) {
-            utenti.erroreLunghezzaPassword(form.getNuovaPassword())
+            RegolePassword.errore(form.getNuovaPassword())
                     .ifPresent(m -> errori.rejectValue("nuovaPassword", "non-valida", m));
         }
         if (!errori.hasFieldErrors("confermaPassword") && !errori.hasFieldErrors("nuovaPassword")

@@ -17,8 +17,6 @@ import it.palestra.repository.CorsoRepository;
 import it.palestra.repository.RuoloRepository;
 import it.palestra.repository.UtenteRepository;
 import it.palestra.pagina.RichiestaPagina;
-import it.palestra.web.UtenteForm;
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -128,17 +126,17 @@ public class UtenteService {
     }
 
     // Controlla le regole sulla password nel form utente e restituisce il messaggio d'errore, oppure Optional.vuoto.
-    //  - se è scritta: da 8 caratteri e al massimo 72 BYTE (vedi erroreLunghezzaPassword);
+    //  - se è scritta: da 8 caratteri e al massimo 72 BYTE (vedi RegolePassword.errore);
     //  - se tra i ruoli c'è ADMIN e l'utente non ha ancora una password: è obbligatoria (senza, l'admin non
     //    potrebbe fare login). In modifica, lasciarla vuota significa "non cambiarla".
     @Transactional(readOnly = true)
-    public Optional<String> erroreSullaPassword(UtenteForm f, Long id) {
-        String password = f.getPassword();
+    public Optional<String> erroreSullaPassword(DatiUtente f, Long id) {
+        String password = f.password();
         boolean scritta = password != null && !password.isEmpty();
         if (scritta) {
-            return erroreLunghezzaPassword(password);
+            return RegolePassword.errore(password);
         }
-        if (contieneRuolo(f.getRuoliIds(), Ruolo.ADMIN)) {
+        if (contieneRuolo(f.ruoliIds(), Ruolo.ADMIN)) {
             boolean giaImpostata = id != null && trova(id).getPasswordHash() != null;
             if (!giaImpostata) {
                 return Optional.of("La password è obbligatoria per gli amministratori");
@@ -154,10 +152,10 @@ public class UtenteService {
     //     aggiungerne altri. Un utente appena creato non ha ancora abbonamenti: prima si crea, poi si aggiunge l'abbonamento, poi si scelgono i corsi.
     // La regola 2 vale solo per chi ha il ruolo ISCRITTO (gli altri non possono avere abbonamenti).
     @Transactional(readOnly = true)
-    public Optional<String> erroreSuiCorsiScelti(UtenteForm f, Long id) {
+    public Optional<String> erroreSuiCorsiScelti(DatiUtente f, Long id) {
         if (id != null) {
             String conflitti = trova(id).getCorsiInsegnati().stream()
-                    .filter(c -> f.getCorsiIds().contains(c.getId()))
+                    .filter(c -> f.corsiIds().contains(c.getId()))
                     .map(corso -> corso.getNome())
                     .sorted()
                     .collect(Collectors.joining(", "));
@@ -165,10 +163,10 @@ public class UtenteService {
                 return Optional.of("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: " + conflitti);
             }
         }
-        if (contieneRuolo(f.getRuoliIds(), Ruolo.ISCRITTO) && !haAbbonamentoAttivo(id)) {
+        if (contieneRuolo(f.ruoliIds(), Ruolo.ISCRITTO) && !haAbbonamentoAttivo(id)) {
             Set<Long> giaIscritto = id == null ? Set.of()
                     : trova(id).getCorsi().stream().map(c -> c.getId()).collect(Collectors.toSet());
-            String nuovi = corsi.findAllById(f.getCorsiIds()).stream()
+            String nuovi = corsi.findAllById(f.corsiIds()).stream()
                     .filter(c -> !giaIscritto.contains(c.getId()))
                     .map(corso -> corso.getNome())
                     .sorted()
@@ -187,8 +185,8 @@ public class UtenteService {
         return utenteId != null && abbonamenti.haAbbonamentoAttivo(utenteId, LocalDate.now(clock));
     }
 
-    // Crea un nuovo utente con i dati del form e lo salva (INSERT).
-    public Utente crea(UtenteForm form) {
+    // Crea un nuovo utente con i dati ricevuti, cioè un DatiUtente, e lo salva (INSERT).
+    public Utente crea(DatiUtente form) {
         return utenti.save(applica(new Utente(), form));
     }
 
@@ -199,23 +197,23 @@ public class UtenteService {
     //  3) non si toglie ISCRITTO a chi ha abbonamenti registrati: solo gli iscritti possono averne.
     // Se cambiano la password o i ruoli, i token di accesso già emessi dall'utente vengono revocati; se cambia la password anche i suoi
     // refresh token.
-    public Utente modifica(Long id, UtenteForm form) {
+    public Utente modifica(Long id, DatiUtente form) {
         Utente u = trova(id);
-        if (u.isAdmin() && !contieneRuolo(form.getRuoliIds(), Ruolo.ADMIN)
+        if (u.isAdmin() && !contieneRuolo(form.ruoliIds(), Ruolo.ADMIN)
                 && contaAdminConBlocco() <= 1) {
             throw new RegolaViolataException("Non puoi togliere il ruolo ADMIN all'ultimo amministratore");
         }
-        if (!u.getCorsiInsegnati().isEmpty() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISTRUTTORE)) {
+        if (!u.getCorsiInsegnati().isEmpty() && !contieneRuolo(form.ruoliIds(), Ruolo.ISTRUTTORE)) {
             throw new RegolaViolataException("Non puoi togliere il ruolo ISTRUTTORE: tiene ancora "
                     + u.getCorsiInsegnati().size() + " corsi. Assegna prima un altro istruttore a quei corsi");
         }
-        if (u.isIscritto() && !contieneRuolo(form.getRuoliIds(), Ruolo.ISCRITTO)
+        if (u.isIscritto() && !contieneRuolo(form.ruoliIds(), Ruolo.ISCRITTO)
                 && abbonamenti.countByUtenteId(id) > 0) {
             throw new RegolaViolataException("Non puoi togliere il ruolo ISCRITTO: ha "
                     + abbonamenti.countByUtenteId(id) + " abbonamenti registrati");
         }
         Set<Ruolo> ruoliPrima = new HashSet<>(u.getRuoli());
-        boolean passwordCambiata = form.getPassword() != null && !form.getPassword().isEmpty();
+        boolean passwordCambiata = form.password() != null && !form.password().isEmpty();
         applica(u, form);
         // Se cambiano la password o i ruoli, i token di accesso già emessi non valgono più (es. a un admin tolto il ruolo ADMIN
         // non deve restare l'accesso alla API fino alla scadenza del token).
@@ -249,39 +247,6 @@ public class UtenteService {
         utenti.delete(u);
     }
 
-    // ----------------------------------------------------------------- CAMBIO PASSWORD
-
-    // true se la password scritta corrisponde a quella dell'utente con questa email (si confrontano gli hash:
-    // la password in chiaro non è salvata da nessuna parte). Una password oltre i 72 byte non può essere quella
-    // giusta (bcrypt non ne accetta di più): rispondiamo false invece di far lanciare un errore a bcrypt.
-    @Transactional(readOnly = true)
-    public boolean passwordCorrisponde(String email, String password) {
-        if (password == null || password.getBytes(StandardCharsets.UTF_8).length > 72) return false;
-        return utenti.findByEmailIgnoreCase(email)
-                .map(u -> u.getPasswordHash() != null && encoder.matches(password, u.getPasswordHash()))
-                .orElse(false);
-    }
-
-    // Imposta la nuova password: nel database finisce solo l'hash bcrypt. Basta cambiare il campo: a fine
-    // transazione Hibernate fa l'UPDATE da solo. Il controllo di quella attuale lo fa il controller PRIMA di
-    // arrivare qui (con passwordCorrisponde).
-    public void cambiaPassword(String email, String nuovaPassword) {
-        Utente u = utenti.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + email + " non trovato"));
-        u.setPasswordHash(encoder.encode(nuovaPassword));
-        u.revocaTokenAccesso();      // i token di accesso emessi con la vecchia password non valgono più...
-        refreshTokens.revocaTuttiDi(u.getId());    // ...e nemmeno i refresh token: nessuno può più rinnovare l'accesso con la vecchia
-    }
-
-    // Regola sulla lunghezza, comune al form utente e al cambio password: almeno 8 caratteri e al massimo 72
-    // BYTE (limite di bcrypt, che oltre ignorerebbe il resto; i caratteri accentati occupano più di un byte).
-    public Optional<String> erroreLunghezzaPassword(String password) {
-        if (password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72) {
-            return Optional.of("La password deve avere da 8 a 72 caratteri");
-        }
-        return Optional.empty();
-    }
-
     // ----------------------------------------------------------------- METODI DI SUPPORTO
 
     // Conta gli admin DOPO aver preso il blocco sulla riga del ruolo ADMIN. Il blocco mette in fila le operazioni che riducono gli
@@ -307,19 +272,19 @@ public class UtenteService {
         return pulito.isEmpty() ? null : pulito;
     }
 
-    // Metodo privato usato sia da crea() sia da modifica(): copia i dati del form dentro l'entità.
-    private Utente applica(Utente u, UtenteForm f) {
-        u.setNome(f.getNome().trim());          // trim() toglie gli spazi ai bordi
-        u.setCognome(f.getCognome().trim());
-        u.setEmail(f.getEmail().trim());
-        u.setIndirizzo(vuotoANull(f.getIndirizzo()));      // i campi dell'indirizzo sono facoltativi: testo vuoto = nessun valore
-        u.setCap(vuotoANull(f.getCap()));
-        u.setCitta(vuotoANull(f.getCitta()));
-        u.setCorsi(new HashSet<>(corsi.findAllById(f.getCorsiIds())));
-        u.setRuoli(new HashSet<>(ruoli.findAllById(f.getRuoliIds())));
+    // Metodo privato usato sia da crea() sia da modifica(): copia i dati ricevuti (DatiUtente) dentro l'entità.
+    private Utente applica(Utente u, DatiUtente f) {
+        u.setNome(f.nome().trim());          // trim() toglie gli spazi ai bordi
+        u.setCognome(f.cognome().trim());
+        u.setEmail(f.email().trim());
+        u.setIndirizzo(vuotoANull(f.indirizzo()));      // i campi dell'indirizzo sono facoltativi: testo vuoto = nessun valore
+        u.setCap(vuotoANull(f.cap()));
+        u.setCitta(vuotoANull(f.citta()));
+        u.setCorsi(new HashSet<>(corsi.findAllById(f.corsiIds())));
+        u.setRuoli(new HashSet<>(ruoli.findAllById(f.ruoliIds())));
         // La password si cambia SOLO se è stata scritta: nel database finisce l'hash bcrypt, mai il testo.
-        if (f.getPassword() != null && !f.getPassword().isEmpty()) {
-            u.setPasswordHash(encoder.encode(f.getPassword()));
+        if (f.password() != null && !f.password().isEmpty()) {
+            u.setPasswordHash(encoder.encode(f.password()));
         }
         return u;
     }

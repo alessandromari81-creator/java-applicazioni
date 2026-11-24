@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import it.palestra.model.Utente;
 import it.palestra.service.JwtService;
-import it.palestra.service.UtenteService;
+import it.palestra.service.PasswordService;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +41,7 @@ class ApiRevocaAccessTokenTest extends BaseApiTest {
 
     private static final String PASSWORD = "password-di-prova-1";
 
-    @Autowired UtenteService utenteService;
+    @Autowired PasswordService passwordService;
     @Autowired JwtEncoder jwtEncoder;      // per firmare a mano token con contenuto deciso dal test (la password si codifica con `encoder`, di BaseWebTest)
 
     // ----------------------------------------------------------------- METODI DI AIUTO
@@ -140,7 +140,7 @@ class ApiRevocaAccessTokenTest extends BaseApiTest {
         String vecchia = login("a@example.com", PASSWORD);
         chiediCon(accessDi(vecchia)).andExpect(status().isOk());
 
-        utenteService.cambiaPassword("a@example.com", "nuova-password-2");
+        passwordService.cambiaPassword("a@example.com", "nuova-password-2");
         ricarica();     // come tra due richieste vere: la sessione di Hibernate non deve tenere copie vecchie dei refresh token
 
         chiediCon(accessDi(vecchia)).andExpect(status().isUnauthorized());

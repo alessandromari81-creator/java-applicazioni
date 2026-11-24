@@ -8,6 +8,7 @@
 package it.palestra.web;
 
 import it.palestra.model.Utente;
+import it.palestra.service.DatiUtente;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -68,6 +69,11 @@ public class UtenteForm {
 
     // Getter e setter: Spring li usa per riempire l'oggetto con i dati del form (data binding) e Thymeleaf
     // per rimostrarli. Il nome del campo HTML deve coincidere col nome del campo qui.
+    // Trasforma il modulo nei dati che UtenteService si aspetta: il service non conosce questa classe (che appartiene alle pagine).
+    public DatiUtente comeDati() {
+        return new DatiUtente(nome, cognome, email, password, indirizzo, cap, citta, ruoliIds, corsiIds);
+    }
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getCognome() { return cognome; }

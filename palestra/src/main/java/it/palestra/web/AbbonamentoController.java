@@ -79,7 +79,7 @@ public class AbbonamentoController {
         controllaRegole(abbonamentoForm, errori);
         if (errori.hasErrors()) return paginaUtente(utenteId, lista, model, flash, admin);   // errori: rimostra la stessa pagina
 
-        var creato = service.crea(abbonamentoForm);
+        var creato = service.crea(abbonamentoForm.comeDati());
         flash.addFlashAttribute("messaggio", messaggioCreato(creato));
         return "redirect:/abbonamenti/utente/" + utenteId;
     }
@@ -105,7 +105,7 @@ public class AbbonamentoController {
         controllaRegole(abbonamentoForm, errori);
         if (errori.hasErrors()) return formView(model);
 
-        var creato = service.crea(abbonamentoForm);
+        var creato = service.crea(abbonamentoForm.comeDati());
         flash.addFlashAttribute("messaggio", messaggioCreato(creato));
         return "redirect:/abbonamenti";
     }
@@ -137,11 +137,11 @@ public class AbbonamentoController {
     // Le regole di business sul form (usate sia dal form generale sia da quello nella pagina dell'utente):
     // prima l'utente scelto, poi la data. Gli errori si aggiungono al BindingResult.
     private void controllaRegole(AbbonamentoForm form, BindingResult errori) {
-        service.erroreSulUtente(form)
+        service.erroreSulUtente(form.comeDati())
                 .ifPresent(m -> errori.rejectValue("utenteId", "non-valido", m));
         // La data si controlla solo se non ha già errori (es. campo vuoto o formato errato) e l'utente è valido.
         if (!errori.hasFieldErrors("dataInizio") && !errori.hasFieldErrors("utenteId")) {
-            service.erroreSullaDataDiInizio(form)
+            service.erroreSullaDataDiInizio(form.comeDati())
                     .ifPresent(m -> errori.rejectValue("dataInizio", "non-valida", m));
         }
     }

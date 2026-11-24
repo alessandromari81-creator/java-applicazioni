@@ -87,7 +87,7 @@ public class UtenteController {
         controllaPassword(utenteForm, null, errori);
         controllaCorsi(utenteForm, null, errori);
         if (errori.hasErrors()) return formView(model, null);   // errori: rimostra il form
-        service.crea(utenteForm);
+        service.crea(utenteForm.comeDati());
         flash.addFlashAttribute("messaggio", "Utente creato");
         // Pattern Post-Redirect-Get (evita il doppio invio al refresh), tornando alla lista com'era (pagina, ordine, ricerca).
         return "redirect:/utenti" + lista.query(OrdinamentiListe.UTENTI);
@@ -112,7 +112,7 @@ public class UtenteController {
         controllaCorsi(utenteForm, id, errori);
         if (errori.hasErrors()) return formView(model, id);
         try {
-            service.modifica(id, utenteForm);
+            service.modifica(id, utenteForm.comeDati());
         } catch (RegolaViolataException e) {
             // Il service ha rifiutato (es. si toglie ADMIN all'ultimo admin, o ISTRUTTORE a chi tiene corsi):
             // errore "globale" del form, cioè non legato a un campo, mostrato in cima al form.
@@ -159,14 +159,14 @@ public class UtenteController {
 
     // Validazione "a mano" della password (regole nel service, perché dipendono dai ruoli scelti).
     private void controllaPassword(UtenteForm form, Long id, BindingResult errori) {
-        service.erroreSullaPassword(form, id)
+        service.erroreSullaPassword(form.comeDati(), id)
                 .ifPresent(messaggio -> errori.rejectValue("password", "non-valida", messaggio));
     }
 
     // Validazione "a mano" dei corsi scelti: un istruttore non può iscriversi ai corsi che tiene, e per aggiungere un corso a un iscritto serve un
     // abbonamento attivo oggi. Il messaggio (con i nomi dei corsi) diventa un errore sul campo "corsiIds", mostrato sotto l'elenco dei corsi.
     private void controllaCorsi(UtenteForm form, Long id, BindingResult errori) {
-        service.erroreSuiCorsiScelti(form, id)
+        service.erroreSuiCorsiScelti(form.comeDati(), id)
                 .ifPresent(messaggio -> errori.rejectValue("corsiIds", "corsi-non-validi", messaggio));
     }
 

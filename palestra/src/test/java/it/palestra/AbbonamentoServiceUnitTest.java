@@ -21,7 +21,7 @@ import it.palestra.model.Utente;
 import it.palestra.repository.AbbonamentoRepository;
 import it.palestra.repository.UtenteRepository;
 import it.palestra.service.AbbonamentoService;
-import it.palestra.web.AbbonamentoForm;
+import it.palestra.service.DatiAbbonamento;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -54,7 +54,7 @@ class AbbonamentoServiceUnitTest {
 
     @Test
     void rifiutaUnaDataNelPassato() {
-        AbbonamentoForm form = form(OGGI.minusDays(1));
+        DatiAbbonamento form = form(OGGI.minusDays(1));
 
         Optional<String> errore = service.erroreSullaDataDiInizio(form);
 
@@ -66,7 +66,7 @@ class AbbonamentoServiceUnitTest {
     @Test
     void rifiutaUnaSovrapposizioneEIndicaIlPrimoGiornoLibero() {
         // Il nuovo MENSILE da OGGI finisce OGGI + 1 mese - 1 giorno: il repository finto dice che in quel periodo c'è già un abbonamento.
-        AbbonamentoForm form = form(OGGI);
+        DatiAbbonamento form = form(OGGI);
         LocalDate fineNuovo = TipoAbbonamento.MENSILE.calcolaFine(OGGI);
         Abbonamento esistente = new Abbonamento(new Utente(), TipoAbbonamento.MENSILE, OGGI.minusDays(10));
         when(abbonamenti.trovaSovrapposti(1L, OGGI, fineNuovo)).thenReturn(List.of(esistente));
@@ -83,7 +83,7 @@ class AbbonamentoServiceUnitTest {
 
     @Test
     void accettaUnaDataLiberaDalPassatoESenzaSovrapposizioni() {
-        AbbonamentoForm form = form(OGGI.plusDays(5));
+        DatiAbbonamento form = form(OGGI.plusDays(5));
         LocalDate fine = TipoAbbonamento.MENSILE.calcolaFine(OGGI.plusDays(5));
         when(abbonamenti.trovaSovrapposti(1L, OGGI.plusDays(5), fine)).thenReturn(List.of());
 
@@ -134,12 +134,8 @@ class AbbonamentoServiceUnitTest {
 
     // ------------------------------------------------------------------ SUPPORTO
 
-    // Un form per l'utente 1, abbonamento MENSILE, che parte dal giorno indicato.
-    private AbbonamentoForm form(LocalDate inizio) {
-        AbbonamentoForm f = new AbbonamentoForm();
-        f.setUtenteId(1L);
-        f.setTipo(TipoAbbonamento.MENSILE);
-        f.setDataInizio(inizio);
-        return f;
+    // I dati per l'utente 1, abbonamento MENSILE, che parte dal giorno indicato.
+    private DatiAbbonamento form(LocalDate inizio) {
+        return new DatiAbbonamento(1L, TipoAbbonamento.MENSILE, inizio);
     }
 }

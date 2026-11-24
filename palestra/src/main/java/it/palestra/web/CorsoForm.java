@@ -7,6 +7,7 @@ package it.palestra.web;
 
 import it.palestra.model.Corso;
 import it.palestra.model.Livello;
+import it.palestra.service.DatiCorso;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -48,6 +49,11 @@ public class CorsoForm {
         // getId() sull'istruttore non richiede di rileggere il database (l'id è già nel corso).
         f.istruttoreId = c.getIstruttore() == null ? null : c.getIstruttore().getId();
         return f;
+    }
+
+    // Trasforma il modulo nei dati che CorsoService si aspetta: il service non conosce questa classe (che appartiene alle pagine).
+    public DatiCorso comeDati() {
+        return new DatiCorso(nome, descrizione, durataMinuti, livello, istruttoreId);
     }
 
     public String getNome() { return nome; }
