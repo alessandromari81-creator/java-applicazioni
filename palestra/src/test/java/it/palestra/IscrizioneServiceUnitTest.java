@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -61,6 +63,7 @@ class IscrizioneServiceUnitTest {
         Corso pilates = corso(11L, "Pilates");
         Utente mario = utente(1L, "Mario", "Rossi", Ruolo.ISCRITTO);
         mario.setCorsi(new HashSet<>(Set.of(yoga)));
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.of(mario));
         when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.of(mario));
         when(corsi.findWithIstruttoreById(11L)).thenReturn(Optional.of(pilates));
         when(utenteService.erroreSuiCorsi(eq(1L), any(), any())).thenReturn(Optional.empty());
@@ -76,10 +79,30 @@ class IscrizioneServiceUnitTest {
     }
 
     @Test
+    @DisplayName("Il blocco sulla riga dell'utente si prende PRIMA di leggere le iscrizioni e di consultare la regola: è l'ordine che evita la doppia iscrizione")
+    void ilBloccoSiPrendePrima() {
+        Corso pilates = corso(11L, "Pilates");
+        Utente mario = utente(1L, "Mario", "Rossi", Ruolo.ISCRITTO);
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.of(mario));
+        when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.of(mario));
+        when(corsi.findWithIstruttoreById(11L)).thenReturn(Optional.of(pilates));
+        when(utenteService.erroreSuiCorsi(eq(1L), any(), any())).thenReturn(Optional.empty());
+
+        service.iscrivi(1L, 11L);
+
+        // Se la lettura (o la regola) venisse PRIMA del blocco, la seconda di due richieste insieme leggerebbe le iscrizioni vecchie e passerebbe il controllo.
+        InOrder ordine = inOrder(utenti, utenteService);
+        ordine.verify(utenti).bloccaPerId(1L);
+        ordine.verify(utenti).findWithRelazioniById(1L);
+        ordine.verify(utenteService).erroreSuiCorsi(eq(1L), any(), any());
+    }
+
+    @Test
     @DisplayName("Se la regola dice di no il corso NON viene aggiunto e l'errore ha il messaggio della regola")
     void laRegolaDiceDiNo() {
         Corso yoga = corso(10L, "Yoga");
         Utente mario = utente(1L, "Mario", "Rossi", Ruolo.ISCRITTO);
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.of(mario));
         when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.of(mario));
         when(corsi.findWithIstruttoreById(10L)).thenReturn(Optional.of(yoga));
         when(utenteService.erroreSuiCorsi(eq(1L), any(), any())).thenReturn(Optional.of("Serve un abbonamento attivo"));
@@ -97,6 +120,7 @@ class IscrizioneServiceUnitTest {
         Corso yoga = corso(10L, "Yoga");
         Utente mario = utente(1L, "Mario", "Rossi", Ruolo.ISCRITTO);
         mario.setCorsi(new HashSet<>(Set.of(yoga)));
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.of(mario));
         when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.of(mario));
         when(corsi.findWithIstruttoreById(10L)).thenReturn(Optional.of(yoga));
 
@@ -110,10 +134,11 @@ class IscrizioneServiceUnitTest {
     @Test
     @DisplayName("Utente o corso inesistenti: 404")
     void inesistenti() {
-        when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.empty());
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.iscrivi(1L, 10L)).isInstanceOf(RisorsaNonTrovataException.class);
 
         Utente mario = utente(2L, "Mario", "Rossi", Ruolo.ISCRITTO);
+        when(utenti.bloccaPerId(2L)).thenReturn(Optional.of(mario));
         when(utenti.findWithRelazioniById(2L)).thenReturn(Optional.of(mario));
         when(corsi.findWithIstruttoreById(99L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.iscrivi(2L, 99L)).isInstanceOf(RisorsaNonTrovataException.class);
@@ -127,6 +152,7 @@ class IscrizioneServiceUnitTest {
         Corso yoga = corso(10L, "Yoga");
         Utente mario = utente(1L, "Mario", "Rossi", Ruolo.ISCRITTO);
         mario.setCorsi(new HashSet<>(Set.of(yoga)));
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.of(mario));
         when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.of(mario));
         when(corsi.findWithIstruttoreById(10L)).thenReturn(Optional.of(yoga));
 
@@ -142,6 +168,7 @@ class IscrizioneServiceUnitTest {
     void disiscrivereDaUnCorsoNonSeguito() {
         Corso yoga = corso(10L, "Yoga");
         Utente mario = utente(1L, "Mario", "Rossi", Ruolo.ISCRITTO);
+        when(utenti.bloccaPerId(1L)).thenReturn(Optional.of(mario));
         when(utenti.findWithRelazioniById(1L)).thenReturn(Optional.of(mario));
         when(corsi.findWithIstruttoreById(10L)).thenReturn(Optional.of(yoga));
 

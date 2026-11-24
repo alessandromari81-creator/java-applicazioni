@@ -67,11 +67,11 @@ public class IscrizioneService {
         return utenteService.haAbbonamentoAttivo(utente.getId());
     }
 
-    // Iscrive l'utente al corso e restituisce il corso (il controller ne usa il nome nel messaggio). Rifiuta con RegolaViolataException se è già
+    // Iscrive l'utente al corso e restituisce il corso (il controller ne usa il nome nel messaggio). Prende il blocco sulla riga dell'utente (vedi trovaUtenteBloccato). Rifiuta con RegolaViolataException se è già
     // iscritto o se la regola sui corsi lo vieta (istruttore del corso, abbonamento non attivo); 404 se l'utente o il corso non esistono.
     // Basta aggiungere il corso all'insieme dell'utente: a fine transazione Hibernate scrive la riga nella tabella utente_corso.
     public Corso iscrivi(Long utenteId, Long corsoId) {
-        Utente utente = trovaUtente(utenteId);
+        Utente utente = trovaUtenteBloccato(utenteId);
         Corso corso = trovaCorso(corsoId);
         if (utente.getCorsi().contains(corso)) {
             throw new RegolaViolataException(nomeCompleto(utente) + " è già iscritto al corso " + corso.getNome());
@@ -88,7 +88,7 @@ public class IscrizioneService {
 
     // Toglie l'iscrizione e restituisce il corso. Si può sempre, anche con l'abbonamento scaduto. Rifiuta se l'utente non era iscritto a quel corso.
     public Corso disiscrivi(Long utenteId, Long corsoId) {
-        Utente utente = trovaUtente(utenteId);
+        Utente utente = trovaUtenteBloccato(utenteId);
         Corso corso = trovaCorso(corsoId);
         if (!utente.getCorsi().remove(corso)) {
             throw new RegolaViolataException(nomeCompleto(utente) + " non è iscritto al corso " + corso.getNome());
@@ -104,6 +104,14 @@ public class IscrizioneService {
                 .replace("%", ESCAPE + "%")
                 .replace("_", ESCAPE + "_");
         return "%" + protetto + "%";
+    }
+
+    // L'utente con la riga BLOCCATA fino alla fine della transazione, poi riletto con ruoli e corsi. Il blocco va preso PRIMA di leggere le iscrizioni:
+    // chi arriva secondo aspetta qui, e quando riparte la lettura vede ciò che la prima richiesta ha già confermato. Senza, due iscrizioni insieme
+    // passerebbero entrambe il controllo «è già iscritto?» e la seconda fallirebbe contro la chiave primaria di utente_corso con un errore generico.
+    private Utente trovaUtenteBloccato(Long utenteId) {
+        utenti.bloccaPerId(utenteId).orElseThrow(() -> new RisorsaNonTrovataException("Utente " + utenteId + " non trovato"));
+        return trovaUtente(utenteId);
     }
 
     private Corso trovaCorso(Long corsoId) {

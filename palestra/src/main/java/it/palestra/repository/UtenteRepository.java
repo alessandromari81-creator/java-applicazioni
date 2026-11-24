@@ -6,6 +6,7 @@
 package it.palestra.repository;
 
 import it.palestra.model.Utente;
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -80,4 +82,13 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
     // Nome e cognome (e basta: niente email né altri dati) degli iscritti a un corso, in ordine alfabetico. Li usa l'area dell'istruttore.
     @Query("select u.nome as nome, u.cognome as cognome from Utente u join u.corsi c where c.id = :corsoId order by u.cognome, u.nome, u.id")
     List<NomeCognome> findIscrittiDelCorso(@Param("corsoId") Long corsoId);
+
+    // L'utente con BLOCCO sulla riga (SELECT ... FOR UPDATE): finché la transazione non finisce, un'altra transazione che chiede lo stesso blocco aspetta.
+    // IscrizioneService lo prende all'inizio di iscrivi e disiscrivi, così due richieste insieme sullo stesso utente si mettono in fila: la seconda legge
+    // le iscrizioni già aggiornate dalla prima e risponde «è già iscritto» invece di scontrarsi con la chiave primaria di utente_corso. Non carica le
+    // relazioni (con i join un FOR UPDATE non si può applicare al lato opzionale): quelle si leggono dopo, con findWithRelazioniById. Va chiamato
+    // dentro una transazione (@Transactional del service).
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Utente u where u.id = :id")
+    Optional<Utente> bloccaPerId(@Param("id") Long id);
 }
