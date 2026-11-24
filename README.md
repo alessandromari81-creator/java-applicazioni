@@ -15,7 +15,7 @@ Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione
 **Cosa fa**
 - Pannello di amministrazione (ruolo ADMIN): CRUD di corsi, utenti e abbonamenti, con liste paginate, ordinabili e con ricerca.
 - **Area personale** per iscritti e istruttori: ognuno vede i propri dati (profilo, corsi, abbonamenti); l'istruttore vede gli iscritti ai propri corsi (solo nome e cognome).
-- **Registrazione libera con conferma via email**, «password dimenticata» e invito dell'amministratore, con link monouso e a tempo (in sviluppo le email si leggono in Mailpit).
+- **Registrazione libera con conferma via email**, «password dimenticata» e invito dell'amministratore, con link monouso e a tempo. Le email **non partono dentro la richiesta**: finiscono in una coda (tabella `email_in_coda`) e un compito programmato le spedisce entro pochi secondi, riprovando con attese crescenti se il server di posta non risponde (in sviluppo le email si leggono in Mailpit).
 - Istruttori (uno-a-molti verso i corsi) e iscritti (molti-a-molti), con regole di business (es. un istruttore non può iscriversi al proprio corso; abbonamenti senza sovrapposizioni).
 - **Iscrizione ai corsi** dalla pagina «Corsi» di ogni utente: i corsi a cui è iscritto e quelli a cui può iscriversi (con ricerca, ordinamento e paginazione, perché i corsi possono essere tanti), con una finestra di conferma prima di iscrivere o disiscrivere. Per iscrivere un iscritto serve un abbonamento attivo oggi.
 - API REST sotto `/api` con JWT + refresh token (formato OAuth2) e documentazione Swagger.
@@ -57,7 +57,7 @@ docker compose --profile app up --build
 La prima volta Docker scarica le dipendenze e compila l'applicazione (qualche minuto); poi avvia PostgreSQL e l'app e applica da solo le migration del database, con alcuni corsi di prova.
 Quando nel terminale compare `Started PalestraApplication`, apri http://localhost:8080 e accedi con `admin@palestra.local` / `admin`.
 
-Per provare la **registrazione**: da http://localhost:8080/registrazione compila il modulo, poi apri **Mailpit** su http://localhost:8025 (un finto server di posta incluso: l'email non esce dal tuo computer), clicca il link nell'email di conferma e scegli la password. Poi accedi dalla pagina di login: arrivi alla tua area personale.
+Per provare la **registrazione**: da http://localhost:8080/registrazione compila il modulo, poi apri **Mailpit** su http://localhost:8025 (l'email arriva dopo pochi secondi: la spedisce un compito programmato) (un finto server di posta incluso: l'email non esce dal tuo computer), clicca il link nell'email di conferma e scegli la password. Poi accedi dalla pagina di login: arrivi alla tua area personale.
 
 - Si ferma con `Ctrl+C`; `docker compose --profile app down` rimuove i container, `docker compose --profile app down -v` cancella anche i dati del database.
 - **Solo per provare:** la password dell'amministratore, la password del database e la chiave dei token (`JWT_SECRET`) sono valori di esempio. Per un uso vero vanno cambiati (la chiave si imposta con la variabile d'ambiente `JWT_SECRET`, lunga e casuale).
@@ -95,7 +95,7 @@ Questa guida avvia una copia **separata** dell'applicazione e del suo database, 
    - ti manda alla pagina di login; accedi con `admin@palestra.local` / `admin`;
    - in «Corsi» devi vedere 4 corsi di prova (Yoga, Spinning, CrossFit, Pilates);
    - crea, modifica ed elimina un utente;
-   - da http://localhost:8082/registrazione registrati con un tuo indirizzo (anche inventato) e leggi l'email su **Mailpit**, http://localhost:8026: clicca il link, scegli la password e accedi alla tua area;
+   - da http://localhost:8082/registrazione registrati con un tuo indirizzo (anche inventato) e leggi l'email su **Mailpit**, http://localhost:8026 (arriva dopo pochi secondi): clicca il link, scegli la password e accedi alla tua area;
    - la documentazione della API è su http://localhost:8082/swagger-ui.html (serve essere loggati).
 6. **Prova la API da terminale** (apri un secondo terminale, perché il primo è occupato):
    ```bash
@@ -134,7 +134,7 @@ docker compose up -d      # avvia PostgreSQL (database/utente/password: palestra
 ```
 
 Poi apri http://localhost:8080 — utente iniziale `admin@palestra.local`, password `admin` (si cambia dal pannello, «Cambia password»).
-Le email dell'applicazione (conferma registrazione, password dimenticata, invito) si leggono su http://localhost:8025. Per fermare database e Mailpit: `docker compose stop`.
+Le email dell'applicazione (conferma registrazione, password dimenticata, invito, iscrizione a un corso) si leggono su http://localhost:8025. Per fermare database e Mailpit: `docker compose stop`.
 
 ### Indirizzi utili
 
@@ -155,7 +155,7 @@ cd palestra
 ./mvnw test
 ```
 
-Quasi tutti i test non richiedono né Docker né PostgreSQL: usano H2 in memoria (profilo `test`, Flyway spento). Fanno eccezione `UltimoAdminConcorrenzaTest` (la regola «non si toglie l'ultimo amministratore») e `IscrizioneConcorrenzaTest` (l'iscrizione a un corso), che provano la concorrenza con due richieste simultanee su un PostgreSQL vero avviato da Testcontainers: serve Docker acceso, altrimenti quei test vengono saltati. Un test solo: `./mvnw test -Dtest=NomeClasse#nomeMetodo`.
+Quasi tutti i test non richiedono né Docker né PostgreSQL: usano H2 in memoria (profilo `test`, Flyway spento). Fanno eccezione `UltimoAdminConcorrenzaTest` (la regola «non si toglie l'ultimo amministratore»), `IscrizioneConcorrenzaTest` (l'iscrizione a un corso) e `CodaEmailConcorrenzaTest` (due lavoratori della coda delle email), che provano la concorrenza con due richieste simultanee su un PostgreSQL vero avviato da Testcontainers: serve Docker acceso, altrimenti quei test vengono saltati. Un test solo: `./mvnw test -Dtest=NomeClasse#nomeMetodo`.
 
 ### Configurazione
 
@@ -167,6 +167,7 @@ Le impostazioni stanno in `palestra/src/main/resources/application.properties`. 
 | `DB_USER`, `DB_PASSWORD` | accesso al database |
 | `APP_URL_PUBBLICO` | indirizzo pubblico del sito, usato nei link delle email (mai ricavato dalla richiesta) |
 | `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | server SMTP con cui spedire le email (in sviluppo Mailpit su `localhost:1025`) |
+| `APP_EMAIL_CODA_ATTIVA=false` | spegne la coda delle email: l'email parte subito dentro la richiesta, come prima della coda (predefinito: acceso) |
 | `SPRINGDOC_ENABLED=false` | spegne Swagger |
 
 ### Struttura del codice (`palestra/src/main/java/it/palestra`)
@@ -248,6 +249,7 @@ Client API ─► api/ (JSON, JWT stateless)      ─┘
 - **Due catene di sicurezza** (`config/SecurityConfig`): `/api/**` è stateless, senza CSRF, con JWT; tutto il resto è il pannello con sessione e CSRF.
 - **Token API:** `POST /api/auth/login` restituisce `access_token` (JWT, 60 minuti) e `refresh_token` (stringa casuale, 7 giorni, nel database solo l'hash). Ogni rinnovo ruota il refresh token; il riuso di uno già usato revoca tutte le sessioni dell'utente.
   Gli access token si possono **revocare prima della scadenza** (logout, cambio di password o ruoli, sospetto furto): ognuno porta la «versione» dei token dell'utente e a ogni richiesta si confronta con quella nel database. Ogni notte si cancellano i refresh token scaduti.
+- **Coda delle email** (`service/InvioEmailInCoda`, `SpedizioneEmailProgrammata`, tabella `email_in_coda`): `NotificheEmail` chiama `InvioEmail` come sempre, ma l'implementazione usata scrive solo una riga; ogni 5 secondi un compito programmato prende un gruppo di righe, le «reclama» con un `UPDATE` condizionato (così più istanze dell'app non spediscono mai la stessa email due volte), le spedisce fuori da ogni transazione e cancella la riga; se l'invio fallisce riprova dopo 1, 2, 4... minuti (massimo 5 tentativi, poi `FALLITA`; la pulizia notturna cancella le fallite dopo 24 ore perché contengono il link con il token). Garanzia: ogni email parte **almeno** una volta (se l'app si ferma a metà può arrivarne una doppia). L'SMTP ha dei timeout (5 s per collegarsi, 10 per rispondere). `app.email.coda.attiva=false` ripristina l'invio immediato.
 - **Limite ai tentativi di login** (API e pannello): 5 errori per coppia indirizzo+email e 20 per indirizzo in 15 minuti, poi `429` con `Retry-After` (o `/login?bloccato` nel pannello).
 - **DTO:** la API non espone mai le entità, ma record dedicati (`api/dto`).
 - **Errori:** `400` dati o parametri non validi (con il dettaglio per campo), `401`/`403` autenticazione e ruolo, `404` risorsa inesistente, `409` regola di business violata. Il motivo di un `401`/`403` si legge nel log dell'app, non nella risposta.

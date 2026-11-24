@@ -54,6 +54,102 @@
       "type": "java.lang.Long",
       "description": "Durata in minuti della finestra di conteggio dei login falliti (dal primo fallimento).",
       "defaultValue": 15
+    },
+    {
+      "name": "app.privacy.versione",
+      "type": "java.lang.String",
+      "description": "Versione del testo dell'informativa privacy (pagina /privacy): si salva insieme al consenso di chi si registra. Va aggiornata quando si cambia il testo.",
+      "defaultValue": "2026-11"
+    },
+    {
+      "name": "app.email.mittente",
+      "type": "java.lang.String",
+      "description": "Indirizzo da cui partono le email dell'applicazione (campo Da).",
+      "defaultValue": "Palestra <no-reply@palestra.local>"
+    },
+    {
+      "name": "app.url-pubblico",
+      "type": "java.lang.String",
+      "description": "Indirizzo base con cui si costruiscono i link nelle email. Si legge solo da qui, mai dalla richiesta. In produzione: APP_URL_PUBBLICO.",
+      "defaultValue": "http://localhost:8080"
+    },
+    {
+      "name": "app.token.reset-minuti",
+      "type": "java.lang.Long",
+      "description": "Durata in minuti del link «password dimenticata».",
+      "defaultValue": 60
+    },
+    {
+      "name": "app.token.attivazione-ore",
+      "type": "java.lang.Long",
+      "description": "Durata in ore del link di invito dell'amministratore.",
+      "defaultValue": 24
+    },
+    {
+      "name": "app.token.registrazione-ore",
+      "type": "java.lang.Long",
+      "description": "Durata in ore del link di conferma della registrazione.",
+      "defaultValue": 24
+    },
+    {
+      "name": "app.token.pausa-minuti",
+      "type": "java.lang.Long",
+      "description": "Minuti minimi tra due email di link inviate alla stessa persona.",
+      "defaultValue": 2
+    },
+    {
+      "name": "app.sicurezza.email-max-richieste",
+      "type": "java.lang.Integer",
+      "description": "Richieste che fanno partire un'email ammesse per coppia IP+email nella finestra.",
+      "defaultValue": 5
+    },
+    {
+      "name": "app.sicurezza.email-max-richieste-per-ip",
+      "type": "java.lang.Integer",
+      "description": "Richieste che fanno partire un'email ammesse per solo IP nella finestra.",
+      "defaultValue": 20
+    },
+    {
+      "name": "app.sicurezza.email-finestra-minuti",
+      "type": "java.lang.Long",
+      "description": "Durata in minuti della finestra di conteggio delle richieste di email.",
+      "defaultValue": 60
+    },
+    {
+      "name": "app.email.coda.attiva",
+      "type": "java.lang.Boolean",
+      "description": "Interruttore della coda delle email: true = l'email si scrive in email_in_coda e la spedisce un compito programmato; false = parte subito, dentro la richiesta.",
+      "defaultValue": true
+    },
+    {
+      "name": "app.email.coda.intervallo-ms",
+      "type": "java.lang.Long",
+      "description": "Pausa in millisecondi tra un giro e l'altro del lavoratore della coda.",
+      "defaultValue": 5000
+    },
+    {
+      "name": "app.email.coda.gruppo",
+      "type": "java.lang.Integer",
+      "description": "Quante email al massimo spedisce il lavoratore per giro.",
+      "defaultValue": 20
+    },
+    {
+      "name": "app.email.coda.max-tentativi",
+      "type": "java.lang.Integer",
+      "description": "Dopo quanti invii falliti una email diventa FALLITA e non si riprova più.",
+      "defaultValue": 5
+    },
+    {
+      "name": "app.email.coda.in-corso-minuti",
+      "type": "java.lang.Long",
+      "description": "Dopo quanti minuti una email rimasta IN_CORSO (l'app si è fermata a metà) torna da inviare.",
+      "defaultValue": 10
+    },
+    {
+      "name": "app.email.coda.fallite-ore",
+      "type": "java.lang.Long",
+      "description": "Dopo quante ore la pulizia notturna cancella le email FALLITE (contengono il link con il token vero).",
+      "defaultValue": 24
     }
   ]
 }

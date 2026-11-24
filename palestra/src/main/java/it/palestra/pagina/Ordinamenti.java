@@ -37,6 +37,10 @@ public final class Ordinamenti {
         return new Ordinamenti(predefinito, direzione, campi);
     }
 
+    // La proprietà con cui si spareggia SEMPRE (l'id, unico): così l'ordine di due righe uguali sul campo scelto è stabile. È un nome comune a tutte le entità,
+    // quindi non si può scrivere in modo «type-safe» (che richiede una classe precisa): una costante evita di ripetere la stringa.
+    private static final String SPAREGGIO = "id";
+
     public boolean ammette(String nome) { return campi.containsKey(nome); }
     public String predefinito() { return predefinito; }
     public Sort.Direction direzionePredefinita() { return direzionePredefinita; }
@@ -48,7 +52,7 @@ public final class Ordinamenti {
     public Sort sort(String nome, Sort.Direction direzione) {
         List<Sort.Order> ordini = campi.get(nome).stream().map(proprieta -> new Sort.Order(direzione, proprieta)).toList();
         // Se si ordina già per id lo spareggio non serve (e non lo si ripete: "order by id, id" sarebbe inutile).
-        boolean giaPerId = ordini.stream().anyMatch(o -> "id".equals(o.getProperty()));
-        return giaPerId ? Sort.by(ordini) : Sort.by(ordini).and(Sort.by(direzione, "id"));
+        boolean giaPerId = ordini.stream().anyMatch(o -> SPAREGGIO.equals(o.getProperty()));
+        return giaPerId ? Sort.by(ordini) : Sort.by(ordini).and(Sort.by(direzione, SPAREGGIO));
     }
 }

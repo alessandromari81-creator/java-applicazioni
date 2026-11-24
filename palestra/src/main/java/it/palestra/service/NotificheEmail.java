@@ -65,12 +65,26 @@ public class NotificheEmail {
                         + link + "\n\nSe non sei stato tu, ignora questo messaggio.\n");
     }
 
+    // Email di CONFERMA ISCRIZIONE a un corso: parte dopo che l'iscrizione è stata salvata (l'admin ha iscritto la persona). Non contiene token: solo il nome
+    // del corso e il link all'area personale, dove si vedono i corsi.
+    public boolean iscrizioneCorso(String email, String nome, String nomeCorso) {
+        String link = urlPubblico + "/area/corsi";
+        return invia(email, "Sei iscritto al corso " + nomeCorso, "iscrizione-corso", nome, link,
+                "Ciao " + nome + ",\n\nsei stato iscritto al corso " + nomeCorso + ". Puoi vedere i tuoi corsi qui:\n" + link + "\n", nomeCorso);
+    }
+
     // Compone l'email dal modello HTML e la fa partire; gli errori di invio si scrivono nel log (senza link né token).
     private boolean invia(String destinatario, String oggetto, String modello, String nome, String link, String testo) {
+        return invia(destinatario, oggetto, modello, nome, link, testo, null);
+    }
+
+    // Come sopra, con in più il nome del corso per i modelli che lo mostrano (null per gli altri).
+    private boolean invia(String destinatario, String oggetto, String modello, String nome, String link, String testo, String corso) {
         try {
             Context contesto = new Context();
             contesto.setVariable("nome", nome);
             contesto.setVariable("link", link);
+            contesto.setVariable("corso", corso);
             String html = motore.process("email/" + modello, contesto);
             invio.invia(destinatario, oggetto, html, testo);
             return true;

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: email/iscrizione-corso.html
+  A COSA SERVE: modello dell'email «Sei iscritto al corso», generato da NotificheEmail. Riceve "nome" (nome del destinatario), "corso" (nome del corso) e
+  "link" (indirizzo dell'area personale). È HTML semplice con stili scritti nell'elemento stesso (i programmi di posta ignorano i fogli di stile esterni).
+  Nome e corso si scrivono con th:text, che protegge da eventuali caratteri speciali.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.5;">
+  <h2 style="color: #111827;">Sei iscritto al corso <span th:text="${corso}">Corso</span></h2>
+  <p>Ciao <span th:text="${nome}">Nome</span>,</p>
+  <p>la tua iscrizione al corso <strong th:text="${corso}">Corso</strong> è stata registrata.</p>
+  <p>
+    <a th:href="${link}" style="display: inline-block; padding: 10px 18px; background: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px;">Vai ai tuoi corsi</a>
+  </p>
+  <p style="font-size: 13px; color: #6b7280;">Se il pulsante non funziona, copia questo indirizzo nel browser:<br><span th:text="${link}">indirizzo</span></p>
+</body>
+</html>

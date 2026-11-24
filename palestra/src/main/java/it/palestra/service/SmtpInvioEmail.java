@@ -3,6 +3,8 @@
  * A COSA SERVE: spedisce davvero le email tramite un server SMTP (impostato in spring.mail.*: in sviluppo Mailpit su localhost:1025, in produzione il
  * server del proprio provider). L'email contiene sia la versione HTML sia quella di solo testo: il programma di posta mostra la prima, se la supporta.
  * Non è attiva nei test (profilo "test"): lì c'è EmailFinte.
+ * Il nome "invioReale" serve a SpedizioneEmailProgrammata: con la coda attiva ci sono due InvioEmail (questa e InvioEmailInCoda) e il lavoratore
+ * della coda deve prendere quella che spedisce davvero.
  */
 package it.palestra.service;
 
@@ -14,7 +16,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service("invioReale")
 @Profile("!test")
 public class SmtpInvioEmail implements InvioEmail {
 

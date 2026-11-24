@@ -19,6 +19,7 @@ import it.palestra.pagina.OrdinamentiListe;
 import it.palestra.pagina.RichiestaPagina;
 import it.palestra.pagina.StatoLista;
 import it.palestra.service.IscrizioneService;
+import it.palestra.service.NotificheEmail;
 import java.security.Principal;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
@@ -35,9 +36,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class CorsiUtenteController {
 
     private final IscrizioneService service;
+    private final NotificheEmail notifiche;
 
-    public CorsiUtenteController(IscrizioneService service) {
+    public CorsiUtenteController(IscrizioneService service, NotificheEmail notifiche) {
         this.service = service;
+        this.notifiche = notifiche;
     }
 
     // GET /utenti/5/corsi -> la pagina. I parametri ?page=&size=&sort=&q= riguardano la lista dei corsi DISPONIBILI (q cerca nel nome del corso);
@@ -69,6 +72,10 @@ public class CorsiUtenteController {
                           RedirectAttributes flash) {
         try {
             Corso corso = service.iscrivi(utenteId, corsoId);
+            // L'iscrizione è già salvata (la transazione del service è chiusa): solo ora si avvisa la persona, così non parte mai un'email per un'iscrizione annullata.
+            // Se l'invio fallisce NotificheEmail scrive l'errore nel log e l'iscrizione resta valida.
+            Utente iscritto = service.trovaUtente(utenteId);
+            notifiche.iscrizioneCorso(iscritto.getEmail(), iscritto.getNome(), corso.getNome());
             flash.addFlashAttribute("messaggio", "Iscritto al corso " + corso.getNome());
         } catch (RegolaViolataException e) {
             flash.addFlashAttribute("errore", e.getMessage());

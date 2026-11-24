@@ -14,7 +14,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
-@Component
+// Il nome "invioReale" la fa usare da SpedizioneEmailProgrammata come «server di posta» quando i test accendono la coda (app.email.coda.attiva=true).
+@Component("invioReale")
 public class EmailFinte implements InvioEmail {
 
     // Un'email "spedita": destinatario, oggetto, versione HTML e versione di solo testo.
@@ -40,11 +41,15 @@ public class EmailFinte implements InvioEmail {
 
     private final List<Messaggio> inviati = new CopyOnWriteArrayList<>();
     private volatile boolean fallisce;
+    private volatile String destinatarioRifiutato;     // se impostato, il «server» rifiuta solo le email per questo indirizzo
 
     @Override
     public void invia(String destinatario, String oggetto, String testoHtml, String testoSemplice) {
         if (fallisce) {
             throw new IllegalStateException("Server di posta non raggiungibile (simulato)");
+        }
+        if (destinatarioRifiutato != null && destinatarioRifiutato.equalsIgnoreCase(destinatario)) {
+            throw new IllegalStateException("Destinatario rifiutato dal server di posta (simulato)");
         }
         inviati.add(new Messaggio(destinatario, oggetto, testoHtml, testoSemplice));
     }
@@ -65,4 +70,7 @@ public class EmailFinte implements InvioEmail {
     public void svuota() { inviati.clear(); }
 
     public void faiFallire(boolean fallisci) { this.fallisce = fallisci; }
+
+    // Fa rifiutare solo le email per questo indirizzo (null = nessuno): serve a provare che una email che fallisce non blocca le altre.
+    public void rifiutaSoloPer(String destinatario) { this.destinatarioRifiutato = destinatario; }
 }

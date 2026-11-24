@@ -323,6 +323,58 @@ class CorsiUtenteTest extends BaseWebTest {
         assertThat(nomiCorsiDi(altro)).isEmpty();
     }
 
+    // ------------------------------------------------------------------ L'EMAIL DI ISCRIZIONE
+
+    @Test
+    @DisplayName("Quando l'admin iscrive l'utente a un corso parte l'email di conferma all'utente, con il nome del corso")
+    void emailDiIscrizione() throws Exception {
+        Utente mario = iscrittoAbbonato();
+        Corso yoga = creaCorso("Yoga dolce");
+
+        mockMvc.perform(post(indirizzo(mario) + "/" + yoga.getId() + "/iscrivi").with(comeAdmin()).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(emailFinte.tutte()).hasSize(1);
+        EmailFinte.Messaggio email = emailFinte.per("mario@example.com").get(0);
+        assertThat(email.oggetto()).isEqualTo("Sei iscritto al corso Yoga dolce");
+        assertThat(email.html()).contains("Yoga dolce").contains("/area/corsi");
+        assertThat(email.testo()).contains("Yoga dolce");
+    }
+
+    @Test
+    @DisplayName("Se l'iscrizione è rifiutata (senza abbonamento) o è una disiscrizione, nessuna email")
+    void nessunaEmailSeNonIscritto() throws Exception {
+        Utente senza = creaUtente("Luca", "Bianchi", "luca@example.com", ruolo("ISCRITTO"));
+        Utente mario = iscrittoAbbonato();
+        Corso yoga = creaCorso("Yoga");
+        mockMvc.perform(post(indirizzo(senza) + "/" + yoga.getId() + "/iscrivi").with(comeAdmin()).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(post(indirizzo(mario) + "/" + yoga.getId() + "/iscrivi").with(comeAdmin()).with(csrf()));
+        emailFinte.svuota();
+
+        mockMvc.perform(post(indirizzo(mario) + "/" + yoga.getId() + "/iscrivi").with(comeAdmin()).with(csrf()));   // già iscritto
+        mockMvc.perform(post(indirizzo(mario) + "/" + yoga.getId() + "/disiscrivi").with(comeAdmin()).with(csrf()));
+
+        assertThat(emailFinte.tutte()).isEmpty();
+        assertThat(nomiCorsiDi(senza)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Se la posta non funziona l'iscrizione resta valida")
+    void postaGuastaIscrizioneValida() throws Exception {
+        Utente mario = iscrittoAbbonato();
+        Corso yoga = creaCorso("Yoga");
+        emailFinte.faiFallire(true);
+        try {
+            mockMvc.perform(post(indirizzo(mario) + "/" + yoga.getId() + "/iscrivi").with(comeAdmin()).with(csrf()))
+                    .andExpect(status().is3xxRedirection());
+        } finally {
+            emailFinte.faiFallire(false);
+        }
+
+        assertThat(nomiCorsiDi(mario)).containsExactly("Yoga");
+    }
+
     // ------------------------------------------------------------------ LA FINESTRA DI CONFERMA
 
     @Test
