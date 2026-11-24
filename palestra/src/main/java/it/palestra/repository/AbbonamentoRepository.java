@@ -72,7 +72,7 @@ public interface AbbonamentoRepository extends JpaRepository<Abbonamento, Long> 
     long countByUtenteId(Long utenteId);
 
     // true se l'utente ha un abbonamento ATTIVO nel giorno indicato (inizio e fine inclusi). Serve alla regola «per iscriversi a un corso serve un
-    // abbonamento attivo oggi» (UtenteService.erroreSuiCorsiScelti).
+    // abbonamento attivo oggi» (UtenteService.erroreSuiCorsi).
     @Query("select count(a) > 0 from Abbonamento a where a.utente.id = :utenteId and a.dataInizio <= :giorno and a.dataFine >= :giorno")
     boolean haAbbonamentoAttivo(@Param("utenteId") Long utenteId, @Param("giorno") LocalDate giorno);
 }

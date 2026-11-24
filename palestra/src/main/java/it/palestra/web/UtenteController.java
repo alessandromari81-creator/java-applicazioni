@@ -85,7 +85,6 @@ public class UtenteController {
                        @ModelAttribute("lista") StatoLista lista, Model model, RedirectAttributes flash) {
         controllaEmail(utenteForm, null, errori);
         controllaPassword(utenteForm, null, errori);
-        controllaCorsi(utenteForm, null, errori);
         if (errori.hasErrors()) return formView(model, null);   // errori: rimostra il form
         service.crea(utenteForm.comeDati());
         flash.addFlashAttribute("messaggio", "Utente creato");
@@ -109,7 +108,6 @@ public class UtenteController {
                            RedirectAttributes flash) {
         controllaEmail(utenteForm, id, errori);
         controllaPassword(utenteForm, id, errori);
-        controllaCorsi(utenteForm, id, errori);
         if (errori.hasErrors()) return formView(model, id);
         try {
             service.modifica(id, utenteForm.comeDati());
@@ -136,16 +134,11 @@ public class UtenteController {
         return "redirect:/utenti" + lista.query(OrdinamentiListe.UTENTI);
     }
 
-    // Prepara i dati comuni a creazione e modifica (corsi e ruoli per le checkbox, id dell'utente: null
-    // se nuovo, e gli id dei corsi che l'utente TIENE come istruttore, le cui checkbox vanno disattivate)
-    // e restituisce il template del form.
+    // Prepara i dati comuni a creazione e modifica (i ruoli per le checkbox e l'id dell'utente: null se nuovo) e restituisce il template del form.
+    // I corsi non si gestiscono più qui ma dalla pagina «Corsi» dell'utente (CorsiUtenteController).
     private String formView(Model model, Long id) {
-        model.addAttribute("corsiInsegnatiIds", service.idCorsiInsegnati(id));
-        model.addAttribute("corsi", service.tuttiICorsi());
         model.addAttribute("ruoli", service.tuttiIRuoli());
         model.addAttribute("utenteId", id);
-        // Serve ad avvisare, nel form, che senza abbonamento attivo oggi si possono togliere corsi ma non aggiungerne (la regola vera è nel service).
-        model.addAttribute("abbonamentoAttivo", service.haAbbonamentoAttivo(id));
         return "utenti/form";
     }
 
@@ -161,13 +154,6 @@ public class UtenteController {
     private void controllaPassword(UtenteForm form, Long id, BindingResult errori) {
         service.erroreSullaPassword(form.comeDati(), id)
                 .ifPresent(messaggio -> errori.rejectValue("password", "non-valida", messaggio));
-    }
-
-    // Validazione "a mano" dei corsi scelti: un istruttore non può iscriversi ai corsi che tiene, e per aggiungere un corso a un iscritto serve un
-    // abbonamento attivo oggi. Il messaggio (con i nomi dei corsi) diventa un errore sul campo "corsiIds", mostrato sotto l'elenco dei corsi.
-    private void controllaCorsi(UtenteForm form, Long id, BindingResult errori) {
-        service.erroreSuiCorsiScelti(form.comeDati(), id)
-                .ifPresent(messaggio -> errori.rejectValue("corsiIds", "corsi-non-validi", messaggio));
     }
 
     // POST /utenti/5/invito -> invia a un utente SENZA password l'email con il link per scegliere la password (e quindi poter accedere alla sua area).

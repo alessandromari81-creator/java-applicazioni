@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: fragments/conferma.html
+  A COSA SERVE: la finestra di dialogo di conferma, riusabile da qualsiasi pagina. Si include UNA volta per pagina con
+      <th:block th:replace="~{fragments/conferma :: finestra}"></th:block>
+  e si usa aggiungendo a un modulo l'attributo data-conferma con la domanda da mostrare, per esempio
+      <form method="post" th:action="..." th:data-conferma="'Eliminare questo elemento?'">
+  Prima di inviare il modulo lo script (static/js/conferma.js) apre la finestra con quel testo: «Conferma» invia, «Annulla» (o Esc) lascia tutto com'era.
+  Se il browser non supporta <dialog> o JavaScript è spento i moduli si inviano subito, senza conferma: il server non si fida comunque del browser.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<th:block th:fragment="finestra">
+  <!--/* <dialog> è l'elemento HTML della finestra modale: showModal() la apre sopra la pagina e blocca il resto finché non si risponde. */-->
+  <dialog id="finestra-conferma" class="conferma" aria-labelledby="conferma-titolo">
+    <h2 id="conferma-titolo">Conferma</h2>
+    <p id="conferma-testo"></p>
+    <div class="azioni">
+      <button type="button" class="btn-sec" id="conferma-annulla">Annulla</button>
+      <button type="button" id="conferma-ok">Conferma</button>
+    </div>
+  </dialog>
+  <script th:src="@{/js/conferma.js}" defer></script>
+</th:block>
+
+</body>
+</html>

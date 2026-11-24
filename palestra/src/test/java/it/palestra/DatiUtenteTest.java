@@ -17,12 +17,20 @@ import org.junit.jupiter.api.Test;
 class DatiUtenteTest {
 
     @Test
-    @DisplayName("Liste assenti (null) diventano vuote")
-    void listeAssentiDiventanoVuote() {
+    @DisplayName("Ruoli assenti (null) diventano una lista vuota; corsi assenti restano null (= non toccare i corsi)")
+    void ruoliAssentiDiventanoVuotiCorsiRestanoNull() {
         DatiUtente dati = new DatiUtente("Mario", "Rossi", "mario@example.com", null, null, null, null, null, null);
 
         assertThat(dati.ruoliIds()).isEmpty();
-        assertThat(dati.corsiIds()).isEmpty();
+        assertThat(dati.corsiIds()).isNull();
+    }
+
+    @Test
+    @DisplayName("Una lista di corsi vuota è diversa da null: significa «nessun corso»")
+    void corsiVuotiNonSonoNull() {
+        DatiUtente dati = new DatiUtente("Mario", "Rossi", "mario@example.com", null, null, null, null, List.of(), List.of());
+
+        assertThat(dati.corsiIds()).isNotNull().isEmpty();
     }
 
     @Test

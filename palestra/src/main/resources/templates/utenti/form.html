@@ -2,10 +2,8 @@
 <!--/*
   FILE: utenti/form.html
   A COSA SERVE: un unico form usato sia per CREARE sia per MODIFICARE un utente.
-  Riceve dal controller: "utenteForm" (dati e errori del form), "corsi" e "ruoli" (tutti, per le
-  checkbox), "utenteId" (null se nuovo, l'id se in modifica) e "corsiInsegnatiIds" (gli id dei corsi che
-  questo utente TIENE come istruttore: le loro checkbox sono disattivate perché un istruttore non può iscriversi
-  ai corsi che tiene).
+  Riceve dal controller: "utenteForm" (dati e errori del form), "ruoli" (tutti, per le checkbox) e "utenteId" (null
+  se nuovo, l'id se in modifica). I corsi dell'utente NON si gestiscono qui: c'è la pagina utenti/corsi.html.
   Usa il layout layout/base.html. Qui "admin" non è passato, quindi la barra
   di default non mostra il pulsante "Esci".
 */-->
@@ -71,8 +69,8 @@
       <small class="aiuto" th:text="${utenteId == null} ? 'Obbligatoria solo per gli amministratori (min. 8 caratteri).' : 'Lascia vuoto per non cambiarla.'"></small>
       <div class="campo-err" th:errors="*{password}"></div>
 
-      <!--/* Ruoli: una checkbox per ruolo (ADMIN, ISTRUTTORE, ISCRITTO). Stesso meccanismo dei corsi:
-             th:field="*{ruoliIds}" + th:value spunta le caselle già assegnate e rimanda gli id scelti. */-->
+      <!--/* Ruoli: una checkbox per ruolo (ADMIN, ISTRUTTORE, ISCRITTO). th:field="*{ruoliIds}" + th:value spunta le caselle
+             già assegnate e rimanda gli id scelti. */-->
       <label>Ruoli</label>
       <label class="check" th:each="r : ${ruoli}">
         <input type="checkbox" th:field="*{ruoliIds}" th:value="${r.id}">
@@ -84,29 +82,14 @@
         si può togliere questo ruolo né eliminare l'utente.
       </small>
 
-      <label>Corsi frequentati (come iscritto)</label>
-      <small class="aiuto">
-        I corsi che l'utente segue come allievo. Un istruttore non può iscriversi ai corsi che tiene lui stesso:
-        quelle caselle sono disattivate.
+      <!--/* I corsi non si scelgono più qui: con molti corsi l'elenco di caselle diventava ingestibile. Si iscrive e si disiscrive dalla pagina
+             «Corsi» dell'utente (CorsiUtenteController), con ricerca, paginazione e conferma. Salvare questo modulo NON tocca i corsi dell'utente. */-->
+      <small class="aiuto" th:if="${utenteId != null}">
+        I corsi a cui è iscritto si gestiscono dalla pagina <a th:href="@{/utenti/{id}/corsi(id=${utenteId})}">Corsi dell'utente</a>.
       </small>
-      <!--/* Regola sugli iscritti: per AGGIUNGERE un corso serve un abbonamento attivo oggi. I corsi già assegnati restano anche se l'abbonamento
-             è scaduto e si possono sempre togliere. Il controllo vero è nel server (UtenteService.erroreSuiCorsiScelti): questo è solo un avviso. */-->
-      <small class="aiuto aiuto-avviso" th:if="${!abbonamentoAttivo}"
-             th:text="${utenteId == null} ? 'Per iscrivere un iscritto a un corso serve un abbonamento attivo oggi: salva prima l\'utente, aggiungi l\'abbonamento dalla pagina Abbonamenti e poi scegli i corsi.' : 'Questo utente non ha un abbonamento attivo oggi: se è un iscritto puoi togliere corsi ma non aggiungerne finché non rinnova l\'abbonamento.'"></small>
-      <!--/* Una checkbox per ogni corso. th:field="*{corsiIds}" + th:value fa sì che la casella
-             sia già spuntata se l'id del corso è nella lista corsiIds, e che i valori spuntati
-             tornino al controller come lista di id. */-->
-      <label class="check" th:each="c : ${corsi}">
-        <!--/* th:disabled disattiva la casella se questo corso è tra quelli che l'utente tiene come istruttore.
-               Un campo disattivato non viene inviato dal browser, ma è solo un aiuto visivo: la regola vera è
-               controllata di nuovo dal server (UtenteService.erroreSuiCorsiScelti), perché una richiesta può
-               essere costruita a mano. ${corsiInsegnatiIds.contains(c.id)} = "questo corso è tra quelli tenuti?" */-->
-        <input type="checkbox" th:field="*{corsiIds}" th:value="${c.id}"
-               th:disabled="${corsiInsegnatiIds.contains(c.id)}">
-        <span th:text="${c.nome + ' (' + c.livello + ', ' + c.durataMinuti + ' min)'}"></span>
-        <em class="aiuto-inline" th:if="${corsiInsegnatiIds.contains(c.id)}">(lo tiene lui come istruttore)</em>
-      </label>
-      <div class="campo-err" th:errors="*{corsiIds}"></div>
+      <small class="aiuto" th:if="${utenteId == null}">
+        Dopo aver salvato l'utente potrai iscriverlo ai corsi dalla pagina «Corsi» (per un iscritto serve prima un abbonamento attivo).
+      </small>
 
       <p>
         <!--/* Stato della lista di provenienza (pagina, dimensione, ordinamento, ricerca): dopo il salvataggio si torna lì. */-->

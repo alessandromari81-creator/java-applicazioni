@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import it.palestra.model.Corso;
+import it.palestra.model.TipoAbbonamento;
 import it.palestra.model.Utente;
 import java.util.HashSet;
 import java.util.List;
@@ -187,15 +188,11 @@ class IstruttoriTest extends BaseWebTest {
         Utente gino = creaIstruttore("Gino", "Verdi", "gino@example.com");
         Corso yoga = corsoTenutoDa("Yoga", gino);
 
-        // ESEGUO: modifico Gino spuntando Yoga tra i corsi che frequenta (richiesta costruita a mano).
-        mockMvc.perform(post("/utenti/" + gino.getId()).with(comeAdmin()).with(csrf())
-                        .param("nome", "Gino").param("cognome", "Verdi").param("email", "gino@example.com")
-                        .param("ruoliIds", ruolo("ISTRUTTORE").getId().toString())
-                        .param("corsiIds", yoga.getId().toString()))
-                .andExpect(status().isOk())
-                .andExpect(view().name("utenti/form"))
-                .andExpect(model().attributeHasFieldErrorCode("utenteForm", "corsiIds", "corsi-non-validi"))
-                .andExpect(content().string(containsString("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: Yoga")));
+        // ESEGUO: provo a iscrivere Gino a Yoga dalla pagina «Corsi» (richiesta costruita a mano: la pagina non lo offre nemmeno).
+        mockMvc.perform(post("/utenti/" + gino.getId() + "/corsi/" + yoga.getId() + "/iscrivi").with(comeAdmin()).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errore",
+                        containsString("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: Yoga")));
 
         // VERIFICO: l'iscrizione non è stata salvata.
         ricarica();
@@ -203,17 +200,16 @@ class IstruttoriTest extends BaseWebTest {
     }
 
     @Test
-    @DisplayName("Un istruttore può invece iscriversi ai corsi che NON tiene")
+    @DisplayName("Un istruttore (che è anche ISCRITTO e ha un abbonamento attivo) può invece iscriversi ai corsi che NON tiene")
     void unIstruttorePuoIscriversiAdAltriCorsi() throws Exception {
-        Utente gino = creaIstruttore("Gino", "Verdi", "gino@example.com");
+        Utente gino = creaUtente("Gino", "Verdi", "gino@example.com", ruolo("ISTRUTTORE"), ruolo("ISCRITTO"));
+        creaAbbonamento(gino, TipoAbbonamento.MENSILE, java.time.LocalDate.now());
         corsoTenutoDa("Yoga", gino);
         Corso pilates = creaCorso("Pilates");           // un altro corso, tenuto da nessuno
 
-        mockMvc.perform(post("/utenti/" + gino.getId()).with(comeAdmin()).with(csrf())
-                        .param("nome", "Gino").param("cognome", "Verdi").param("email", "gino@example.com")
-                        .param("ruoliIds", ruolo("ISTRUTTORE").getId().toString())
-                        .param("corsiIds", pilates.getId().toString()))
-                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/utenti/" + gino.getId() + "/corsi/" + pilates.getId() + "/iscrivi").with(comeAdmin()).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("messaggio", "Iscritto al corso Pilates"));
 
         ricarica();
         Utente dopo = utenti.findWithRelazioniById(gino.getId()).orElseThrow();
@@ -222,19 +218,16 @@ class IstruttoriTest extends BaseWebTest {
     }
 
     @Test
-    @DisplayName("Nel form utente la casella del corso tenuto è disattivata e spiegata")
-    void ilFormDisattivaLaCasellaDelCorsoTenuto() throws Exception {
+    @DisplayName("Nella pagina «Corsi» dell'utente il corso che tiene come istruttore non è tra quelli a cui può iscriversi")
+    void laPaginaCorsiNonOffreIlCorsoTenuto() throws Exception {
         Utente gino = creaIstruttore("Gino", "Verdi", "gino@example.com");
-        Corso yoga = corsoTenutoDa("Yoga", gino);
+        corsoTenutoDa("Yoga", gino);
         creaCorso("Pilates");
 
-        mockMvc.perform(get("/utenti/" + gino.getId() + "/modifica").with(comeAdmin()))
+        mockMvc.perform(get("/utenti/" + gino.getId() + "/corsi").with(comeAdmin()))
                 .andExpect(status().isOk())
-                // Il controller passa al template gli id dei corsi che l'utente tiene...
-                .andExpect(model().attribute("corsiInsegnatiIds", Set.of(yoga.getId())))
-                // ...e l'HTML contiene la casella disattivata e il testo che spiega il perché.
-                .andExpect(content().string(containsString("disabled")))
-                .andExpect(content().string(containsString("(lo tiene lui come istruttore)")));
+                .andExpect(content().string(containsString("Pilates")))                                  // un altro corso sì
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Yoga"))));         // quello che tiene no
     }
 
     // ------------------------ FINCHÉ TIENE DEI CORSI: NIENTE TOGLIERE IL RUOLO, NIENTE ELIMINARE

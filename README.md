@@ -17,6 +17,7 @@ Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione
 - **Area personale** per iscritti e istruttori: ognuno vede i propri dati (profilo, corsi, abbonamenti); l'istruttore vede gli iscritti ai propri corsi (solo nome e cognome).
 - **Registrazione libera con conferma via email**, «password dimenticata» e invito dell'amministratore, con link monouso e a tempo (in sviluppo le email si leggono in Mailpit).
 - Istruttori (uno-a-molti verso i corsi) e iscritti (molti-a-molti), con regole di business (es. un istruttore non può iscriversi al proprio corso; abbonamenti senza sovrapposizioni).
+- **Iscrizione ai corsi** dalla pagina «Corsi» di ogni utente: i corsi a cui è iscritto e quelli a cui può iscriversi (con ricerca, ordinamento e paginazione, perché i corsi possono essere tanti), con una finestra di conferma prima di iscrivere o disiscrivere. Per iscrivere un iscritto serve un abbonamento attivo oggi.
 - API REST sotto `/api` con JWT + refresh token (formato OAuth2) e documentazione Swagger.
 
 ### Screenshot
@@ -37,9 +38,9 @@ Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione
 |---|---|
 | ![Area personale](docs/screenshots/area.png) | ![Area dell'istruttore](docs/screenshots/area-istruttore.png) |
 
-| Documentazione interattiva della API (Swagger) |
-|---|
-| ![Swagger UI](docs/screenshots/swagger.png) |
+| Pagina «Corsi» di un utente, con la finestra di conferma | Documentazione interattiva della API (Swagger) |
+|---|---|
+| ![Corsi di un utente](docs/screenshots/corsi-utente.png) | ![Swagger UI](docs/screenshots/swagger.png) |
 
 I dati negli screenshot sono di esempio (nomi e indirizzi inventati).
 
@@ -222,8 +223,8 @@ Le regole vivono nei `service/` e valgono sia per le pagine sia per la API (una 
 - Difese: limite alle richieste di email (per indirizzo+email e per indirizzo), campo trappola per i programmi automatici, token casuali di cui nel database c'è solo l'hash, link costruiti con l'indirizzo configurato (non con quello della richiesta), `Referrer-Policy: no-referrer` sulle pagine con il token. I link scaduti si cancellano ogni notte.
 
 **Iscrizione ai corsi e abbonamento**
-- Per **aggiungere** un corso a un iscritto serve un abbonamento **attivo oggi** (primo e ultimo giorno inclusi; uno futuro o scaduto non basta). Vale nel pannello e nella API; creare un iscritto già con dei corsi è rifiutato, perché non può avere ancora un abbonamento (prima si crea, poi si aggiunge l'abbonamento, poi si scelgono i corsi).
-- I corsi già assegnati **restano** anche se l'abbonamento scade o manca: compare solo un avviso («abbonamento non attivo») nella lista utenti, nel form e nell'area personale dell'iscritto. Togliere corsi si può sempre; per aggiungerne altri bisogna rinnovare. Chi non ha il ruolo `ISCRITTO` non è toccato dalla regola.
+- Per **aggiungere** un corso a **qualunque** utente serve un abbonamento **attivo oggi** (primo e ultimo giorno inclusi; uno futuro o scaduto non basta). Vale nella pagina «Corsi» del pannello e nella API; creare un utente già con dei corsi è rifiutato, perché non può avere ancora un abbonamento (prima si crea, poi si aggiunge l'abbonamento, poi si scelgono i corsi). Gli abbonamenti si possono avere solo con il ruolo `ISCRITTO`: chi non lo ha (per esempio un istruttore) non si iscrive a un corso finché non gli si assegnano il ruolo e un abbonamento.
+- I corsi già assegnati **restano** anche se l'abbonamento scade o manca: compare solo un avviso («abbonamento non attivo») nella lista utenti, nella pagina «Corsi» dell'utente e nell'area personale dell'iscritto. Togliere corsi si può sempre; per aggiungerne altri bisogna rinnovare.
 
 **Corsi e istruttori**
 - Un corso ha al massimo **un** istruttore; un istruttore può tenere **più** corsi. L'istruttore deve avere il ruolo `ISTRUTTORE`.

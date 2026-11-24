@@ -1,11 +1,11 @@
 /*
  * FILE: IscrizioneCorsiTest.java
  * A COSA SERVE: verifica la regola «per ISCRIVERE un iscritto a un corso serve un abbonamento attivo oggi»:
- *   - vale per i corsi che si AGGIUNGONO, nel pannello e nella API; creare un utente con corsi è rifiutato (non può avere ancora abbonamenti);
+ *   - vale per i corsi che si AGGIUNGONO, dalla pagina «Corsi» del pannello e dalla API; creare un utente con corsi dalla API è rifiutato (non può avere ancora abbonamenti);
  *   - «attivo oggi» include il primo e l'ultimo giorno; un abbonamento futuro o scaduto non basta;
- *   - i corsi già assegnati RESTANO anche se l'abbonamento è scaduto (si può salvare l'utente lasciandoli, e togliere corsi si può sempre);
- *   - gli utenti senza ruolo ISCRITTO non sono toccati dalla regola;
- *   - l'avviso «abbonamento non attivo» compare nella lista utenti, nel form e nell'area personale solo quando serve.
+ *   - i corsi già assegnati RESTANO anche se l'abbonamento è scaduto (salvare il modulo dell'utente non li tocca, e togliere corsi si può sempre);
+ *   - la regola vale per TUTTI: chi non ha il ruolo ISCRITTO (che quindi non può avere abbonamenti) non si iscrive ai corsi finché non riceve ruolo e abbonamento;
+ *   - l'avviso «abbonamento non attivo» compare nella lista utenti, nella pagina «Corsi» dell'utente e nell'area personale solo quando serve.
  * Convenzione dei commenti: PREPARO / ESEGUO / VERIFICO.
  */
 package it.palestra;
@@ -18,8 +18,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import it.palestra.model.Abbonamento;
@@ -56,18 +58,21 @@ class IscrizioneCorsiTest extends BaseApiTest {
         return a;
     }
 
-    // Il modulo di modifica del pannello per un ISCRITTO con i corsi indicati.
-    private MockHttpServletRequestBuilder modifica(Utente u, Corso... corsiScelti) {
-        return modificaConNome(u, u.getNome(), corsiScelti);
-    }
-
-    // Come modifica() ma scrivendo un nome diverso nel modulo.
-    private MockHttpServletRequestBuilder modificaConNome(Utente u, String nome, Corso... corsiScelti) {
-        MockHttpServletRequestBuilder richiesta = post("/utenti/" + u.getId()).with(comeAdmin()).with(csrf())
+    // Il modulo di modifica del pannello per un ISCRITTO, scrivendo un nome diverso. Il modulo NON manda più i corsi: salvarlo non li tocca.
+    private MockHttpServletRequestBuilder modificaConNome(Utente u, String nome) {
+        return post("/utenti/" + u.getId()).with(comeAdmin()).with(csrf())
                 .param("nome", nome).param("cognome", u.getCognome()).param("email", u.getEmail())
                 .param("ruoliIds", ruolo("ISCRITTO").getId().toString());
-        Arrays.stream(corsiScelti).forEach(c -> richiesta.param("corsiIds", c.getId().toString()));
-        return richiesta;
+    }
+
+    // Iscrizione dalla pagina «Corsi» dell'utente (pulsante «Iscrivi...» dopo la conferma).
+    private MockHttpServletRequestBuilder iscriviDalPannello(Utente u, Corso c) {
+        return post("/utenti/" + u.getId() + "/corsi/" + c.getId() + "/iscrivi").with(comeAdmin()).with(csrf());
+    }
+
+    // Disiscrizione dalla pagina «Corsi» dell'utente (pulsante «Disiscrivi...» dopo la conferma).
+    private MockHttpServletRequestBuilder disiscriviDalPannello(Utente u, Corso c) {
+        return post("/utenti/" + u.getId() + "/corsi/" + c.getId() + "/disiscrivi").with(comeAdmin()).with(csrf());
     }
 
     private ResultActions modificaViaApi(Utente u, Corso... corsiScelti) throws Exception {
@@ -86,16 +91,16 @@ class IscrizioneCorsiTest extends BaseApiTest {
     // ------------------------------------------------------- SENZA ABBONAMENTO ATTIVO: NON SI AGGIUNGE
 
     @Test
-    @DisplayName("Pannello: senza abbonamento non si aggiunge un corso (errore sul campo, niente salvato)")
+    @DisplayName("Pannello: senza abbonamento non si iscrive a un corso (messaggio rosso, niente salvato)")
     void pannelloSenzaAbbonamento() throws Exception {
         Utente mario = creaUtente("Mario", "Rossi", "mario@example.com", ruolo("ISCRITTO"));
         Corso yoga = creaCorso("Yoga");
 
-        mockMvc.perform(modifica(mario, yoga))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeHasFieldErrorCode("utenteForm", "corsiIds", "corsi-non-validi"))
-                .andExpect(content().string(containsString("serve un abbonamento attivo oggi")))
-                .andExpect(content().string(containsString("Yoga")));
+        mockMvc.perform(iscriviDalPannello(mario, yoga))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/utenti/" + mario.getId() + "/corsi"))
+                .andExpect(flash().attribute("errore", containsString("serve un abbonamento attivo oggi")))
+                .andExpect(flash().attribute("errore", containsString("Yoga")));
 
         assertThat(nomiCorsiDi(mario)).isEmpty();
     }
@@ -114,16 +119,19 @@ class IscrizioneCorsiTest extends BaseApiTest {
     }
 
     @Test
-    @DisplayName("Creare un iscritto già con dei corsi è rifiutato (non può avere ancora un abbonamento), nel pannello e nella API; senza corsi si crea")
+    @DisplayName("Creare un iscritto già con dei corsi è rifiutato dalla API; il modulo del pannello non gestisce i corsi e ignora quelli inviati")
     void creazioneConCorsi() throws Exception {
         Corso yoga = creaCorso("Yoga");
         Ruolo iscritto = ruolo("ISCRITTO");
 
+        // Pannello: il modulo non ha più i corsi. Se una richiesta costruita a mano ne manda, vengono ignorati: l'utente nasce senza corsi.
         mockMvc.perform(post("/utenti").with(comeAdmin()).with(csrf())
-                        .param("nome", "Mario").param("cognome", "Rossi").param("email", "mario@example.com")
+                        .param("nome", "Pia").param("cognome", "Bianchi").param("email", "pia@example.com")
                         .param("ruoliIds", iscritto.getId().toString()).param("corsiIds", yoga.getId().toString()))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeHasFieldErrorCode("utenteForm", "corsiIds", "corsi-non-validi"));
+                .andExpect(status().is3xxRedirection());
+        assertThat(nomiCorsiDi(utenti.findByEmailIgnoreCase("pia@example.com").orElseThrow())).isEmpty();
+
+        // API: il PUT/POST sostituisce i corsi, quindi la regola vale e la creazione con corsi è rifiutata.
         mockMvc.perform(conJson(post("/api/utenti"),
                         "{\"nome\":\"Mario\",\"cognome\":\"Rossi\",\"email\":\"mario@example.com\",\"ruoli\":[\"ISCRITTO\"],\"corsiIds\":[" + yoga.getId() + "]}"))
                 .andExpect(status().isBadRequest());
@@ -152,14 +160,16 @@ class IscrizioneCorsiTest extends BaseApiTest {
     // ------------------------------------------------------------------ «ATTIVO OGGI»
 
     @Test
-    @DisplayName("Con un abbonamento attivo oggi si può aggiungere un corso, nel pannello e nella API")
+    @DisplayName("Con un abbonamento attivo oggi si può iscrivere a un corso, dal pannello e dalla API")
     void conAbbonamentoAttivo() throws Exception {
         Utente mario = creaUtente("Mario", "Rossi", "mario@example.com", ruolo("ISCRITTO"));
         creaAbbonamento(mario, TipoAbbonamento.MENSILE, oggi);                 // il primo giorno è già attivo
         Corso yoga = creaCorso("Yoga");
         Corso pilates = creaCorso("Pilates");
 
-        mockMvc.perform(modifica(mario, yoga)).andExpect(status().is3xxRedirection());
+        mockMvc.perform(iscriviDalPannello(mario, yoga))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("messaggio", "Iscritto al corso Yoga"));
         assertThat(nomiCorsiDi(mario)).containsExactly("Yoga");
 
         modificaViaApi(mario, yoga, pilates).andExpect(status().isOk());
@@ -173,7 +183,7 @@ class IscrizioneCorsiTest extends BaseApiTest {
         abbonamentoCheFinisceOggi(mario);
         Corso yoga = creaCorso("Yoga");
 
-        mockMvc.perform(modifica(mario, yoga)).andExpect(status().is3xxRedirection());
+        mockMvc.perform(iscriviDalPannello(mario, yoga)).andExpect(status().is3xxRedirection());
 
         assertThat(nomiCorsiDi(mario)).containsExactly("Yoga");
     }
@@ -204,13 +214,13 @@ class IscrizioneCorsiTest extends BaseApiTest {
     // --------------------------------------------------- CORSI GIÀ ASSEGNATI: RESTANO
 
     @Test
-    @DisplayName("Abbonamento scaduto: i corsi già assegnati RESTANO e si può salvare l'utente (anche cambiando altri dati) senza toccarli")
+    @DisplayName("Abbonamento scaduto: i corsi già assegnati RESTANO; salvare il modulo dell'utente (anche cambiando altri dati) non li tocca")
     void iCorsiGiaAssegnatiRestano() throws Exception {
         Utente mario = creaUtente("Mario", "Rossi", "mario@example.com", ruolo("ISCRITTO"));
         Corso yoga = creaCorso("Yoga");
         iscrivi(mario, yoga);                                                  // iscritto senza alcun abbonamento (come i dati di prova)
 
-        mockMvc.perform(modificaConNome(mario, "Marione", yoga)).andExpect(status().is3xxRedirection());
+        mockMvc.perform(modificaConNome(mario, "Marione")).andExpect(status().is3xxRedirection());
 
         assertThat(nomiCorsiDi(mario)).containsExactly("Yoga");
         assertThat(utenti.findById(mario.getId()).orElseThrow().getNome()).isEqualTo("Marione");
@@ -226,25 +236,61 @@ class IscrizioneCorsiTest extends BaseApiTest {
         Corso pilates = creaCorso("Pilates");
         iscrivi(mario, yoga, pilates);
 
-        mockMvc.perform(modifica(mario, yoga)).andExpect(status().is3xxRedirection());      // toglie Pilates
+        mockMvc.perform(disiscriviDalPannello(mario, pilates)).andExpect(status().is3xxRedirection());      // toglie Pilates: si può sempre
         assertThat(nomiCorsiDi(mario)).containsExactly("Yoga");
 
-        mockMvc.perform(modifica(mario, yoga, pilates)).andExpect(status().isOk())          // lo rimette: è un corso da AGGIUNGERE
-                .andExpect(model().attributeHasFieldErrors("utenteForm", "corsiIds"));
+        mockMvc.perform(iscriviDalPannello(mario, pilates))                                            // lo rimette: è un corso da AGGIUNGERE
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errore", containsString("serve un abbonamento attivo oggi")));
         assertThat(nomiCorsiDi(mario)).containsExactly("Yoga");
     }
 
-    // ------------------------------------------------------------ CHI NON È ISCRITTO
+    // ------------------------------------------------------------ CHI NON HA IL RUOLO ISCRITTO
 
     @Test
-    @DisplayName("La regola riguarda solo gli ISCRITTI: un utente senza quel ruolo non è toccato")
-    void soloPerGliIscritti() throws Exception {
+    @DisplayName("La regola vale per TUTTI: un istruttore senza il ruolo ISCRITTO (che quindi non può avere abbonamenti) non si iscrive ai corsi, dal pannello e dalla API")
+    void ancheChiNonEIscrittoHaBisognoDellAbbonamento() throws Exception {
         Utente gino = creaUtente("Gino", "Verdi", "gino@example.com", ruolo("ISTRUTTORE"));
         Corso yoga = creaCorso("Yoga");
 
+        mockMvc.perform(iscriviDalPannello(gino, yoga))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("errore", containsString("servono il ruolo ISCRITTO e un abbonamento attivo oggi")))
+                .andExpect(flash().attribute("errore", containsString("Yoga")));
         mockMvc.perform(conJson(put("/api/utenti/" + gino.getId()),
                         "{\"nome\":\"Gino\",\"cognome\":\"Verdi\",\"email\":\"gino@example.com\",\"ruoli\":[\"ISTRUTTORE\"],\"corsiIds\":[" + yoga.getId() + "]}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campi.corsiIds[0]").value(containsString("servono il ruolo ISCRITTO e un abbonamento attivo oggi")));
+
+        assertThat(nomiCorsiDi(gino)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un istruttore che è anche ISCRITTO e ha un abbonamento attivo oggi si iscrive ai corsi come tutti")
+    void istruttoreIscrittoConAbbonamento() throws Exception {
+        Utente gino = creaUtente("Gino", "Verdi", "gino@example.com", ruolo("ISTRUTTORE"), ruolo("ISCRITTO"));
+        creaAbbonamento(gino, TipoAbbonamento.MENSILE, oggi);
+        Corso yoga = creaCorso("Yoga");
+
+        mockMvc.perform(iscriviDalPannello(gino, yoga)).andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("messaggio", "Iscritto al corso Yoga"));
+
+        assertThat(nomiCorsiDi(gino)).containsExactly("Yoga");
+    }
+
+    @Test
+    @DisplayName("Chi non ha il ruolo ISCRITTO e ha già dei corsi (dati vecchi) li tiene e li può togliere; non ne aggiunge altri")
+    void corsiGiaAssegnatiAChiNonEIscritto() throws Exception {
+        Utente gino = creaUtente("Gino", "Verdi", "gino@example.com", ruolo("ISTRUTTORE"));
+        Corso yoga = creaCorso("Yoga");
+        Corso pilates = creaCorso("Pilates");
+        iscrivi(gino, yoga);
+
+        mockMvc.perform(iscriviDalPannello(gino, pilates)).andExpect(flash().attribute("errore", containsString("servono il ruolo ISCRITTO")));
+        assertThat(nomiCorsiDi(gino)).containsExactly("Yoga");
+
+        mockMvc.perform(disiscriviDalPannello(gino, yoga)).andExpect(status().is3xxRedirection());
+        assertThat(nomiCorsiDi(gino)).isEmpty();
     }
 
     // ------------------------------------------------------------------------- AVVISI
@@ -269,18 +315,19 @@ class IscrizioneCorsiTest extends BaseApiTest {
     }
 
     @Test
-    @DisplayName("Form utente: l'avviso compare se non c'è un abbonamento attivo, e non compare se c'è")
-    void avvisoNelForm() throws Exception {
+    @DisplayName("Pagina «Corsi» dell'utente: senza abbonamento attivo c'è l'avviso e i pulsanti «Iscrivi» sono spenti; con abbonamento attivo no")
+    void avvisoNellaPaginaCorsi() throws Exception {
+        creaCorso("Yoga");
         Utente senza = creaUtente("Senza", "Abbonamento", "senza@example.com", ruolo("ISCRITTO"));
         Utente attivo = creaUtente("Attivo", "Abbonato", "attivo@example.com", ruolo("ISCRITTO"));
         creaAbbonamento(attivo, TipoAbbonamento.MENSILE, oggi);
 
-        mockMvc.perform(get("/utenti/" + senza.getId() + "/modifica").with(comeAdmin()))
-                .andExpect(content().string(containsString("non ha un abbonamento attivo oggi")));
-        mockMvc.perform(get("/utenti/nuovo").with(comeAdmin()))
-                .andExpect(content().string(containsString("salva prima l&#39;utente")));
-        mockMvc.perform(get("/utenti/" + attivo.getId() + "/modifica").with(comeAdmin()))
-                .andExpect(content().string(not(containsString("non ha un abbonamento attivo oggi"))));
+        mockMvc.perform(get("/utenti/" + senza.getId() + "/corsi").with(comeAdmin()))
+                .andExpect(content().string(containsString("non ha un abbonamento attivo oggi")))
+                .andExpect(content().string(containsString("disabled")));
+        mockMvc.perform(get("/utenti/" + attivo.getId() + "/corsi").with(comeAdmin()))
+                .andExpect(content().string(not(containsString("non ha un abbonamento attivo oggi"))))
+                .andExpect(content().string(not(containsString("disabled"))));
     }
 
     @Test

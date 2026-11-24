@@ -27,6 +27,12 @@ public final class OrdinamentiListe {
             "durataMinuti", List.of("durataMinuti", "nome")));
 
     // Abbonamenti (elenco generale): dal più recente per data di fine. "iscritto" ordina per cognome e nome della persona.
+    // Corsi a cui si può iscrivere un utente (pagina «Corsi» dell'utente): per nome (predefinito), livello o durata. L'id come spareggio lo aggiunge Ordinamenti.
+    public static final Ordinamenti CORSI_DISPONIBILI = Ordinamenti.di("nome", Sort.Direction.ASC, Map.of(
+            "nome", List.of("nome"),
+            "livello", List.of("livello", "nome"),
+            "durataMinuti", List.of("durataMinuti", "nome")));
+
     public static final Ordinamenti ABBONAMENTI = Ordinamenti.di("dataFine", Sort.Direction.DESC, Map.of(
             "dataFine", List.of("dataFine"),
             "dataInizio", List.of("dataInizio"),

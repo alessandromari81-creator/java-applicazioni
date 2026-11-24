@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<!--/*
+  FILE: utenti/corsi.html
+  A COSA SERVE: la pagina «Corsi» di UN utente: i corsi a cui è iscritto (con il pulsante per togliere l'iscrizione) e i corsi a cui può essere
+  iscritto (con ricerca, ordinamento, paginazione e il pulsante «Iscrivi...»). Ogni pulsante apre una finestra di dialogo di conferma
+  (fragments/conferma.html + static/js/conferma.js: i moduli con l'attributo data-conferma chiedono conferma prima dell'invio).
+  Ci si arriva dal pulsante nella colonna «Corsi» della lista utenti. Mostrata da CorsiUtenteController.lista().
+  Riceve: "utente", "iscrittoA" (i suoi corsi), "disponibili" (la pagina dei corsi a cui può iscriversi), "nav" (navigazione della lista),
+  "puoIscriversi" (false se non ha un abbonamento attivo oggi), "lista" (stato della lista), "admin". Usa il layout layout/base.html.
+*/-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Corsi dell'utente</title>
+</head>
+<body>
+
+<main layout:fragment="contenuto">
+  <div class="card">
+    <div class="top">
+      <h1>Corsi di <span th:text="${utente.cognome + ' ' + utente.nome}"></span></h1>
+      <a class="btn btn-sec" th:href="@{/utenti}">← Utenti</a>
+    </div>
+    <p class="aiuto-blocco" th:text="${utente.email}"></p>
+
+    <!--/* Senza un abbonamento attivo oggi si possono solo togliere corsi, non aggiungerne: i pulsanti «Iscrivi» sono spenti e si spiega perché. Vale per tutti:
+           l'abbonamento si può avere solo con il ruolo ISCRITTO, quindi chi non ha quel ruolo (per esempio un istruttore) deve prima riceverlo dalla pagina di
+           modifica dell'utente e poi avere un abbonamento. (Il controllo vero lo rifà il server a ogni iscrizione.) */-->
+    <div class="err" th:if="${!puoIscriversi and utente.isIscritto()}">
+      Questo iscritto non ha un abbonamento attivo oggi: puoi togliergli dei corsi ma non iscriverlo ad altri.
+      <a th:href="@{/abbonamenti/utente/{id}(id=${utente.id})}">Aggiungi o rinnova l'abbonamento</a>.
+    </div>
+    <div class="err" th:if="${!puoIscriversi and !utente.isIscritto()}">
+      Per iscrivere un utente a un corso servono il ruolo ISCRITTO e un abbonamento attivo oggi, e questo utente non ha il ruolo ISCRITTO: puoi togliergli dei corsi ma non
+      iscriverlo ad altri. <a th:href="@{/utenti/{id}/modifica(id=${utente.id})}">Assegna il ruolo dalla pagina di modifica</a>, poi aggiungi l'abbonamento.
+    </div>
+
+    <h2>Corsi a cui è iscritto (<span th:text="${iscrittoA.size()}"></span>)</h2>
+    <table>
+      <thead><tr><th>Nome</th><th>Livello</th><th>Durata</th><th>Istruttore</th><th></th></tr></thead>
+      <tbody>
+        <tr th:each="c : ${iscrittoA}">
+          <td th:text="${c.nome}"></td>
+          <td th:text="${c.livello}"></td>
+          <td th:text="${c.durataMinuti + ' min'}"></td>
+          <td th:text="${c.istruttore != null} ? ${c.istruttore.cognome + ' ' + c.istruttore.nome} : '–'"></td>
+          <td class="col-azioni">
+            <div class="azioni">
+              <!--/* data-conferma: il testo mostrato nella finestra di dialogo prima dell'invio (vedi static/js/conferma.js). */-->
+              <form th:action="@{/utenti/{id}/corsi/{corso}/disiscrivi(id=${utente.id}, corso=${c.id})}" method="post"
+                    th:data-conferma="${'Togliere ' + utente.nome + ' ' + utente.cognome + ' dal corso ' + c.nome + '?'}">
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+                <button type="submit" class="btn-danger">Disiscrivi...</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr th:if="${iscrittoA.isEmpty()}"><td colspan="5">Non è iscritto a nessun corso.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Corsi a cui può essere iscritto</h2>
+    <p class="aiuto-blocco">
+      Non compaiono i corsi a cui è già iscritto né quelli che tiene lui come istruttore. Per iscrivere qualcuno serve un
+      <strong>abbonamento attivo oggi</strong> (e quindi il ruolo ISCRITTO).
+    </p>
+    <th:block th:replace="~{fragments/paginazione :: ricerca(${nav}, 'Cerca per nome del corso')}"></th:block>
+    <table>
+      <thead><tr><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'nome', 'Nome')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'livello', 'Livello')}"></th:block><th:block th:replace="~{fragments/paginazione :: intestazione(${nav}, 'durataMinuti', 'Durata')}"></th:block><th>Istruttore</th><th></th></tr></thead>
+      <tbody>
+        <tr th:each="c : ${disponibili}">
+          <td th:text="${c.nome}"></td>
+          <td th:text="${c.livello}"></td>
+          <td th:text="${c.durataMinuti + ' min'}"></td>
+          <td th:text="${c.istruttore != null} ? ${c.istruttore.cognome + ' ' + c.istruttore.nome} : '–'"></td>
+          <td class="col-azioni">
+            <div class="azioni">
+              <form th:action="@{/utenti/{id}/corsi/{corso}/iscrivi(id=${utente.id}, corso=${c.id})}" method="post"
+                    th:data-conferma="${'Iscrivere ' + utente.nome + ' ' + utente.cognome + ' al corso ' + c.nome + '?'}">
+                <th:block th:replace="~{fragments/paginazione :: statoNascosto(${lista})}"></th:block>
+                <button type="submit" th:disabled="${!puoIscriversi}"
+                        th:title="${puoIscriversi} ? null : 'Serve un abbonamento attivo oggi'">Iscrivi...</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr th:if="${disponibili.isEmpty()}"><td colspan="5" th:text="${nav.q != null} ? 'Nessun corso corrisponde alla ricerca.' : 'Nessun altro corso a cui iscriverlo.'"></td></tr>
+      </tbody>
+    </table>
+    <th:block th:replace="~{fragments/paginazione :: barra(${nav})}"></th:block>
+  </div>
+
+  <!--/* La finestra di dialogo di conferma (una sola per la pagina) e il suo script. */-->
+  <th:block th:replace="~{fragments/conferma :: finestra}"></th:block>
+</main>
+
+</body>
+</html>

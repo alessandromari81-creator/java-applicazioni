@@ -268,19 +268,35 @@ class UtenteControllerTest extends BaseWebTest {
     // ---------------------------------------------------- CORSI ASSOCIATI
 
     @Test
-    @DisplayName("Si possono assegnare più corsi a un utente")
-    void assegnareDeiCorsi() throws Exception {
+    @DisplayName("Il modulo utente non gestisce i corsi: salvarlo non toglie quelli dell'utente e non ne aggiunge")
+    void ilModuloNonToccaICorsi() throws Exception {
         Corso yoga = creaCorso("Yoga");
         Corso spinning = creaCorso("Spinning");
+        Utente gino = creaUtente("Gino", "Verdi", "gino@example.com");
+        gino.setCorsi(new java.util.HashSet<>(java.util.Set.of(yoga)));            // iscritto a Yoga già prima
+        utenti.save(gino);
+        ricarica();
 
-        mockMvc.perform(post("/utenti").with(comeAdmin()).with(csrf())
+        // Modifica dal modulo (che non ha più i corsi), anche con un «corsiIds» costruito a mano: viene ignorato.
+        mockMvc.perform(post("/utenti/" + gino.getId()).with(comeAdmin()).with(csrf())
                         .param("nome", "Gino").param("cognome", "Verdi").param("email", "gino@example.com")
-                        .param("corsiIds", yoga.getId().toString(), spinning.getId().toString()))   // due valori, stesso campo
+                        .param("corsiIds", spinning.getId().toString()))
                 .andExpect(status().is3xxRedirection());
 
         ricarica();
-        Utente gino = utenti.findWithRelazioniById(
-                utenti.findByEmailIgnoreCase("gino@example.com").orElseThrow().getId()).orElseThrow();
-        assertThat(gino.getCorsi()).extracting(corso -> corso.getNome()).containsExactlyInAnyOrder("Yoga", "Spinning");
+        Utente dopo = utenti.findWithRelazioniById(gino.getId()).orElseThrow();
+        assertThat(dopo.getCorsi()).extracting(corso -> corso.getNome()).containsExactly("Yoga");
+    }
+
+    @Test
+    @DisplayName("Il modulo di modifica non mostra l'elenco dei corsi ma rimanda alla pagina «Corsi» dell'utente")
+    void ilModuloRimandaAllaPaginaCorsi() throws Exception {
+        creaCorso("Yoga");
+        Utente gino = creaUtente("Gino", "Verdi", "gino@example.com");
+
+        mockMvc.perform(get("/utenti/" + gino.getId() + "/modifica").with(comeAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("name=\"corsiIds\""))))
+                .andExpect(content().string(containsString("/utenti/" + gino.getId() + "/corsi")));
     }
 }

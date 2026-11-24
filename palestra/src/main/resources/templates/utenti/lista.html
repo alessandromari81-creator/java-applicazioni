@@ -31,9 +31,9 @@
       <a class="btn" th:href="@{${'/utenti/nuovo' + lista.querystring}}">+ Nuovo utente</a>
     </div>
 
-    <!--/* Spiegazione visibile delle due colonne sui corsi e della regola che le lega. */-->
+    <!--/* Spiegazione visibile delle colonne sui corsi e della regola che le lega. */-->
     <p class="aiuto-blocco">
-      <strong>Corsi (iscritto)</strong>: i corsi che l'utente frequenta come allievo.
+      <strong>Corsi (N)</strong>: il numero dei corsi che l'utente frequenta come allievo; il pulsante apre la sua pagina «Corsi», dove si vedono i corsi a cui è iscritto e quelli a cui può essere iscritto e si iscrive o disiscrive (con conferma).
       <strong>Insegna</strong>: i corsi che tiene come istruttore (solo per chi ha il ruolo ISTRUTTORE; si assegnano dalla pagina Corsi).
       Un istruttore non può essere iscritto come allievo a un corso che tiene lui stesso.
       <strong>Abbonamento</strong>: solo per gli iscritti; mostra quello attivo, il prossimo o l'ultimo scaduto.
@@ -49,15 +49,17 @@
         <!--/* th:each ripete la riga per ogni utente della lista. */-->
         <tr th:each="u : ${utenti}">
           <td th:text="${u.cognome + ' ' + u.nome}"></td>
-          <td th:text="${u.email}"></td>
+          <!--/* col-email: l'email lunga può andare a capo in qualunque punto, così non allarga la tabella oltre la scheda. */-->
+          <td class="col-email" th:text="${u.email}"></td>
           <!--/* Un'etichetta verde per ogni ruolo dell'utente (${u.ruoli} usa getRuoli()). */-->
           <td>
             <span class="tag tag-ruolo" th:each="r : ${u.ruoli}" th:text="${r.nome}"></span>
           </td>
           <td>
-            <!--/* Un'etichetta per ogni corso dell'utente (${u.corsi} usa getCorsi()). */-->
-            <span class="tag" th:each="c : ${u.corsi}" th:text="${c.nome}"></span>
-            <em th:if="${u.corsi.isEmpty()}">nessuno</em>
+            <!--/* Un solo pulsante verso la pagina «Corsi» dell'utente (CorsiUtenteController), con il numero dei corsi a cui è iscritto: i nomi non si
+                   elencano qui perché con molti corsi la riga diventava larghissima e la tabella scorreva in orizzontale. */-->
+            <a class="btn btn-sec btn-piccolo" th:href="@{/utenti/{id}/corsi(id=${u.id})}"
+               th:text="${'Corsi (' + u.corsi.size() + ')'}"></a>
             <!--/* Avviso: l'iscritto ha dei corsi ma non ha un abbonamento attivo oggi (mai avuto, scaduto o non ancora iniziato). I corsi restano, ma
                    non se ne possono aggiungere altri finché non rinnova. "abbonamenti" è la mappa id utente -> abbonamento più significativo. */-->
             <span class="tag tag-avviso" th:if="${u.isIscritto() and !u.corsi.isEmpty() and (abbonamenti.get(u.id) == null or abbonamenti.get(u.id).stato(oggi).name() != 'ATTIVO')}">abbonamento non attivo</span>

@@ -174,10 +174,10 @@ public class SecurityConfig {
         };
         http
             .authorizeHttpRequests(a -> a
-                // /login e i file CSS sono pubblici (senza questo non si vedrebbe nemmeno il login).
+                // /login e i file CSS e JavaScript sono pubblici (senza questo non si vedrebbe nemmeno il login).
                 // /error è la pagina interna a cui Spring Boot passa gli errori (404, 500...):
                 // se non fosse pubblica, anche la pagina di errore chiederebbe il login.
-                .requestMatchers("/login", "/css/**", "/error", "/privacy",
+                .requestMatchers("/login", "/css/**", "/js/**", "/error", "/privacy",
                         "/registrazione", "/registrazione/**", "/password-dimenticata", "/password/imposta").permitAll()
                 // La radice "/" manda ognuno alla propria pagina (admin: pannello, altri: area): basta essere loggati.
                 .requestMatchers("/").authenticated()

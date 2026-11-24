@@ -9,7 +9,6 @@ package it.palestra.service;
 
 import it.palestra.exception.RegolaViolataException;
 import it.palestra.exception.RisorsaNonTrovataException;
-import it.palestra.model.Corso;
 import it.palestra.model.Ruolo;
 import it.palestra.model.Utente;
 import it.palestra.repository.AbbonamentoRepository;
@@ -90,12 +89,6 @@ public class UtenteService {
                 .orElseThrow(() -> new RisorsaNonTrovataException("Utente " + id + " non trovato"));
     }
 
-    // Tutti i corsi e tutti i ruoli: servono per mostrare le checkbox nel form.
-    @Transactional(readOnly = true)
-    public List<Corso> tuttiICorsi() {
-        return corsi.findAll();
-    }
-
     // CACHE: @Cacheable("ruoli") = "la prima volta esegui il metodo e salva il risultato nella cache chiamata ruoli; le volte
     // dopo restituisci quello salvato SENZA entrare nel metodo (quindi senza query)".
     // Perché proprio qui: i ruoli sono 3, si leggono ad ogni apertura del form utente e ad ogni richiesta API che li mappa, e
@@ -106,14 +99,6 @@ public class UtenteService {
     @Transactional(readOnly = true)
     public List<Ruolo> tuttiIRuoli() {
         return ruoli.findAllByOrderByIdAsc();
-    }
-
-    // Gli id dei corsi che l'utente TIENE come istruttore (vuoto se è nuovo o non insegna).
-    // Il form li usa per DISATTIVARE quelle checkbox: un istruttore non può iscriversi al corso che tiene.
-    @Transactional(readOnly = true)
-    public Set<Long> idCorsiInsegnati(Long utenteId) {
-        if (utenteId == null) return Set.of();
-        return trova(utenteId).getCorsiInsegnati().stream().map(corso -> corso.getId()).collect(Collectors.toSet());
     }
 
     // true se l'email è già usata da UN ALTRO utente. idDaIgnorare = id dell'utente che stiamo modificando
@@ -147,15 +132,26 @@ public class UtenteService {
 
     // Validazione dei corsi scelti per l'utente (restituisce il messaggio d'errore, oppure vuoto se va bene). Due regole, controllate in quest'ordine:
     //  1) un ISTRUTTORE non può iscriversi come allievo ai corsi che tiene lui stesso;
-    //  2) per ISCRIVERE un ISCRITTO a un corso serve un abbonamento ATTIVO OGGI. La regola riguarda solo i corsi che si AGGIUNGONO: quelli a cui l'utente è già
+    //  2) per ISCRIVERE qualcuno a un corso serve un abbonamento ATTIVO OGGI, per tutti (anche un istruttore o un amministratore che vuole seguire un corso come allievo). La regola riguarda solo i corsi che si AGGIUNGONO: quelli a cui l'utente è già
     //     iscritto restano anche se l'abbonamento è scaduto (si mostra solo un avviso) e togliere corsi si può sempre; ma finché non rinnova non si possono
     //     aggiungerne altri. Un utente appena creato non ha ancora abbonamenti: prima si crea, poi si aggiunge l'abbonamento, poi si scelgono i corsi.
-    // La regola 2 vale solo per chi ha il ruolo ISCRITTO (gli altri non possono avere abbonamenti).
+    // Un abbonamento si può avere solo con il ruolo ISCRITTO: chi non lo ha non può essere iscritto a un corso finché non gli si assegna il ruolo ISCRITTO e non gli si
+    // aggiunge un abbonamento (il messaggio lo dice).
+    // Se i dati non contengono i corsi (corsiIds null: «non toccare i corsi», come fa il modulo del pannello) non c'è niente da controllare.
     @Transactional(readOnly = true)
     public Optional<String> erroreSuiCorsiScelti(DatiUtente f, Long id) {
+        if (f.corsiIds() == null) return Optional.empty();
+        return erroreSuiCorsi(id, f.ruoliIds(), f.corsiIds());
+    }
+
+    // La stessa regola scritta sui soli id: la usano sia erroreSuiCorsiScelti (la API, che sostituisce tutti i corsi) sia IscrizioneService
+    // (iscrizione a un corso alla volta dalla pagina dei corsi dell'utente), così le due strade non possono comportarsi in modo diverso.
+    // ruoliIds = i ruoli che l'utente avrà; corsiIds = i corsi che avrà dopo l'operazione.
+    @Transactional(readOnly = true)
+    public Optional<String> erroreSuiCorsi(Long id, List<Long> ruoliIds, List<Long> corsiIds) {
         if (id != null) {
             String conflitti = trova(id).getCorsiInsegnati().stream()
-                    .filter(c -> f.corsiIds().contains(c.getId()))
+                    .filter(c -> corsiIds.contains(c.getId()))
                     .map(corso -> corso.getNome())
                     .sorted()
                     .collect(Collectors.joining(", "));
@@ -163,15 +159,19 @@ public class UtenteService {
                 return Optional.of("Non puoi iscrivere un istruttore ai corsi che tiene lui stesso: " + conflitti);
             }
         }
-        if (contieneRuolo(f.ruoliIds(), Ruolo.ISCRITTO) && !haAbbonamentoAttivo(id)) {
+        if (!haAbbonamentoAttivo(id)) {
             Set<Long> giaIscritto = id == null ? Set.of()
                     : trova(id).getCorsi().stream().map(c -> c.getId()).collect(Collectors.toSet());
-            String nuovi = corsi.findAllById(f.corsiIds()).stream()
+            String nuovi = corsi.findAllById(corsiIds).stream()
                     .filter(c -> !giaIscritto.contains(c.getId()))
                     .map(corso -> corso.getNome())
                     .sorted()
                     .collect(Collectors.joining(", "));
             if (!nuovi.isEmpty()) {
+                if (!contieneRuolo(ruoliIds, Ruolo.ISCRITTO)) {
+                    return Optional.of("Per iscrivere un utente a un corso servono il ruolo ISCRITTO e un abbonamento attivo oggi (corsi da aggiungere: " + nuovi
+                            + "). Assegna il ruolo ISCRITTO dalla pagina di modifica dell'utente e aggiungi l'abbonamento dalla pagina Abbonamenti. I corsi a cui è già iscritto restano.");
+                }
                 return Optional.of("Per iscrivere un utente a un corso serve un abbonamento attivo oggi (corsi da aggiungere: " + nuovi
                         + "). Aggiungi o rinnova l'abbonamento dalla pagina Abbonamenti. I corsi a cui è già iscritto restano.");
             }
@@ -280,7 +280,9 @@ public class UtenteService {
         u.setIndirizzo(vuotoANull(f.indirizzo()));      // i campi dell'indirizzo sono facoltativi: testo vuoto = nessun valore
         u.setCap(vuotoANull(f.cap()));
         u.setCitta(vuotoANull(f.citta()));
-        u.setCorsi(new HashSet<>(corsi.findAllById(f.corsiIds())));
+        if (f.corsiIds() != null) {            // null = non toccare i corsi (il modulo del pannello non li gestisce più)
+            u.setCorsi(new HashSet<>(corsi.findAllById(f.corsiIds())));
+        }
         u.setRuoli(new HashSet<>(ruoli.findAllById(f.ruoliIds())));
         // La password si cambia SOLO se è stata scritta: nel database finisce l'hash bcrypt, mai il testo.
         if (f.password() != null && !f.password().isEmpty()) {

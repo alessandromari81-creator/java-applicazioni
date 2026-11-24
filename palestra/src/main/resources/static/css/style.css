@@ -47,6 +47,10 @@ th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e5e7eb; vert
 .azioni { display: flex; gap: 6px; }
 .col-azioni { white-space: nowrap; width: 1%; }
 .azioni form { margin: 0; }
+.azioni .btn, .azioni button { padding: 6px 10px; }    /* pulsanti delle righe un po' più compatti: la colonna delle azioni occupa meno spazio */
+
+/* Colonna email delle liste: va a capo anche dentro una parola lunga (altrimenti un indirizzo lungo allarga la tabella e la scheda scorre in orizzontale). */
+.col-email { overflow-wrap: anywhere; }
 
 /* "Etichetta" colorata per ogni corso dell'utente. */
 .tag { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 10px; padding: 2px 8px; font-size: 12px; margin: 1px; }
@@ -139,3 +143,15 @@ th .freccia { font-size: 11px; color: #2563eb; }
 .tag-avviso { background: #fef3c7; color: #92400e; }
 .aiuto-avviso { display: block; background: #fffbeb; border-left: 3px solid #f59e0b; padding: 6px 10px; color: #92400e; }
 .avviso { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 12px 0; color: #92400e; }
+
+/* Pulsante piccolo dentro una cella di tabella (es. «Corsi (3)» nella lista utenti) e link dentro un riquadro di errore. */
+.btn-piccolo { padding: 4px 10px; font-size: 13px; }
+.err a { color: #991b1b; text-decoration: underline; }
+
+/* Finestra di dialogo di conferma (<dialog>, vedi templates/fragments/conferma.html e static/js/conferma.js). ::backdrop è lo sfondo scurito
+   che copre la pagina mentre la finestra è aperta. */
+dialog.conferma { border: 0; border-radius: 8px; padding: 24px; max-width: 420px; width: calc(100% - 32px); box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+dialog.conferma::backdrop { background: rgba(0, 0, 0, .45); }
+dialog.conferma h2 { margin-top: 0; }
+dialog.conferma .azioni { justify-content: flex-end; margin-top: 20px; }
+button:disabled { background: #9ca3af; cursor: not-allowed; }
