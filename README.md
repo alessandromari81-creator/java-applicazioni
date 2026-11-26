@@ -2,6 +2,8 @@
 
 [![Test](https://github.com/alessandromari81-creator/java-applicazioni/actions/workflows/test.yml/badge.svg)](https://github.com/alessandromari81-creator/java-applicazioni/actions/workflows/test.yml)
 
+**Sviluppato con il supporto di Claude (sviluppo assistito da AI).**
+
 Raccolta di applicazioni Java di Alessandro. Oggi contiene una sola applicazione:
 
 | Cartella | Cosa è |
